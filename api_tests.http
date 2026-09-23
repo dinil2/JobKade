@@ -1,0 +1,91 @@
+### Job Kade - Complete REST API Test Suite
+# Cardiff Metropolitan University / ICBT Computing Project CSE5015
+@baseUrl = http://localhost:8000
+@adminEmail = admin@jobkade.lk
+@customerEmail = customer@gmail.com
+@workerEmail = sunil.electric@gmail.com
+@password = admin@123
+
+### 1. Categories
+GET {{baseUrl}}/api/categories.php
+Accept: application/json
+
+### 2. Login as Admin
+# @name adminLogin
+POST {{baseUrl}}/api/auth.php?action=login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{password}}"
+}
+
+### 3. Login as Customer
+POST {{baseUrl}}/api/auth.php?action=login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "customer@123"
+}
+
+### 4. Search Workers by Location (Colombo Coordinates & Category)
+GET {{baseUrl}}/api/workers.php?action=search&lat=6.9271&lng=79.8612&category_id=1
+Accept: application/json
+
+### 5. Get Open Maintenance Jobs
+GET {{baseUrl}}/api/jobs.php?action=list
+Accept: application/json
+
+### 6. Get Subscription Plans
+GET {{baseUrl}}/api/subscriptions.php?action=plans
+Accept: application/json
+
+### 7. View Digital Payment Receipt
+GET {{baseUrl}}/api/subscriptions.php?action=receipt&receipt_number=RCPT-202609-001
+Accept: application/json
+
+### 8. Admin System Activity Stats
+GET {{baseUrl}}/api/admin.php?action=stats
+Accept: application/json
+
+### 9. Login as Worker (Sunil Perera)
+# @name workerLogin
+POST {{baseUrl}}/api/auth.php?action=login
+Content-Type: application/json
+
+{
+  "email": "{{workerEmail}}",
+  "password": "worker@123"
+}
+
+### 10. Send Message (Customer -> Worker #3)
+POST {{baseUrl}}/api/messages.php?action=send
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+
+{
+  "receiver_id": 3,
+  "job_id": null,
+  "message_text": "Hello Mr. Sunil, are you available for an electrical inspection this weekend?"
+}
+
+### 11. Get Conversation History with Worker #3
+GET {{baseUrl}}/api/messages.php?action=conversation&with_user_id=3
+Accept: application/json
+Authorization: Bearer {{customerToken}}
+
+### 12. Mark Incoming Messages as Read
+POST {{baseUrl}}/api/messages.php?action=read
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+
+{
+  "sender_id": 3
+}
+
+### 13. Get Conversations Inbox Summary
+GET {{baseUrl}}/api/messages.php?action=conversations
+Accept: application/json
+Authorization: Bearer {{customerToken}}
+

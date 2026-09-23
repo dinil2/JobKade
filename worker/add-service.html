@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Service — JodKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/worker.css">
+</head>
+<body>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">KP</div></div></div></nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar worker"><div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-blue">KP</div><div><div class="sidebar-user-name">Kasun Perera</div><div class="sidebar-user-role">Worker</div></div></div></div><nav class="sidebar-nav"><div class="sidebar-label">Main</div><a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a><a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a><a href="kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a><a href="my-services.html" class="sidebar-link active"><i data-lucide="briefcase"></i> My Services</a><a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a><a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a><a href="subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a><div class="sidebar-label">Account</div><a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a><a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a></nav><div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div></aside>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header"><h1>Add New Service</h1><p>Create a new service listing to attract customers.</p></div>
+
+      <div class="service-form-card">
+        <form id="service-form">
+          <div class="form-group"><label class="form-label">Service Title <span>*</span></label><input type="text" id="service-title-input" name="service-title" class="form-input" placeholder="e.g. Home Electrical Repairs" required></div>
+          <div class="form-group"><label class="form-label">Category <span>*</span></label><select id="service-category-input" class="form-select" required><option value="">Select category</option><option value="1" selected>Electrical</option><option value="2">Plumbing</option><option value="3">AC Repair</option><option value="4">Painting</option><option value="5">Carpentry</option><option value="6">Masonry & Tiling</option><option value="7">Cleaning</option><option value="8">Appliance Repair</option><option value="9">Other</option></select></div>
+          <div class="form-group"><label class="form-label">Description <span>*</span></label><textarea id="service-desc-input" class="form-textarea" placeholder="Describe this service in detail..." required></textarea></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Starting Service Price (Rs.) <span>*</span></label><input type="number" id="service-price-input" class="form-input" placeholder="e.g. 2500" min="100" required></div>
+            <div class="form-group"><label class="form-label">Pricing Model</label><select id="service-pricing-type-input" class="form-select"><option value="fixed" selected>Per Job (Fixed Rate)</option><option value="starting_at">Starting From (Final Price on Completion)</option></select></div>
+          </div>
+          <div class="form-group"><label class="form-label">Service Location</label><input type="text" id="service-location-input" class="form-input" placeholder="e.g. Colombo, Dehiwala, Mount Lavinia"></div>
+          <div class="form-group">
+            <label class="form-label">Service Images</label>
+            <label class="file-upload"><i data-lucide="image" width="36" height="36"></i><p>Upload images of your work</p><span class="file-types">JPG, PNG (Max 5 images)</span><input type="file" id="service-images" accept=".jpg,.jpeg,.png" multiple></label>
+            <div id="service-preview-grid" class="image-preview-grid"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Availability</label>
+            <select id="service-avail-input" class="form-select"><option value="1" selected>Available</option><option value="0">Temporarily Unavailable</option></select>
+          </div>
+          <div class="btn-group"><button type="submit" id="btn-save-service" class="btn btn-primary"><i data-lucide="save" width="18" height="18"></i> Save Service</button><a href="my-services.html" class="btn btn-secondary">Cancel</a></div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/worker.js"></script>
+</body>
+</html>

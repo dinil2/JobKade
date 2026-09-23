@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscriptions - JobKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/worker.css">
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="container dashboard-nav">
+      <div class="dashboard-nav-left">
+        <button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button>
+        <a href="../index.html" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg>
+          Job<span>Kade</span>
+        </a>
+      </div>
+      <div class="dashboard-nav-right">
+        <div class="avatar avatar-sm avatar-blue" id="navbar-user-avatar">W</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar worker">
+      <div class="sidebar-header">
+        <div class="sidebar-user">
+          <div class="avatar avatar-md avatar-blue">W</div>
+          <div>
+            <div class="sidebar-user-name">Worker Account</div>
+            <div class="sidebar-user-role">Skilled Professional</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-label">Main</div>
+        <a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a>
+        <a href="kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a>
+        <a href="my-services.html" class="sidebar-link"><i data-lucide="briefcase"></i> My Services</a>
+        <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a>
+        <a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a>
+        <a href="subscription.html" class="sidebar-link active"><i data-lucide="credit-card"></i> Subscriptions</a>
+        <div class="sidebar-label">Account</div>
+        <a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a>
+        <a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>Membership Subscriptions</h1>
+        <p>Reduce your platform commission fee from 10% to 5% and keep 95% of every job payout.</p>
+      </div>
+
+      <!-- Commission Benefit Banner -->
+      <div style="background:linear-gradient(135deg, #0284C7 0%, #0369A1 100%); color:#FFFFFF; border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <i data-lucide="percent" width="22" height="22" style="color:#FFFFFF;"></i>
+            <h3 style="margin:0; font-size:1.15rem; color:#FFFFFF; font-weight:800;">50% Commission Discount for Active Subscribers</h3>
+          </div>
+          <p style="margin:0; font-size:0.875rem; color:rgba(255,255,255,0.9); max-width:650px; line-height:1.5;">
+            Standard workers pay a 10% commission on completed jobs. When you subscribe to either plan below, your commission is automatically reduced to only <strong>5%</strong>!
+          </p>
+        </div>
+        <div style="text-align:right;">
+          <span style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); padding:6px 14px; border-radius:999px; font-size:0.85rem; font-weight:700;">
+            10% &rarr; 5% Benefit
+          </span>
+        </div>
+      </div>
+
+      <!-- Current Plan Status Card -->
+      <div class="current-plan-card" id="subscription-status-card">
+        <div class="current-plan-badge" id="subscription-badge"><i data-lucide="shield-check" width="16" height="16"></i> Current Status</div>
+        <h3 id="current-plan-title">Standard Tier (10% Commission)</h3>
+        <p id="current-plan-desc">No active subscription. You pay 10% platform fee per completed job. Subscribe below to drop to 5%!</p>
+      </div>
+
+      <!-- Pricing Cards -->
+      <h3 class="mb-2 mt-4">Available Subscription Plans</h3>
+      <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+        
+        <!-- Monthly Plan (Rs. 3,000) -->
+        <div class="pricing-card popular" style="border: 2px solid var(--primary);">
+          <div class="popular-badge">Monthly Membership</div>
+          <div class="pricing-header">
+            <h3>Monthly Plan</h3>
+            <div class="pricing-amount">Rs. 3,000<span>/month</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li style="color:var(--primary); font-weight:700;"><i data-lucide="check" width="16" height="16"></i> <strong>5% Platform Commission</strong> (Reduced from 10%)</li>
+            <li><i data-lucide="check" width="16" height="16"></i> Unlimited customer job board access</li>
+            <li><i data-lucide="check" width="16" height="16"></i> View direct customer contacts</li>
+            <li><i data-lucide="check" width="16" height="16"></i> Verified priority listing on map</li>
+            <li><i data-lucide="check" width="16" height="16"></i> 30 days continuous validity</li>
+          </ul>
+          <button class="btn btn-primary w-full choose-plan-btn" data-plan-id="1" data-plan-name="Monthly Plan" data-plan-price="3000">Choose Monthly Plan</button>
+        </div>
+
+        <!-- Yearly Plan (Rs. 30,000) -->
+        <div class="pricing-card" style="border: 2px solid #16A34A; position:relative;">
+          <div style="position:absolute; top:-12px; right:20px; background:#16A34A; color:#FFFFFF; font-size:0.75rem; font-weight:700; padding:4px 12px; border-radius:999px;">
+            Save Rs. 6,000 (2 Months Free)
+          </div>
+          <div class="pricing-header">
+            <h3>Yearly Plan</h3>
+            <div class="pricing-amount">Rs. 30,000<span>/year</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li style="color:#16A34A; font-weight:700;"><i data-lucide="check" width="16" height="16"></i> <strong>5% Platform Commission</strong> (All Year Long)</li>
+            <li><i data-lucide="check" width="16" height="16"></i> 2 Months Free (Save Rs. 6,000)</li>
+            <li><i data-lucide="check" width="16" height="16"></i> Top search & map ranking for jobs</li>
+            <li><i data-lucide="check" width="16" height="16"></i> Unlimited job requests & applications</li>
+            <li><i data-lucide="check" width="16" height="16"></i> 365 days full validity</li>
+          </ul>
+          <button class="btn btn-success w-full choose-plan-btn" data-plan-id="2" data-plan-name="Yearly Plan" data-plan-price="30000" style="background:#16A34A; border-color:#16A34A; color:#fff;">Choose Yearly Plan</button>
+        </div>
+      </div>
+
+      <!-- Payment Modal -->
+      <div class="modal-overlay" id="payment-modal">
+        <div class="modal" style="max-width:480px;">
+          <div class="modal-header">
+            <h3><i data-lucide="credit-card" width="20" height="20" style="display:inline;vertical-align:middle;color:var(--primary);margin-right:6px;"></i> Subscribe to Membership</h3>
+            <button class="modal-close" data-dismiss="modal"><i data-lucide="x" width="20" height="20"></i></button>
+          </div>
+          <div class="modal-body" style="padding:20px 24px;">
+            <div style="background:#F0F9FF; border:1px solid #BAE6FD; border-radius:var(--radius-md); padding:16px; margin-bottom:16px;">
+              <span style="font-size:0.8rem; color:#0369A1; font-weight:600; text-transform:uppercase;">Selected Plan</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+                <h4 id="selected-plan-title" style="margin:0; font-size:1.15rem; color:#0F172A;">Monthly Plan</h4>
+                <strong id="selected-plan-price-display" style="font-size:1.3rem; color:var(--primary);">Rs. 3,000.00</strong>
+              </div>
+              <p style="margin:6px 0 0; font-size:0.8rem; color:#16A34A; font-weight:600;"><i data-lucide="check-circle" width="12" height="12" style="display:inline;vertical-align:middle;"></i> Commission drops to 5%</p>
+            </div>
+
+            <!-- Simulated Card Information -->
+            <div style="border:1px solid var(--border); border-radius:var(--radius-md); padding:14px; background:var(--bg-alt); margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Demo IPG Payment Card</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);">One-Click Pay</span>
+              </div>
+              <input type="text" class="form-input" value="4111 2222 3333 4444" readonly style="margin-bottom:8px; font-family:monospace; font-weight:600;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <input type="text" class="form-input" value="12/28" readonly style="font-family:monospace; text-align:center;">
+                <input type="text" class="form-input" value="CVC: 888" readonly style="font-family:monospace; text-align:center;">
+              </div>
+            </div>
+            <input type="hidden" id="selected-plan-id" value="1">
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary" id="confirm-payment" style="font-weight:700;">
+              <i data-lucide="check" width="16" height="16"></i> Pay & Subscribe
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/worker.js"></script>
+</body>
+</html>

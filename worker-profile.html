@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasun Perera — Professional Electrician — JodKade</title>
+  <meta name="description" content="View Kasun Perera's profile — verified professional electrician serving Colombo. 4.9 rating, 8+ years experience.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="has-navbar">
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a>
+      <div class="nav-links"><a href="index.html">Home</a><a href="workers.html" class="active">Find Workers</a><a href="services.html">Services</a><a href="how-it-works.html">How It Works</a></div>
+      <div class="nav-auth"><a href="auth/login.html" class="btn-login">Login</a><a href="auth/register.html" class="btn btn-primary">Sign Up</a></div>
+      <button class="mobile-menu-btn" aria-label="Menu"><i data-lucide="menu" width="24" height="24"></i></button>
+    </div>
+  </nav>
+  <div class="mobile-menu">
+    <a href="index.html"><i data-lucide="home" width="20" height="20"></i> Home</a><a href="workers.html"><i data-lucide="search" width="20" height="20"></i> Find Workers</a><a href="services.html"><i data-lucide="grid-3x3" width="20" height="20"></i> Services</a><a href="how-it-works.html"><i data-lucide="info" width="20" height="20"></i> How It Works</a>
+    <div class="mobile-auth"><a href="auth/login.html" class="btn btn-outline w-full">Login</a><a href="auth/register.html" class="btn btn-primary w-full">Sign Up</a></div>
+  </div>
+
+  <!-- Profile Banner -->
+  <div class="profile-banner">
+    <div class="container">
+      <div class="profile-top">
+        <img src="assets/images/worker-kasun.png" alt="Kasun Perera" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="avatar avatar-xl avatar-blue" style="display:none;width:120px;height:120px;font-size:2.5rem;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">KP</div>
+        <div class="profile-info">
+          <h1>
+            Kasun Perera
+            <span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>
+          </h1>
+          <div class="profile-profession">Professional Electrician</div>
+          <div class="profile-meta">
+            <div class="profile-meta-item"><i data-lucide="map-pin"></i> Colombo, Sri Lanka</div>
+            <div class="profile-meta-item"><i data-lucide="briefcase"></i> 8+ years experience</div>
+            <div class="profile-meta-item">
+              <div class="star-rating">
+                <i data-lucide="star" width="14" height="14"></i>
+                <i data-lucide="star" width="14" height="14"></i>
+                <i data-lucide="star" width="14" height="14"></i>
+                <i data-lucide="star" width="14" height="14"></i>
+                <i data-lucide="star" width="14" height="14"></i>
+                <span class="rating-value">4.9</span>
+                <span class="rating-count">(47 reviews)</span>
+              </div>
+            </div>
+            <div class="profile-meta-item">
+              <span class="availability-badge available"><span class="status-dot status-available"></span> Available</span>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <a id="btn-banner-msg" href="messages.html" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="message-square" width="18" height="18"></i> Message</a>
+            <a href="tel:+94771234567" class="btn btn-call"><i data-lucide="phone" width="18" height="18"></i> Call</a>
+            <a href="https://wa.me/94771234567" class="btn btn-whatsapp"><i data-lucide="message-circle" width="18" height="18"></i> WhatsApp</a>
+            <button class="btn btn-outline save-worker-btn"><i data-lucide="heart" width="18" height="18"></i> Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Body -->
+  <div class="profile-body">
+    <div class="container">
+      <!-- Main Content -->
+      <div>
+        <!-- About -->
+        <div class="profile-section">
+          <h2>About</h2>
+          <p>I am a professional electrician with over 8 years of experience in residential and commercial electrical work. I specialize in wiring installations, circuit breaker repairs, lighting setups, and electrical fault diagnosis. I take pride in delivering safe, reliable work with clear communication throughout every project.</p>
+        </div>
+
+        <!-- Services -->
+        <div class="profile-section">
+          <h2>Services Offered</h2>
+          <div class="profile-services-grid">
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Electrical Installation</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Wiring Repairs</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Circuit Breaker Repair</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Lighting Installation</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Ceiling Fan Installation</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Electrical Fault Finding</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Generator Setup</div>
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Socket & Switch Replacement</div>
+          </div>
+        </div>
+
+        <!-- Service Areas -->
+        <div class="profile-section">
+          <h2>Service Areas</h2>
+          <p><i data-lucide="map-pin" width="16" height="16" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Serves Colombo, Dehiwala, Mount Lavinia, Nugegoda, and surrounding areas within 15 km.</p>
+        </div>
+
+        <!-- Reviews -->
+        <div class="profile-section">
+          <h2>Reviews</h2>
+
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar">DS</div>
+              <div>
+                <div class="review-name">Dinil Sandaruwan</div>
+                <div class="star-rating"><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i></div>
+                <div class="review-date">August 10, 2026</div>
+              </div>
+            </div>
+            <p class="review-text">Kasun was very professional and fixed our wiring issue quickly. He explained the problem clearly and charged a fair price. Highly recommend!</p>
+          </div>
+
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar">MR</div>
+              <div>
+                <div class="review-name">Malini Rajapaksha</div>
+                <div class="star-rating"><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i></div>
+                <div class="review-date">July 28, 2026</div>
+              </div>
+            </div>
+            <p class="review-text">Excellent work installing new lighting in our house. Kasun was punctual, clean, and very experienced. Will definitely call again.</p>
+          </div>
+
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar">PW</div>
+              <div>
+                <div class="review-name">Priyantha Wijesinghe</div>
+                <div class="star-rating"><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i></div>
+                <div class="review-date">July 15, 2026</div>
+              </div>
+            </div>
+            <p class="review-text">Fixed a tricky circuit breaker issue that another electrician couldn't resolve. Very knowledgeable and affordable. Thank you!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div>
+        <div class="profile-sidebar-card">
+          <h3>Contact Information</h3>
+          <p style="margin-bottom: 16px; font-size: 0.8125rem; color: var(--text-muted);">Contact this worker directly or message in-app.</p>
+          <a id="btn-inapp-chat" href="messages.html" class="btn btn-primary w-full mb-1" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+            <i data-lucide="message-square" width="18" height="18"></i> Send In-App Message
+          </a>
+          <a href="tel:+94771234567" class="btn btn-call w-full mb-1"><i data-lucide="phone" width="18" height="18"></i> Call Now</a>
+          <a href="https://wa.me/94771234567" class="btn btn-whatsapp w-full"><i data-lucide="message-circle" width="18" height="18"></i> WhatsApp</a>
+        </div>
+
+        <div class="profile-sidebar-card">
+          <h3>Details</h3>
+          <div class="profile-detail-row"><span class="profile-detail-label">Experience</span><span class="profile-detail-value">8+ years</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Jobs Done</span><span class="profile-detail-value">156</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Response Time</span><span class="profile-detail-value">~30 mins</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Member Since</span><span class="profile-detail-value">Jan 2025</span></div>
+        </div>
+
+        <div class="profile-sidebar-card">
+          <h3>Verification</h3>
+          <div class="info-notice" style="margin-top: 8px;">
+            <i data-lucide="shield-check"></i>
+            <div>
+              <strong>Verified Worker</strong>
+              <p style="margin-top: 4px;">Verified workers have submitted identity documents that were reviewed by JodKade administrators.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand"><a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a><p>Find trusted local professionals for your everyday service needs.</p></div>
+        <div class="footer-column"><h4>Quick Links</h4><div class="footer-links"><a href="index.html">Home</a><a href="workers.html">Find Workers</a><a href="services.html">Services</a></div></div>
+        <div class="footer-column"><h4>For Workers</h4><div class="footer-links"><a href="auth/register.html">Offer Your Service</a><a href="auth/login.html">Worker Login</a></div></div>
+        <div class="footer-column"><h4>Support</h4><div class="footer-links"><a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">Privacy Policy</a></div></div>
+      </div>
+      <div class="footer-bottom"><p>&copy; 2026 JodKade. All rights reserved.</p><p>Trusted local professionals, one simple platform.</p></div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const workerId = urlParams.get('id') || '1';
+      let workerUserId = 3; // Default seeded worker user id
+
+      function navigateToMessages(e) {
+        if (e) e.preventDefault();
+        const user = getLoggedInUser();
+        const token = getAuthToken();
+        const targetUrl = 'messages.html?recipient_id=' + workerUserId;
+
+        if (!token || !user) {
+          // If customer not logged in, take them to login with return redirect
+          window.location.href = 'auth/login.html?redirect=' + encodeURIComponent(targetUrl);
+        } else {
+          // In customer login, directly goto the message interface of webapp
+          window.location.href = targetUrl;
+        }
+      }
+
+      // Pre-bind message buttons
+      const bannerMsgBtn = document.getElementById('btn-banner-msg');
+      if (bannerMsgBtn) bannerMsgBtn.addEventListener('click', navigateToMessages);
+
+      const inappChatBtn = document.getElementById('btn-inapp-chat');
+      if (inappChatBtn) inappChatBtn.addEventListener('click', navigateToMessages);
+
+      if (workerId) {
+        try {
+          const res = await apiFetch('workers.php?action=profile&id=' + workerId);
+          if (res.ok && res.data && res.data.status === 'success' && res.data.worker) {
+            const w = res.data.worker;
+            const nameEl = document.querySelector('.profile-header-info h1, h1');
+            if (nameEl && w.full_name) nameEl.textContent = w.full_name;
+            const bioEl = document.querySelector('.profile-card p');
+            if (bioEl && w.bio) bioEl.textContent = w.bio;
+            
+            if (w.user_id) {
+              workerUserId = parseInt(w.user_id, 10);
+              const targetUrl = 'messages.html?recipient_id=' + workerUserId;
+              if (bannerMsgBtn) bannerMsgBtn.href = targetUrl;
+              if (inappChatBtn) inappChatBtn.href = targetUrl;
+            }
+
+            if (w.phone) {
+              const callBtns = document.querySelectorAll('a.btn-call');
+              callBtns.forEach(b => b.href = 'tel:' + w.phone);
+              const waBtns = document.querySelectorAll('a.btn-whatsapp');
+              const phoneClean = w.phone.replace(/\D/g, '');
+              const waNum = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
+              waBtns.forEach(b => b.href = 'https://wa.me/' + waNum);
+            }
+          }
+        } catch (e) {
+          console.warn('Could not load worker profile:', e);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

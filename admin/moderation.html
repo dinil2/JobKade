@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Moderation — JodKade Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span> <span class="badge badge-pending" style="margin-left:8px;font-size:0.7rem;">ADMIN</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-purple">AD</div></div></div></nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar admin">
+      <div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-purple">AD</div><div><div class="sidebar-user-name">System Administrator</div><div class="sidebar-user-role">Platform Admin</div></div></div></div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-label">Management</div>
+        <a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Overview</a>
+        <a href="verification.html" class="sidebar-link"><i data-lucide="shield-check"></i> Worker Verification <span class="badge badge-pending" style="margin-left:auto;font-size:0.7rem;">3</span></a>
+        <a href="workers.html" class="sidebar-link"><i data-lucide="users"></i> Manage Workers</a>
+        <a href="customers.html" class="sidebar-link"><i data-lucide="user-check"></i> Manage Customers</a>
+        <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Job Requests</a>
+        <a href="moderation.html" class="sidebar-link active"><i data-lucide="flag"></i> Moderation</a>
+        <div class="sidebar-label">Insights</div>
+        <a href="analytics.html" class="sidebar-link"><i data-lucide="bar-chart-3"></i> Analytics & Reports</a>
+      </nav>
+      <div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div>
+    </aside>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>Content Moderation & Reports</h1>
+        <p>Review user reports, flagged reviews, and inappropriate content across the platform.</p>
+      </div>
+
+      <div class="tabs" data-tabs>
+        <button class="tab active">Flagged Reviews (2)</button>
+        <button class="tab">User Reports (1)</button>
+        <button class="tab">Resolved (18)</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="report-card">
+          <div class="report-header">
+            <div>
+              <span class="badge badge-cancelled"><i data-lucide="flag" width="10" height="10"></i> Flagged Review</span>
+              <h3 style="margin-top:6px;">Reported Review on Worker "Kasun Perera"</h3>
+              <p class="text-sm text-secondary">Reported by User #4029 • Aug 14, 2026</p>
+            </div>
+            <span class="badge badge-pending">Under Review</span>
+          </div>
+
+          <div style="background:#F9FAFB;padding:14px;border-radius:8px;margin:12px 0;border-left:4px solid #EF4444;">
+            <strong style="display:block;margin-bottom:4px;font-size:0.875rem;">Flagged Review Content:</strong>
+            <p style="font-size:0.875rem;color:#4B5563;">"This worker was completely unhelpful and used abusive language when I called..."</p>
+          </div>
+
+          <p class="text-sm"><strong>Reason for report:</strong> Offensive or abusive language in review comment.</p>
+
+          <div class="report-actions">
+            <button class="btn btn-danger btn-sm remove-content-btn"><i data-lucide="trash-2" width="14" height="14"></i> Remove Content</button>
+            <button class="btn btn-outline btn-sm dismiss-report-btn"><i data-lucide="check" width="14" height="14"></i> Dismiss Report</button>
+          </div>
+        </div>
+
+        <div class="report-card">
+          <div class="report-header">
+            <div>
+              <span class="badge badge-cancelled"><i data-lucide="user-x" width="10" height="10"></i> User Report</span>
+              <h3 style="margin-top:6px;">Reported Profile "Fake Electrician Account"</h3>
+              <p class="text-sm text-secondary">Reported by User #1092 • Aug 11, 2026</p>
+            </div>
+            <span class="badge badge-pending">Under Review</span>
+          </div>
+
+          <div style="background:#F9FAFB;padding:14px;border-radius:8px;margin:12px 0;border-left:4px solid #F59E0B;">
+            <strong style="display:block;margin-bottom:4px;font-size:0.875rem;">Report Details:</strong>
+            <p style="font-size:0.875rem;color:#4B5563;">"Worker listing contains suspicious contact numbers and fake credentials."</p>
+          </div>
+
+          <p class="text-sm"><strong>Reason for report:</strong> Fraudulent or misrepresentative profile.</p>
+
+          <div class="report-actions">
+            <button class="btn btn-danger btn-sm remove-content-btn"><i data-lucide="user-x" width="14" height="14"></i> Suspend User</button>
+            <button class="btn btn-outline btn-sm dismiss-report-btn"><i data-lucide="check" width="14" height="14"></i> Dismiss Report</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remove Content Modal -->
+      <div class="modal-overlay" id="remove-content-modal">
+        <div class="modal">
+          <div class="modal-header"><h3>Confirm Content Removal</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
+          <div class="modal-body">
+            <div class="modal-confirm-icon danger"><i data-lucide="trash-2"></i></div>
+            <p class="text-center">Are you sure you want to remove this content? It will be permanently hidden from the platform.</p>
+          </div>
+          <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirm-remove-content">Remove Content</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

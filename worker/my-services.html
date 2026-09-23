@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Services — JodKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/worker.css">
+</head>
+<body>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">KP</div></div></div></nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar worker"><div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-blue">KP</div><div><div class="sidebar-user-name">Kasun Perera</div><div class="sidebar-user-role">Worker</div></div></div></div><nav class="sidebar-nav"><div class="sidebar-label">Main</div><a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a><a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a><a href="kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a><a href="my-services.html" class="sidebar-link active"><i data-lucide="briefcase"></i> My Services</a><a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a><a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a><a href="subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a><div class="sidebar-label">Account</div><a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a><a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a></nav><div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div></aside>
+
+    <main class="dashboard-main">
+      <div class="services-header">
+        <div><h1>My Services</h1><p>Manage your service listings and professional gigs.</p></div>
+        <a href="add-service.html" class="btn btn-primary"><i data-lucide="plus" width="18" height="18"></i> Add New Service</a>
+      </div>
+
+      <div class="services-grid" id="worker-services-container">
+        <div class="empty-state" id="worker-services-loading" style="text-align:center; padding: 40px 16px; grid-column: 1 / -1;">
+          <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 12px;"></i>
+          <p style="color: var(--text-secondary);">Loading your services...</p>
+        </div>
+      </div>
+
+      <!-- Delete Confirmation Modal -->
+      <div class="modal-overlay" id="delete-service-modal">
+        <div class="modal">
+          <div class="modal-header"><h3>Delete Service</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
+          <div class="modal-body"><div class="modal-confirm-icon warning"><i data-lucide="alert-triangle"></i></div><p class="text-center">Are you sure you want to delete this service? This action cannot be undone.</p></div>
+          <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirm-delete-service">Delete Service</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/worker.js"></script>
+</body>
+</html>

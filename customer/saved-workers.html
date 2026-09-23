@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saved Workers — JodKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/customer.css">
+</head>
+<body>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">D</div></div></div></nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar customer">
+      <div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-blue">D</div><div><div class="sidebar-user-name">Dinil Sandaruwan</div><div class="sidebar-user-role">Customer</div></div></div></div>
+      <nav class="sidebar-nav"><div class="sidebar-label">Main</div><a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a><a href="../workers.html" class="sidebar-link"><i data-lucide="search"></i> Find Workers</a><a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> My Job Requests</a><a href="post-job.html" class="sidebar-link"><i data-lucide="plus-circle"></i> Post a Job</a><a href="saved-workers.html" class="sidebar-link active"><i data-lucide="heart"></i> Saved Workers</a><div class="sidebar-label">Account</div><a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a><a href="profile.html" class="sidebar-link"><i data-lucide="user"></i> Profile</a></nav>
+      <div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div>
+    </aside>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header"><h1>Saved Workers</h1><p>Workers you've saved for quick access.</p></div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;">
+        <div class="saved-worker-card">
+          <div class="avatar avatar-lg avatar-blue">KP</div>
+          <div class="saved-worker-info">
+            <h4>Kasun Perera <span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span></h4>
+            <p class="text-sm text-secondary" style="margin:4px 0;">Professional Electrician</p>
+            <div style="display:flex;gap:12px;font-size:0.8125rem;color:var(--text-secondary);"><span><i data-lucide="map-pin" width="12" height="12" style="display:inline;vertical-align:middle;"></i> Colombo</span><span><i data-lucide="star" width="12" height="12" style="display:inline;vertical-align:middle;color:#F59E0B;"></i> 4.9</span></div>
+          </div>
+          <div class="saved-worker-actions">
+            <a href="../worker-profile.html?id=1" class="btn btn-outline btn-sm">View</a>
+            <a href="../messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message"><i data-lucide="message-square" width="14" height="14"></i></a>
+            <button class="btn btn-ghost btn-sm remove-saved-btn" style="color:var(--error);"><i data-lucide="x" width="16" height="16"></i></button>
+          </div>
+        </div>
+
+        <div class="saved-worker-card">
+          <div class="avatar avatar-lg avatar-green">NF</div>
+          <div class="saved-worker-info">
+            <h4>Nimal Fernando <span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span></h4>
+            <p class="text-sm text-secondary" style="margin:4px 0;">Expert Plumber</p>
+            <div style="display:flex;gap:12px;font-size:0.8125rem;color:var(--text-secondary);"><span><i data-lucide="map-pin" width="12" height="12" style="display:inline;vertical-align:middle;"></i> Negombo</span><span><i data-lucide="star" width="12" height="12" style="display:inline;vertical-align:middle;color:#F59E0B;"></i> 4.8</span></div>
+          </div>
+          <div class="saved-worker-actions">
+            <a href="../worker-profile.html?id=2" class="btn btn-outline btn-sm">View</a>
+            <a href="../messages.html?user_id=4" class="btn btn-primary btn-sm btn-icon-sm" title="Message"><i data-lucide="message-square" width="14" height="14"></i></a>
+            <button class="btn btn-ghost btn-sm remove-saved-btn" style="color:var(--error);"><i data-lucide="x" width="16" height="16"></i></button>
+          </div>
+        </div>
+
+        <div class="saved-worker-card">
+          <div class="avatar avatar-lg avatar-orange">AS</div>
+          <div class="saved-worker-info">
+            <h4>Amal Silva <span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span></h4>
+            <p class="text-sm text-secondary" style="margin:4px 0;">AC Technician</p>
+            <div style="display:flex;gap:12px;font-size:0.8125rem;color:var(--text-secondary);"><span><i data-lucide="map-pin" width="12" height="12" style="display:inline;vertical-align:middle;"></i> Dehiwala</span><span><i data-lucide="star" width="12" height="12" style="display:inline;vertical-align:middle;color:#F59E0B;"></i> 4.7</span></div>
+          </div>
+          <div class="saved-worker-actions">
+            <a href="../worker-profile.html?id=3" class="btn btn-outline btn-sm">View</a>
+            <a href="../messages.html?user_id=5" class="btn btn-primary btn-sm btn-icon-sm" title="Message"><i data-lucide="message-square" width="14" height="14"></i></a>
+            <button class="btn btn-ghost btn-sm remove-saved-btn" style="color:var(--error);"><i data-lucide="x" width="16" height="16"></i></button>
+          </div>
+        </div>
+
+        <div class="saved-worker-card">
+          <div class="avatar avatar-lg avatar-purple">TJ</div>
+          <div class="saved-worker-info">
+            <h4>Tharindu Jayasinghe <span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span></h4>
+            <p class="text-sm text-secondary" style="margin:4px 0;">Master Carpenter</p>
+            <div style="display:flex;gap:12px;font-size:0.8125rem;color:var(--text-secondary);"><span><i data-lucide="map-pin" width="12" height="12" style="display:inline;vertical-align:middle;"></i> Kandy</span><span><i data-lucide="star" width="12" height="12" style="display:inline;vertical-align:middle;color:#F59E0B;"></i> 4.9</span></div>
+          </div>
+          <div class="saved-worker-actions">
+            <a href="../worker-profile.html?id=1" class="btn btn-outline btn-sm">View</a>
+            <a href="../messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message"><i data-lucide="message-square" width="14" height="14"></i></a>
+            <button class="btn btn-ghost btn-sm remove-saved-btn" style="color:var(--error);"><i data-lucide="x" width="16" height="16"></i></button>
+          </div>
+        </div>
+
+        <div class="saved-worker-card">
+          <div class="avatar avatar-lg avatar-teal">RS</div>
+          <div class="saved-worker-info">
+            <h4>Ruwan Samarasinghe <span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span></h4>
+            <p class="text-sm text-secondary" style="margin:4px 0;">Painter</p>
+            <div style="display:flex;gap:12px;font-size:0.8125rem;color:var(--text-secondary);"><span><i data-lucide="map-pin" width="12" height="12" style="display:inline;vertical-align:middle;"></i> Colombo</span><span><i data-lucide="star" width="12" height="12" style="display:inline;vertical-align:middle;color:#F59E0B;"></i> 4.6</span></div>
+          </div>
+          <div class="saved-worker-actions">
+            <a href="../worker-profile.html?id=1" class="btn btn-outline btn-sm">View</a>
+            <a href="../messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message"><i data-lucide="message-square" width="14" height="14"></i></a>
+            <button class="btn btn-ghost btn-sm remove-saved-btn" style="color:var(--error);"><i data-lucide="x" width="16" height="16"></i></button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/customer.js"></script>
+</body>
+</html>

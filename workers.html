@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Workers — JodKade</title>
+  <meta name="description" content="Search and browse verified skilled workers near you. Filter by category, location, rating and availability.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .worker-card-img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 12px 12px 0 0;
+      background: var(--bg-gray);
+    }
+  </style>
+</head>
+<body class="has-navbar">
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg>
+        Jod<span>Kade</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="workers.html" class="active">Find Workers</a>
+        <a href="services.html">Services</a>
+        <a href="how-it-works.html">How It Works</a>
+      </div>
+      <div class="nav-auth">
+        <a href="auth/login.html" class="btn-login">Login</a>
+        <a href="auth/register.html" class="btn btn-primary">Sign Up</a>
+      </div>
+      <button class="mobile-menu-btn" aria-label="Menu"><i data-lucide="menu" width="24" height="24"></i></button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu">
+    <a href="index.html"><i data-lucide="home" width="20" height="20"></i> Home</a>
+    <a href="workers.html"><i data-lucide="search" width="20" height="20"></i> Find Workers</a>
+    <a href="services.html"><i data-lucide="grid-3x3" width="20" height="20"></i> Services</a>
+    <a href="how-it-works.html"><i data-lucide="info" width="20" height="20"></i> How It Works</a>
+    <div class="mobile-auth">
+      <a href="auth/login.html" class="btn btn-outline w-full">Login</a>
+      <a href="auth/register.html" class="btn btn-primary w-full">Sign Up</a>
+    </div>
+  </div>
+
+  <!-- Search Header -->
+  <div class="search-page-header">
+    <div class="container">
+      <h1>Find the right worker for your job</h1>
+      <div class="search-bar-large">
+        <input type="text" id="search-service-input" placeholder="What service do you need? (e.g. Electrical, Plumber)" aria-label="Service">
+        <div class="search-divider"></div>
+        <input type="text" id="search-location-input" placeholder="Enter location (e.g. Colombo)" aria-label="Location">
+        <button class="btn btn-primary" id="btn-header-search"><i data-lucide="search" width="18" height="18"></i> Search</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Results -->
+  <section class="section" style="padding-top: 40px;">
+    <div class="container">
+      <div class="search-results-layout">
+        <!-- Filters Sidebar -->
+        <aside class="filter-sidebar">
+          <div class="filter-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h3 style="font-size:1.125rem;margin:0;">Filters</h3>
+              <button id="reset-filters-btn" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:4px 8px;">Reset All</button>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="filter-group">
+              <h4>Category</h4>
+              <label class="filter-option"><input type="checkbox" class="cat-filter" value="electrical"> Electrical</label>
+              <label class="filter-option"><input type="checkbox" class="cat-filter" value="plumbing"> Plumbing</label>
+              <label class="filter-option"><input type="checkbox" class="cat-filter" value="ac-repair"> AC Repair</label>
+              <label class="filter-option"><input type="checkbox" class="cat-filter" value="carpentry"> Carpentry</label>
+              <label class="filter-option"><input type="checkbox" class="cat-filter" value="painting"> Painting</label>
+              <label class="filter-option"><input type="checkbox" class="cat-filter" value="cleaning"> Cleaning</label>
+            </div>
+
+            <!-- Location Filter -->
+            <div class="filter-group">
+              <h4>Location</h4>
+              <label class="filter-option"><input type="checkbox" class="loc-filter" value="colombo"> Colombo</label>
+              <label class="filter-option"><input type="checkbox" class="loc-filter" value="negombo"> Negombo</label>
+              <label class="filter-option"><input type="checkbox" class="loc-filter" value="kandy"> Kandy</label>
+              <label class="filter-option"><input type="checkbox" class="loc-filter" value="dehiwala"> Dehiwala</label>
+              <label class="filter-option"><input type="checkbox" class="loc-filter" value="mount-lavinia"> Mount Lavinia</label>
+            </div>
+
+            <!-- Verification Filter -->
+            <div class="filter-group">
+              <h4>Verification</h4>
+              <label class="filter-option"><input type="checkbox" id="filter-verified" checked> Verified only</label>
+            </div>
+
+            <!-- Availability Filter -->
+            <div class="filter-group">
+              <h4>Availability</h4>
+              <label class="filter-option"><input type="checkbox" id="filter-available"> Available now only</label>
+            </div>
+
+            <button id="apply-filters-btn" class="btn btn-primary w-full btn-sm mt-2">Apply Filters</button>
+          </div>
+        </aside>
+
+        <!-- Results Grid -->
+        <div>
+          <div class="results-header">
+            <p><strong id="workers-count">6</strong> workers found</p>
+            <select class="sort-select" id="sort-select" aria-label="Sort by">
+              <option value="recommended">Recommended</option>
+              <option value="rating-high">Highest Rated</option>
+            </select>
+          </div>
+
+          <!-- Active Filter Chips Tag Bar -->
+          <div id="active-chips-container" class="active-filter-chips"></div>
+
+          <div class="results-grid" id="workers-grid">
+            <!-- Dynamically populated from backend database API -->
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px 16px;">
+              <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; color: var(--primary); margin: 0 auto 10px; display:block;"></i>
+              <p style="color: var(--text-secondary);">Loading verified workers...</p>
+            </div>
+          </div>
+
+          <!-- Empty state when no workers match filters -->
+          <div id="no-results-msg" style="display:none;text-align:center;padding:60px 20px;background:white;border-radius:12px;border:1px solid var(--border);margin-top:20px;">
+            <i data-lucide="user-x" width="48" height="48" style="color:var(--text-muted);margin-bottom:12px;"></i>
+            <h3>No workers found</h3>
+            <p style="color:var(--text-secondary);max-width:400px;margin:0 auto 20px;">No workers match your selected filters. Try clearing some location or category options.</p>
+            <button id="clear-filters-link" class="btn btn-outline">Clear All Filters</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a>
+          <p>Find trusted local professionals for your everyday service needs.</p>
+        </div>
+        <div class="footer-column"><h4>Quick Links</h4><div class="footer-links"><a href="index.html">Home</a><a href="workers.html">Find Workers</a><a href="services.html">Services</a><a href="how-it-works.html">How It Works</a></div></div>
+        <div class="footer-column"><h4>For Workers</h4><div class="footer-links"><a href="auth/register.html">Offer Your Service</a><a href="auth/login.html">Worker Login</a><a href="worker/subscription.html">Subscriptions</a></div></div>
+        <div class="footer-column"><h4>Support</h4><div class="footer-links"><a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div></div>
+      </div>
+      <div class="footer-bottom"><p>&copy; 2026 JodKade. All rights reserved.</p><p>Trusted local professionals, one simple platform.</p></div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <!-- Real-time Interactive Filtering Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var catCheckboxes = document.querySelectorAll('.cat-filter');
+      var locCheckboxes = document.querySelectorAll('.loc-filter');
+      var verifiedCheckbox = document.getElementById('filter-verified');
+      var availableCheckbox = document.getElementById('filter-available');
+      var serviceInput = document.getElementById('search-service-input');
+      var locationInput = document.getElementById('search-location-input');
+      var applyBtn = document.getElementById('apply-filters-btn');
+      var resetBtn = document.getElementById('reset-filters-btn');
+      var clearLink = document.getElementById('clear-filters-link');
+      var searchBtnHeader = document.getElementById('btn-header-search');
+      var sortSelect = document.getElementById('sort-select');
+
+      // Check URL query parameters (e.g. ?cat=electrical or ?loc=colombo)
+      var urlParams = new URLSearchParams(window.location.search);
+      var initialCat = urlParams.get('cat');
+      var initialLoc = urlParams.get('loc');
+
+      if (initialCat) {
+        catCheckboxes.forEach(function(cb) {
+          if (cb.value === initialCat) cb.checked = true;
+        });
+      }
+
+      if (initialLoc) {
+        locCheckboxes.forEach(function(cb) {
+          if (cb.value === initialLoc) cb.checked = true;
+        });
+      }
+
+      var filterTimeout = null;
+      var gridEl = document.getElementById('workers-grid');
+      var chipsContainer = document.getElementById('active-chips-container');
+
+      function filterWorkers(immediate) {
+        if (filterTimeout) clearTimeout(filterTimeout);
+
+        // Add smooth filtering state to grid
+        if (gridEl && !immediate) {
+          gridEl.classList.add('is-filtering');
+        }
+
+        var delay = immediate ? 0 : 80;
+
+        filterTimeout = setTimeout(function () {
+          var selectedCats = [];
+          catCheckboxes.forEach(function (cb) {
+            if (cb.checked) selectedCats.push(cb.value.toLowerCase());
+          });
+
+          var selectedLocs = [];
+          locCheckboxes.forEach(function (cb) {
+            if (cb.checked) selectedLocs.push(cb.value.toLowerCase());
+          });
+
+          var verifiedOnly = verifiedCheckbox ? verifiedCheckbox.checked : false;
+          var availableOnly = availableCheckbox ? availableCheckbox.checked : false;
+
+          var serviceQuery = serviceInput ? serviceInput.value.trim().toLowerCase() : '';
+          var locationQuery = locationInput ? locationInput.value.trim().toLowerCase() : '';
+
+          var cards = document.querySelectorAll('.worker-card');
+          var visibleCount = 0;
+          var visibleIndex = 0;
+
+          cards.forEach(function (card) {
+            var cardCat = (card.getAttribute('data-category') || '').toLowerCase();
+            var cardLoc = (card.getAttribute('data-location') || '').toLowerCase();
+            var cardVerified = card.getAttribute('data-verified') === 'true';
+            var cardAvailable = card.getAttribute('data-available') === 'true';
+            var cardName = (card.getAttribute('data-name') || '').toLowerCase();
+            var cardText = card.textContent.toLowerCase();
+
+            // 1. Category Filter
+            var catMatch = selectedCats.length === 0 || selectedCats.includes(cardCat);
+
+            // 2. Location Filter
+            var locMatch = true;
+            if (selectedLocs.length > 0) {
+              locMatch = selectedLocs.includes(cardLoc);
+            }
+            if (locMatch && locationQuery !== '') {
+              locMatch = cardLoc.includes(locationQuery) || cardText.includes(locationQuery);
+            }
+
+            // 3. Service Query Match
+            var serviceMatch = serviceQuery === '' || cardText.includes(serviceQuery);
+
+            // 4. Verification Match
+            var verifiedMatch = !verifiedOnly || cardVerified;
+
+            // 5. Availability Match
+            var availableMatch = !availableOnly || cardAvailable;
+
+            if (catMatch && locMatch && serviceMatch && verifiedMatch && availableMatch) {
+              card.style.display = '';
+              // Smooth stagger animation
+              card.classList.remove('card-revealing');
+              void card.offsetWidth; // trigger reflow
+              card.style.animationDelay = (visibleIndex * 0.045) + 's';
+              card.classList.add('card-revealing');
+              visibleCount++;
+              visibleIndex++;
+            } else {
+              card.style.display = 'none';
+              card.classList.remove('card-revealing');
+            }
+          });
+
+          // Render Active Filter Chips
+          renderActiveChips(selectedCats, selectedLocs, verifiedOnly, availableOnly, selectedRate, serviceQuery, locationQuery);
+
+          // Update count with bump animation
+          var countEl = document.getElementById('workers-count');
+          if (countEl) {
+            countEl.textContent = visibleCount;
+            countEl.classList.remove('count-bump');
+            void countEl.offsetWidth;
+            countEl.classList.add('count-bump');
+          }
+
+          var noResultsEl = document.getElementById('no-results-msg');
+          if (noResultsEl) {
+            noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
+          }
+
+          // Remove filtering state from grid
+          if (gridEl) {
+            gridEl.classList.remove('is-filtering');
+          }
+        }, delay);
+      }
+
+      // Render Active Chips
+      function renderActiveChips(cats, locs, verified, available, rate, serviceQuery, locQuery) {
+        if (!chipsContainer) return;
+        var html = '';
+
+        cats.forEach(function (c) {
+          html += '<span class="filter-chip">' + c.charAt(0).toUpperCase() + c.slice(1) + ' <button type="button" class="filter-chip-remove" data-action="remove-cat" data-value="' + c + '">✕</button></span>';
+        });
+
+        locs.forEach(function (l) {
+          html += '<span class="filter-chip">' + l.charAt(0).toUpperCase() + l.slice(1) + ' <button type="button" class="filter-chip-remove" data-action="remove-loc" data-value="' + l + '">✕</button></span>';
+        });
+
+        if (verified) {
+          html += '<span class="filter-chip">Verified Only <button type="button" class="filter-chip-remove" data-action="remove-verified">✕</button></span>';
+        }
+
+        if (available) {
+          html += '<span class="filter-chip">Available Now <button type="button" class="filter-chip-remove" data-action="remove-available">✕</button></span>';
+        }
+
+        if (rate !== 'all') {
+          var rateText = rate === 'under-1800' ? '< Rs. 1,800' : (rate === '1800-2500' ? 'Rs. 1,800 - 2,500' : '> Rs. 2,500');
+          html += '<span class="filter-chip">Rate: ' + rateText + ' <button type="button" class="filter-chip-remove" data-action="remove-rate">✕</button></span>';
+        }
+
+        if (serviceQuery) {
+          html += '<span class="filter-chip">Search: "' + serviceQuery + '" <button type="button" class="filter-chip-remove" data-action="remove-service-query">✕</button></span>';
+        }
+
+        if (locQuery) {
+          html += '<span class="filter-chip">City: "' + locQuery + '" <button type="button" class="filter-chip-remove" data-action="remove-loc-query">✕</button></span>';
+        }
+
+        chipsContainer.innerHTML = html;
+
+        // Attach chip remove listeners
+        chipsContainer.querySelectorAll('.filter-chip-remove').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var action = this.getAttribute('data-action');
+            var val = this.getAttribute('data-value');
+
+            if (action === 'remove-cat') {
+              catCheckboxes.forEach(function (cb) { if (cb.value.toLowerCase() === val) cb.checked = false; });
+            } else if (action === 'remove-loc') {
+              locCheckboxes.forEach(function (cb) { if (cb.value.toLowerCase() === val) cb.checked = false; });
+            } else if (action === 'remove-verified') {
+              if (verifiedCheckbox) verifiedCheckbox.checked = false;
+            } else if (action === 'remove-available') {
+              if (availableCheckbox) availableCheckbox.checked = false;
+            } else if (action === 'remove-rate') {
+              rateRadios.forEach(function (r) { if (r.value === 'all') r.checked = true; });
+            } else if (action === 'remove-service-query') {
+              if (serviceInput) serviceInput.value = '';
+            } else if (action === 'remove-loc-query') {
+              if (locationInput) locationInput.value = '';
+            }
+            filterWorkers();
+          });
+        });
+      }
+
+      // Event Listeners for Live Filtering
+      catCheckboxes.forEach(function (cb) { cb.addEventListener('change', function () { filterWorkers(); }); });
+      locCheckboxes.forEach(function (cb) { cb.addEventListener('change', function () { filterWorkers(); }); });
+      if (verifiedCheckbox) verifiedCheckbox.addEventListener('change', function () { filterWorkers(); });
+      if (availableCheckbox) availableCheckbox.addEventListener('change', function () { filterWorkers(); });
+      rateRadios.forEach(function (r) { r.addEventListener('change', function () { filterWorkers(); }); });
+
+      if (serviceInput) serviceInput.addEventListener('input', function () { filterWorkers(); });
+      if (locationInput) locationInput.addEventListener('input', function () { filterWorkers(); });
+      if (applyBtn) applyBtn.addEventListener('click', function () { filterWorkers(); });
+      if (searchBtnHeader) searchBtnHeader.addEventListener('click', function () { filterWorkers(); });
+
+      // Reset All Filters
+      function resetFilters() {
+        catCheckboxes.forEach(function (cb) { cb.checked = false; });
+        locCheckboxes.forEach(function (cb) { cb.checked = false; });
+        if (verifiedCheckbox) verifiedCheckbox.checked = false;
+        if (availableCheckbox) availableCheckbox.checked = false;
+        rateRadios.forEach(function (r) { r.checked = r.value === 'all'; });
+        if (serviceInput) serviceInput.value = '';
+        if (locationInput) locationInput.value = '';
+        filterWorkers();
+      }
+
+      if (resetBtn) resetBtn.addEventListener('click', resetFilters);
+      if (clearLink) clearLink.addEventListener('click', resetFilters);
+
+      // Sort Option Event Listener
+      if (sortSelect) {
+        sortSelect.addEventListener('change', function () {
+          var val = this.value;
+          var grid = document.getElementById('workers-grid');
+          var cards = Array.from(grid.querySelectorAll('.worker-card'));
+
+          cards.sort(function (a, b) {
+            var priceA = parseInt(a.getAttribute('data-rate') || '0', 10);
+            var priceB = parseInt(b.getAttribute('data-rate') || '0', 10);
+            var ratingA = parseFloat(a.getAttribute('data-rating') || '0');
+            var ratingB = parseFloat(b.getAttribute('data-rating') || '0');
+
+            if (val === 'price-low') return priceA - priceB;
+            if (val === 'price-high') return priceB - priceA;
+            if (val === 'rating-high') return ratingB - ratingA;
+            return 0; // recommended
+          });
+
+          cards.forEach(function (card) { grid.appendChild(card); });
+        });
+      }
+
+      // Live Database Worker Integration
+      async function loadApiWorkers() {
+        var grid = document.getElementById('workers-grid');
+        try {
+          var res = await apiFetch('workers.php?action=search');
+          if (res.ok && res.data && res.data.status === 'success' && res.data.workers && res.data.workers.length > 0) {
+            var apiWorkersHtml = res.data.workers.map(function (w) {
+              var catSlug = (w.categories && w.categories[0]) ? w.categories[0].slug : 'other';
+              var catName = (w.categories && w.categories[0]) ? w.categories[0].name : 'Service Professional';
+              var rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
+              var phoneClean = (w.phone || '0771234567').replace(/\D/g, '');
+              var waNumber = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
+
+              return '<div class="worker-card" data-category="' + catSlug + '" data-location="' + (w.address || 'colombo').toLowerCase() + '" data-rating="' + rating + '" data-verified="true" data-available="true" data-name="' + (w.full_name || '').toLowerCase() + '">' +
+                '<img src="assets/images/hero-worker.png" alt="' + w.full_name + '" class="worker-card-img" onerror="this.src=\'assets/images/worker-kasun.png\'">' +
+                '<div class="worker-card-body">' +
+                  '<div class="worker-card-header">' +
+                    '<div>' +
+                      '<div class="worker-card-name">' + w.full_name + '</div>' +
+                      '<div class="worker-card-profession">' + catName + '</div>' +
+                    '</div>' +
+                    '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' +
+                  '</div>' +
+                  '<div class="worker-card-meta">' +
+                    '<span><i data-lucide="map-pin"></i> ' + (w.address || 'Colombo') + '</span>' +
+                    '<span><i data-lucide="star"></i> ' + rating + '</span>' +
+                    '<span class="availability-badge available"><span class="status-dot status-available"></span> Available</span>' +
+                  '</div>' +
+                  '<p class="worker-card-desc">' + (w.bio || 'Verified skilled service professional.') + '</p>' +
+                  '<div class="worker-card-footer">' +
+                    '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
+                    '<a href="messages.html?recipient_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm btn-card-msg" title="Message Worker" data-user-id="' + (w.user_id || w.id) + '"><i data-lucide="message-square" width="16" height="16"></i></a>' +
+                    '<a href="tel:' + (w.phone || '') + '" class="btn btn-call btn-sm btn-icon-sm" title="Call"><i data-lucide="phone" width="16" height="16"></i></a>' +
+                    '<a href="https://wa.me/' + waNumber + '" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="WhatsApp"><i data-lucide="message-circle" width="16" height="16"></i></a>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+            }).join('');
+
+            grid.innerHTML = apiWorkersHtml;
+
+            // Direct messaging navigation for worker cards
+            grid.querySelectorAll('.btn-card-msg').forEach(function (btn) {
+              btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var uid = this.getAttribute('data-user-id') || '3';
+                var user = getLoggedInUser();
+                var token = getAuthToken();
+                var targetUrl = 'messages.html?recipient_id=' + uid;
+                if (!token || !user) {
+                  window.location.href = 'auth/login.html?redirect=' + encodeURIComponent(targetUrl);
+                } else {
+                  window.location.href = targetUrl;
+                }
+              });
+            });
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            filterWorkers();
+          } else {
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 48px 16px; background:white; border-radius:12px; border:1px solid var(--border);">' +
+              '<i data-lucide="users" style="width:48px;height:48px;color:var(--text-muted);margin:0 auto 12px;display:block;"></i>' +
+              '<h3>No Workers Found</h3>' +
+              '<p style="color:var(--text-secondary);max-width:400px;margin:0 auto 16px;">There are currently no registered workers matching your search.</p>' +
+              '<a href="auth/register.html" class="btn btn-primary btn-sm">Register as Worker</a>' +
+            '</div>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            var countEl = document.getElementById('workers-count');
+            if (countEl) countEl.textContent = '0';
+          }
+        } catch (err) {
+          console.warn('loadApiWorkers error:', err);
+          if (grid) {
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px 16px;">' +
+              '<p style="color: var(--error);">Unable to load workers. Please ensure database connection is active.</p>' +
+            '</div>';
+          }
+        }
+      }
+
+      // Initial Filter Run & Database Workers Fetch
+      filterWorkers();
+      loadApiWorkers();
+    });
+  </script>
+</body>
+</html>

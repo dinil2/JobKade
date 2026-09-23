@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Kade | Verified Location-Based Marketplace</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --accent: #38bdf8;
+            --dark-bg: #0b1120;
+            --card-bg: #131d31;
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            min-height: 100vh;
+        }
+
+        .navbar-custom {
+            background-color: rgba(11, 17, 32, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .brand-text {
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-banner {
+            padding: 3rem 0 2rem;
+            text-align: center;
+            background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 65%);
+        }
+
+        .quick-auth-bar {
+            background: rgba(19, 29, 49, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: 50px;
+            padding: 6px 16px;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .portal-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            margin-bottom: 1.5rem;
+        }
+
+        #map {
+            height: 480px;
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            z-index: 10;
+        }
+
+        .badge-verified {
+            background: rgba(16, 185, 129, 0.18);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+        }
+
+        .category-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-light);
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-chip.active, .category-chip:hover {
+            background: var(--primary);
+            border-color: var(--accent);
+            color: white;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .chat-bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .chat-outgoing {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-incoming {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            margin-right: auto;
+            border-bottom-left-radius: 2px;
+        }
+
+        /* Printable Receipt */
+        @media print {
+            body * { visibility: hidden; }
+            #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+            #receiptPrintArea { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <i class="bi bi-geo-alt-fill text-info fs-3"></i>
+                <span class="brand-text fs-4">Job Kade</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="switchView('discovery')"><i class="bi bi-map me-1"></i> Map Discovery</a>
+                    </li>
+                    <li class="nav-item" id="navCustomerJobs">
+                        <a class="nav-link" href="#" onclick="switchView('customer')"><i class="bi bi-clipboard-check me-1"></i> Customer Portal</a>
+                    </li>
+                    <li class="nav-item" id="navWorkerPortal">
+                        <a class="nav-link" href="#" onclick="switchView('worker')"><i class="bi bi-person-badge me-1"></i> Worker Portal</a>
+                    </li>
+                    <li class="nav-item" id="navAdminPortal">
+                        <a class="nav-link" href="#" onclick="switchView('admin')"><i class="bi bi-shield-lock me-1"></i> Admin Panel</a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-2">
+                    <div id="userBadgeArea" class="d-none">
+                        <span class="badge bg-secondary me-2" id="userRoleBadge">Role</span>
+                        <span class="fw-bold me-2" id="userNameDisplay">User</span>
+                        <button class="btn btn-outline-danger btn-sm" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                    <button class="btn btn-primary btn-sm px-3" id="loginModalBtn" data-bs-toggle="modal" data-bs-target="#authModal">
+                        <i class="bi bi-person-circle me-1"></i> Sign In / Register
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Header -->
+    <header class="hero-banner">
+        <div class="container">
+            <h1 class="fw-bold display-6 mb-2">Verified Location-Based Marketplace</h1>
+            <p class="text-secondary mb-2">Connecting Customers with Local Skilled Service Workers across Sri Lanka.</p>
+            
+            <!-- Quick Test Login Bar -->
+            <div class="quick-auth-bar">
+                <span class="text-muted small"><i class="bi bi-lightning-charge-fill text-warning"></i> Quick Switch:</span>
+                <button class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" onclick="quickLogin('customer@gmail.com', 'customer@123')">
+                    Customer
+                </button>
+                <button class="btn btn-sm btn-outline-success rounded-pill py-0 px-2" onclick="quickLogin('sunil.electric@gmail.com', 'worker@123')">
+                    Worker (Sunil - Electrician)
+                </button>
+                <button class="btn btn-sm btn-outline-warning rounded-pill py-0 px-2" onclick="quickLogin('admin@jobkade.lk', 'admin@123')">
+                    Admin
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container my-4">
+
+        <!-- VIEW 1: MAP DISCOVERY (Customer / Public) -->
+        <div id="viewDiscovery">
+            <!-- Category Filter Chips -->
+            <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <span class="text-muted small fw-bold me-2">Trade Category:</span>
+                <button class="category-chip active" onclick="filterCategory(0, this)"><i class="bi bi-grid"></i> All Trades</button>
+                <button class="category-chip" onclick="filterCategory(1, this)"><i class="bi bi-lightning-charge"></i> Electrician</button>
+                <button class="category-chip" onclick="filterCategory(2, this)"><i class="bi bi-droplet"></i> Plumber</button>
+                <button class="category-chip" onclick="filterCategory(3, this)"><i class="bi bi-snow"></i> AC Tech</button>
+                <button class="category-chip" onclick="filterCategory(4, this)"><i class="bi bi-brush"></i> Painter</button>
+                <button class="category-chip" onclick="filterCategory(5, this)"><i class="bi bi-hammer"></i> Carpenter</button>
+            </div>
+
+            <div class="row g-4">
+                <!-- Interactive Leaflet Map -->
+                <div class="col-lg-8">
+                    <div class="portal-card p-2">
+                        <div class="d-flex justify-content-between align-items-center p-2">
+                            <span class="fw-bold small text-muted"><i class="bi bi-pin-map text-danger"></i> Nearby Verified Workers (OpenStreetMap)</span>
+                            <button class="btn btn-sm btn-outline-light py-0 px-2" onclick="getUserLocation()"><i class="bi bi-crosshair"></i> My Location</button>
+                        </div>
+                        <div id="map"></div>
+                    </div>
+                </div>
+
+                <!-- Worker Listings & Post Job -->
+                <div class="col-lg-4">
+                    <div class="portal-card text-center mb-3">
+                        <h6 class="fw-bold mb-2">Need Maintenance Work Done?</h6>
+                        <p class="text-muted small">Post a structured ticket with photos and details to get verified quotes.</p>
+                        <button class="btn btn-primary w-100 fw-bold" onclick="openPostJobModal()">
+                            <i class="bi bi-plus-circle me-1"></i> Post Maintenance Job
+                        </button>
+                    </div>
+
+                    <div class="portal-card">
+                        <h6 class="fw-bold mb-3 d-flex justify-content-between">
+                            <span>Available Workers</span>
+                            <span class="badge bg-primary" id="workerCountBadge">0</span>
+                        </h6>
+                        <div id="workersList" style="max-height: 380px; overflow-y: auto;">
+                            <!-- Worker cards injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: CUSTOMER PORTAL -->
+        <div id="viewCustomer" class="d-none">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="portal-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0"><i class="bi bi-clipboard-check text-primary me-2"></i> My Maintenance Requests</h5>
+                            <button class="btn btn-sm btn-primary" onclick="openPostJobModal()"><i class="bi bi-plus-lg"></i> Post New Job</button>
+                        </div>
+                        <div id="customerJobsList">Loading your posted jobs...</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="portal-card">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-chat-dots text-info me-2"></i> Recent Conversations</h6>
+                        <div id="conversationsList">No active conversations.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: WORKER PORTAL -->
+        <div id="viewWorker" class="d-none">
+            <div class="row g-4">
+                <!-- Worker Profile & KYC Status -->
+                <div class="col-md-4">
+                    <div class="portal-card text-center">
+                        <div class="position-relative d-inline-block mb-2">
+                            <i class="bi bi-person-circle display-4 text-info"></i>
+                            <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success" id="workerVerifiedIcon">
+                                <i class="bi bi-check"></i>
+                            </span>
+                        </div>
+                        <h5 class="fw-bold mb-1" id="workerProfileName">Worker Name</h5>
+                        <p class="text-muted small mb-2" id="workerProfileTrade">Trade Specialist</p>
+                        <div class="mb-3">
+                            <span id="workerKycBadge" class="badge-pending">KYC Pending</span>
+                        </div>
+                        <hr class="border-secondary">
+                        <div class="d-flex justify-content-around text-center small mb-3">
+                            <div>
+                                <span class="d-block fw-bold text-warning" id="workerRating">★ 4.9</span>
+                                <span class="text-muted">Rating</span>
+                            </div>
+                            <div>
+                                <span class="d-block fw-bold" id="workerRate">LKR 1,500</span>
+                                <span class="text-muted">Hourly Rate</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-info btn-sm w-100 mb-2" onclick="openKycModal()">
+                            <i class="bi bi-shield-check me-1"></i> Submit KYC Verification
+                        </button>
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="openSubscriptionModal()">
+                            <i class="bi bi-credit-card me-1"></i> Membership & Subscriptions
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Job Board for Subscribed Workers -->
+                <div class="col-md-8">
+                    <div class="portal-card">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0"><i class="bi bi-briefcase text-warning me-2"></i> Live Job Board</h5>
+                            <span class="badge bg-success small"><i class="bi bi-check2-circle"></i> Active Subscribed</span>
+                        </div>
+                        <div id="workerJobBoard">Loading job board...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: ADMINISTRATOR PANEL -->
+        <div id="viewAdmin" class="d-none">
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="text-muted small mb-1">Total Users</div>
+                        <div class="stat-number" id="statUsers">0</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="text-muted small mb-1">Verified Workers</div>
+                        <div class="stat-number text-success" id="statWorkers">0</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="text-muted small mb-1">Open Job Tickets</div>
+                        <div class="stat-number text-warning" id="statJobs">0</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="text-muted small mb-1">Platform Revenue</div>
+                        <div class="stat-number text-info" id="statRevenue">LKR 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KYC Moderation Queue -->
+            <div class="portal-card mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-check text-warning me-2"></i> Worker KYC Verification Queue</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Worker</th>
+                                <th>Document Type</th>
+                                <th>Document Name</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminKycTable">
+                            <tr><td colspan="5" class="text-center text-muted">No pending KYC submissions.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="portal-card">
+                <h5 class="fw-bold mb-3"><i class="bi bi-people text-info me-2"></i> Registered Platform Users</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersTable">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: Post Job -->
+    <div class="modal fade" id="postJobModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-tools text-primary me-2"></i> Post Maintenance Job Ticket</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form onsubmit="handlePostJob(event)">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Trade Category</label>
+                            <select id="jobCategorySelect" class="form-select bg-black text-light border-secondary" required>
+                                <option value="1">Electrician</option>
+                                <option value="2">Plumber</option>
+                                <option value="3">AC Technician</option>
+                                <option value="4">Painter</option>
+                                <option value="5">Carpenter</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Issue Title</label>
+                            <input type="text" id="jobTitle" class="form-control bg-black text-light border-secondary" placeholder="e.g. Main Breaker Tripping in Kitchen" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Detailed Description & Symptoms</label>
+                            <textarea id="jobDesc" class="form-control bg-black text-light border-secondary" rows="3" placeholder="Describe what happens, when it started, and required equipment..." required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Location / Address</label>
+                            <input type="text" id="jobAddress" class="form-control bg-black text-light border-secondary" placeholder="e.g. Rajagiriya, Colombo" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary fw-bold">Submit Job Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Subscription & Online IPG Payment -->
+    <div class="modal fade" id="subscriptionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-credit-card text-success me-2"></i> Worker Membership & IPG Payment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Select an online membership plan to gain full access to the live Job Board and customer leads.</p>
+                    <div class="row g-3" id="plansContainer">
+                        <!-- Plans loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Printable Digital Payment Receipt -->
+    <div class="modal fade" id="receiptModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-body p-4" id="receiptPrintArea">
+                    <div class="text-center mb-3">
+                        <h4 class="fw-bold brand-text mb-0">Job Kade</h4>
+                        <div class="text-muted small">Digital Payment Receipt</div>
+                    </div>
+                    <hr class="border-secondary">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Receipt No:</span>
+                        <span class="fw-bold font-monospace" id="receiptNo">RCPT-0000</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Transaction Ref:</span>
+                        <span class="font-monospace small" id="receiptTxn">TXN-0000</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Plan:</span>
+                        <span class="fw-bold" id="receiptPlan">Pro Plan</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Amount Paid:</span>
+                        <span class="fw-bold text-success fs-5" id="receiptAmount">LKR 3,000.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Payment Gateway:</span>
+                        <span>IPG (Visa / Mastercard)</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Status:</span>
+                        <span class="badge bg-success">COMPLETED</span>
+                    </div>
+                    <hr class="border-secondary">
+                    <div class="text-center text-muted small">
+                        Thank you for your partnership with Job Kade.<br>
+                        Contact: support@jobkade.lk
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Print Receipt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: KYC Document Upload -->
+    <div class="modal fade" id="kycModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-shield-check text-warning me-2"></i> Worker KYC Verification</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form onsubmit="handleKycUpload(event)">
+                    <div class="modal-body">
+                        <p class="text-muted small">Submit your official identity document or vocational certifications for administrative review.</p>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Document Type</label>
+                            <select id="kycDocType" class="form-select bg-black text-light border-secondary" required>
+                                <option value="nic">National Identity Card (NIC)</option>
+                                <option value="driving_license">Driving License</option>
+                                <option value="trade_certificate">NVQ / Trade Certification</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Document Description / Title</label>
+                            <input type="text" id="kycDocName" class="form-control bg-black text-light border-secondary" placeholder="e.g. NIC Front & Back Scan" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Upload Document File (Simulated)</label>
+                            <input type="file" class="form-control bg-black text-light border-secondary" id="kycFile">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-warning fw-bold">Submit for Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: In-App Messaging -->
+    <div class="modal fade" id="chatModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <h6 class="modal-title mb-0"><i class="bi bi-chat-dots text-info me-2"></i> Chat with <span id="chatWithUser">Worker</span></h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="chatMessages" style="height: 320px; overflow-y: auto; display: flex; flex-direction: column;" class="p-2 border border-secondary rounded bg-black mb-3">
+                        <!-- Messages injected dynamically -->
+                    </div>
+                    <form onsubmit="handleSendMessage(event)" class="d-flex gap-2">
+                        <input type="text" id="chatInput" class="form-control bg-black text-light border-secondary" placeholder="Type your message..." required>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Authentication (Sign In & Register) -->
+    <div class="modal fade" id="authModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light border-secondary">
+                <div class="modal-header border-secondary">
+                    <ul class="nav nav-pills" id="authPills">
+                        <li class="nav-item">
+                            <button class="nav-link active" onclick="switchAuthTab('login')">Sign In</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" onclick="switchAuthTab('register')">Create Account</button>
+                        </li>
+                    </ul>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Login Form -->
+                    <form id="authLoginForm" onsubmit="handleAuthLogin(event)">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Email Address</label>
+                            <input type="email" id="authEmail" class="form-control bg-black text-light border-secondary" placeholder="user@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Password</label>
+                            <input type="password" id="authPassword" class="form-control bg-black text-light border-secondary" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold">Sign In</button>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form id="authRegisterForm" onsubmit="handleAuthRegister(event)" class="d-none">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">I want to join as:</label>
+                            <select id="regRole" class="form-select bg-black text-light border-secondary" onchange="toggleWorkerRegFields()">
+                                <option value="customer">Customer (Hire skilled workers)</option>
+                                <option value="worker">Worker (Provide services & get jobs)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Full Name</label>
+                            <input type="text" id="regFullName" class="form-control bg-black text-light border-secondary" placeholder="Sunil Perera" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Email Address</label>
+                            <input type="email" id="regEmail" class="form-control bg-black text-light border-secondary" placeholder="sunil@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Phone Number</label>
+                            <input type="text" id="regPhone" class="form-control bg-black text-light border-secondary" placeholder="0771234567" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Password (min 6 characters)</label>
+                            <input type="password" id="regPassword" class="form-control bg-black text-light border-secondary" minlength="6" placeholder="••••••••" required>
+                        </div>
+                        <div id="workerExtraFields" class="d-none">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Primary Trade Category</label>
+                                <select id="regCategory" class="form-select bg-black text-light border-secondary">
+                                    <option value="1">Electrician</option>
+                                    <option value="2">Plumber</option>
+                                    <option value="3">AC Technician</option>
+                                    <option value="4">Painter</option>
+                                    <option value="5">Carpenter</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 fw-bold">Register Account</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet.js -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Application Script -->
+    <script>
+        let map = null;
+        let markersLayer = null;
+        let currentUser = null;
+        let authToken = localStorage.getItem('jobkade_token') || null;
+        let currentChatReceiverId = null;
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadWorkers();
+            checkCurrentUser();
+        });
+
+        // Initialize Leaflet Map centered on Colombo
+        function initMap() {
+            map = L.map('map').setView([6.9271, 79.8612], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        // Load & Plot Workers
+        async function loadWorkers(categoryId = null) {
+            markersLayer.clearLayers();
+            const listEl = document.getElementById('workersList');
+            listEl.innerHTML = '<div class="text-center text-muted p-3">Loading workers...</div>';
+
+            try {
+                let url = 'api/workers.php?action=search';
+                if (categoryId) url += `&category_id=${categoryId}`;
+
+                const res = await fetch(url);
+                const data = await res.json();
+                const workers = data.workers || [];
+
+                document.getElementById('workerCountBadge').textContent = workers.length;
+                listEl.innerHTML = '';
+
+                if (workers.length === 0) {
+                    listEl.innerHTML = '<div class="text-muted p-3 text-center">No verified workers found for this category.</div>';
+                    return;
+                }
+
+                workers.forEach(w => {
+                    // Add Pin to Leaflet Map
+                    if (w.latitude && w.longitude) {
+                        const marker = L.marker([w.latitude, w.longitude]).addTo(markersLayer);
+                        marker.bindPopup(`
+                            <div style="color:#0f172a;">
+                                <strong>${w.full_name}</strong><br>
+                                <span class="badge bg-primary">${w.categories.map(c => c.name).join(', ') || 'Specialist'}</span><br>
+                                <small>Rate: LKR ${w.hourly_rate}/hr</small><br>
+                                <small>⭐ ${w.rating_avg} (${w.reviews_count} reviews)</small><br>
+                                <button class="btn btn-sm btn-primary mt-1 w-100 py-0" onclick="openChatWith(${w.user_id}, '${w.full_name}')">Chat</button>
+                            </div>
+                        `);
+                    }
+
+                    // Append to List
+                    const card = document.createElement('div');
+                    card.className = 'p-2 mb-2 border border-secondary rounded bg-dark';
+                    card.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-0 fw-bold">${w.full_name}</h6>
+                                <small class="text-info">${w.categories.map(c => c.name).join(', ') || 'Skilled Worker'}</small>
+                            </div>
+                            <span class="badge ${w.is_verified ? 'bg-success' : 'bg-secondary'}">${w.is_verified ? 'Verified' : 'Unverified'}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted mt-2">
+                            <span><i class="bi bi-star-fill text-warning"></i> ${w.rating_avg}</span>
+                            <span>LKR ${w.hourly_rate}/hr</span>
+                            <button class="btn btn-sm btn-outline-info py-0 px-2" onclick="openChatWith(${w.user_id}, '${w.full_name}')">Contact</button>
+                        </div>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (err) {
+                listEl.innerHTML = `<div class="text-danger p-2 small">Error loading workers: ${err.message}</div>`;
+            }
+        }
+
+        function filterCategory(catId, btn) {
+            document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            loadWorkers(catId === 0 ? null : catId);
+        }
+
+        // Authentication & Quick Switch
+        async function quickLogin(email, password) {
+            try {
+                const res = await fetch('api/auth.php?action=login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    authToken = data.token;
+                    localStorage.setItem('jobkade_token', authToken);
+                    setUser(data.user);
+                    
+                    // Auto switch to appropriate portal view
+                    if (data.user.role === 'admin') switchView('admin');
+                    else if (data.user.role === 'worker') switchView('worker');
+                    else switchView('customer');
+                } else {
+                    alert('Login failed: ' + data.message);
+                }
+            } catch (e) {
+                alert('Network error during quick login: ' + e.message);
+            }
+        }
+
+        async function checkCurrentUser() {
+            if (!authToken) return;
+            try {
+                const res = await fetch('api/auth.php?action=me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setUser(data.user);
+                } else {
+                    logout();
+                }
+            } catch (e) {}
+        }
+
+        function setUser(user) {
+            currentUser = user;
+            document.getElementById('userBadgeArea').classList.remove('d-none');
+            document.getElementById('loginModalBtn').classList.add('d-none');
+            document.getElementById('userNameDisplay').textContent = user.name || user.full_name;
+            const badge = document.getElementById('userRoleBadge');
+            badge.textContent = user.role.toUpperCase();
+            badge.className = `badge me-2 ${user.role === 'admin' ? 'bg-danger' : (user.role === 'worker' ? 'bg-success' : 'bg-primary')}`;
+
+            if (user.role === 'worker') {
+                document.getElementById('workerProfileName').textContent = user.name || user.full_name;
+            }
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('jobkade_token');
+            document.getElementById('userBadgeArea').classList.add('d-none');
+            document.getElementById('loginModalBtn').classList.remove('d-none');
+            switchView('discovery');
+        }
+
+        function switchView(view) {
+            document.getElementById('viewDiscovery').classList.toggle('d-none', view !== 'discovery');
+            document.getElementById('viewCustomer').classList.toggle('d-none', view !== 'customer');
+            document.getElementById('viewWorker').classList.toggle('d-none', view !== 'worker');
+            document.getElementById('viewAdmin').classList.toggle('d-none', view !== 'admin');
+
+            if (view === 'discovery') setTimeout(() => map.invalidateSize(), 200);
+            if (view === 'customer') loadCustomerJobs();
+            if (view === 'worker') loadWorkerBoard();
+            if (view === 'admin') loadAdminDashboard();
+        }
+
+        function switchAuthTab(tab) {
+            document.getElementById('authLoginForm').classList.toggle('d-none', tab !== 'login');
+            document.getElementById('authRegisterForm').classList.toggle('d-none', tab !== 'register');
+        }
+
+        function toggleWorkerRegFields() {
+            const role = document.getElementById('regRole').value;
+            document.getElementById('workerExtraFields').classList.toggle('d-none', role !== 'worker');
+        }
+
+        async function handleAuthLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            await quickLogin(email, password);
+            bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+        }
+
+        async function handleAuthRegister(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('regFullName').value,
+                email: document.getElementById('regEmail').value,
+                phone: document.getElementById('regPhone').value,
+                password: document.getElementById('regPassword').value,
+                role: document.getElementById('regRole').value,
+                category_id: document.getElementById('regCategory').value
+            };
+
+            const res = await fetch('api/auth.php?action=register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                authToken = data.token;
+                localStorage.setItem('jobkade_token', authToken);
+                setUser(data.user);
+                bootstrap.Modal.getInstance(document.getElementById('authModal')).hide();
+                alert('Account created successfully!');
+                switchView(data.user.role);
+            } else {
+                alert('Registration error: ' + data.message);
+            }
+        }
+
+        // Customer Job Requests
+        function openPostJobModal() {
+            if (!currentUser) {
+                new bootstrap.Modal(document.getElementById('authModal')).show();
+                return;
+            }
+            new bootstrap.Modal(document.getElementById('postJobModal')).show();
+        }
+
+        async function handlePostJob(e) {
+            e.preventDefault();
+            const payload = {
+                category_id: document.getElementById('jobCategorySelect').value,
+                title: document.getElementById('jobTitle').value,
+                description: document.getElementById('jobDesc').value,
+                address: document.getElementById('jobAddress').value,
+                lat: 6.9271,
+                lng: 79.8612
+            };
+
+            const res = await fetch('api/jobs.php?action=create', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('postJobModal')).hide();
+                alert('Job ticket posted! Local verified workers have been notified.');
+                switchView('customer');
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function loadCustomerJobs() {
+            const listEl = document.getElementById('customerJobsList');
+            try {
+                const res = await fetch('api/jobs.php?action=customer', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                const jobs = data.jobs || [];
+                if (jobs.length === 0) {
+                    listEl.innerHTML = '<div class="text-muted small">You have not posted any maintenance requests yet.</div>';
+                    return;
+                }
+                listEl.innerHTML = jobs.map(j => `
+                    <div class="p-3 mb-2 border border-secondary rounded bg-black">
+                        <div class="d-flex justify-content-between">
+                            <h6 class="fw-bold mb-1">${j.title}</h6>
+                            <span class="badge bg-warning">${j.status.toUpperCase()}</span>
+                        </div>
+                        <p class="small text-muted mb-2">${j.description}</p>
+                        <small class="text-info"><i class="bi bi-geo-alt"></i> ${j.address}</small>
+                    </div>
+                `).join('');
+            } catch (e) {
+                listEl.innerHTML = 'Error loading customer jobs.';
+            }
+        }
+
+        // Worker Job Board & Subscriptions
+        async function loadWorkerBoard() {
+            const boardEl = document.getElementById('workerJobBoard');
+            try {
+                const res = await fetch('api/jobs.php?action=list');
+                const data = await res.json();
+                const jobs = data.jobs || [];
+                boardEl.innerHTML = jobs.map(j => `
+                    <div class="p-3 mb-3 border border-secondary rounded bg-black">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="fw-bold mb-0">${j.title}</h6>
+                                <small class="text-warning">${j.category_name}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success" onclick="openChatWith(${j.customer_id}, '${j.customer_name}')">Contact Customer</button>
+                        </div>
+                        <p class="small text-muted mt-2 mb-2">${j.description}</p>
+                        <div class="d-flex justify-content-between small text-secondary">
+                            <span><i class="bi bi-geo-alt"></i> ${j.address}</span>
+                            <span>Customer: ${j.customer_name}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                boardEl.innerHTML = 'Error loading job board.';
+            }
+        }
+
+        function openSubscriptionModal() {
+            loadSubscriptionPlans();
+            new bootstrap.Modal(document.getElementById('subscriptionModal')).show();
+        }
+
+        async function loadSubscriptionPlans() {
+            const cont = document.getElementById('plansContainer');
+            cont.innerHTML = 'Loading plans...';
+            try {
+                const res = await fetch('api/subscriptions.php?action=plans');
+                const data = await res.json();
+                const plans = data.plans || [];
+                cont.innerHTML = plans.map(p => `
+                    <div class="col-md-4">
+                        <div class="p-3 border border-secondary rounded bg-black text-center">
+                            <h6 class="fw-bold">${p.name}</h6>
+                            <div class="fs-4 fw-bold text-success my-2">LKR ${p.price}</div>
+                            <small class="text-muted d-block mb-3">${p.duration_days} Days Access</small>
+                            <p class="small text-muted">${p.features}</p>
+                            <button class="btn btn-primary btn-sm w-100 fw-bold" onclick="simulateIpgPayment(${p.id})">
+                                Pay via IPG
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                cont.innerHTML = 'Error loading subscription plans.';
+            }
+        }
+
+        async function simulateIpgPayment(planId) {
+            try {
+                const res = await fetch('api/subscriptions.php?action=pay', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ plan_id: planId })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    bootstrap.Modal.getInstance(document.getElementById('subscriptionModal')).hide();
+                    showReceipt(data.receipt);
+                } else {
+                    alert(data.message);
+                }
+            } catch (e) {
+                alert('Payment error: ' + e.message);
+            }
+        }
+
+        function showReceipt(rcpt) {
+            document.getElementById('receiptNo').textContent = rcpt.receipt_number;
+            document.getElementById('receiptTxn').textContent = rcpt.transaction_ref;
+            document.getElementById('receiptPlan').textContent = rcpt.plan_name;
+            document.getElementById('receiptAmount').textContent = `LKR ${Number(rcpt.amount).toLocaleString()}.00`;
+            new bootstrap.Modal(document.getElementById('receiptModal')).show();
+        }
+
+        // KYC Submission
+        function openKycModal() {
+            new bootstrap.Modal(document.getElementById('kycModal')).show();
+        }
+
+        async function handleKycUpload(e) {
+            e.preventDefault();
+            const payload = {
+                document_type: document.getElementById('kycDocType').value,
+                document_name: document.getElementById('kycDocName').value
+            };
+
+            const res = await fetch('api/kyc.php?action=upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('kycModal')).hide();
+                alert('KYC document submitted! Administrator will review your verification.');
+            } else {
+                alert(data.message);
+            }
+        }
+
+        // Admin Dashboard
+        async function loadAdminDashboard() {
+            try {
+                // Stats
+                const resStats = await fetch('api/admin.php?action=stats', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const dataStats = await resStats.json();
+                if (dataStats.status === 'success') {
+                    const s = dataStats.stats;
+                    document.getElementById('statUsers').textContent = s.total_users;
+                    document.getElementById('statWorkers').textContent = s.verified_workers;
+                    document.getElementById('statJobs').textContent = s.total_jobs;
+                    document.getElementById('statRevenue').textContent = `LKR ${Number(s.total_revenue_lkr).toLocaleString()}`;
+                }
+
+                // KYC Queue
+                const resKyc = await fetch('api/admin.php?action=kyc-queue', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const dataKyc = await resKyc.json();
+                const kycList = dataKyc.pending_kyc || [];
+                const kycTbody = document.getElementById('adminKycTable');
+                if (kycList.length === 0) {
+                    kycTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending KYC documents.</td></tr>';
+                } else {
+                    kycTbody.innerHTML = kycList.map(k => `
+                        <tr>
+                            <td><strong>${k.worker_name}</strong><br><small class="text-muted">${k.worker_email}</small></td>
+                            <td><span class="badge bg-secondary">${k.document_type.toUpperCase()}</span></td>
+                            <td>${k.document_name}</td>
+                            <td><small>${k.created_at}</small></td>
+                            <td>
+                                <button class="btn btn-sm btn-success py-0 px-2 me-1" onclick="reviewKyc(${k.id}, 'approved')">Approve</button>
+                                <button class="btn btn-sm btn-danger py-0 px-2" onclick="reviewKyc(${k.id}, 'rejected')">Reject</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Users
+                const resUsers = await fetch('api/admin.php?action=users', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const dataUsers = await resUsers.json();
+                const users = dataUsers.users || [];
+                document.getElementById('adminUsersTable').innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u.full_name}</td>
+                        <td>${u.email}</td>
+                        <td><span class="badge bg-info">${u.role.toUpperCase()}</span></td>
+                        <td><span class="badge ${u.status === 'active' ? 'bg-success' : 'bg-danger'}">${u.status}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-warning py-0" onclick="toggleUser(${u.id}, '${u.status === 'active' ? 'suspended' : 'active'}')">
+                                ${u.status === 'active' ? 'Suspend' : 'Activate'}
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function reviewKyc(docId, status) {
+            await fetch('api/admin.php?action=review-kyc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ document_id: docId, status: status })
+            });
+            loadAdminDashboard();
+        }
+
+        async function toggleUser(userId, status) {
+            await fetch('api/admin.php?action=toggle-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ user_id: userId, status: status })
+            });
+            loadAdminDashboard();
+        }
+
+        // In-App Chat
+        function openChatWith(userId, userName) {
+            if (!currentUser) {
+                new bootstrap.Modal(document.getElementById('authModal')).show();
+                return;
+            }
+            currentChatReceiverId = userId;
+            document.getElementById('chatWithUser').textContent = userName;
+            loadMessages();
+            new bootstrap.Modal(document.getElementById('chatModal')).show();
+        }
+
+        async function loadMessages() {
+            if (!currentChatReceiverId || !authToken) return;
+            const res = await fetch(`api/messages.php?action=thread&user_id=${currentChatReceiverId}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const data = await res.json();
+            const msgs = data.messages || [];
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = msgs.map(m => `
+                <div class="chat-bubble ${m.sender_id == currentUser.id ? 'chat-outgoing' : 'chat-incoming'}">
+                    <div>${m.message_text}</div>
+                    <small style="font-size: 0.65rem; opacity: 0.7;">${m.created_at}</small>
+                </div>
+            `).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function handleSendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const text = input.value;
+            if (!text.trim()) return;
+
+            await fetch('api/messages.php?action=send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    receiver_id: currentChatReceiverId,
+                    message_text: text
+                })
+            });
+
+            input.value = '';
+            loadMessages();
+        }
+
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    map.setView([lat, lng], 14);
+                    L.marker([lat, lng]).addTo(map).bindPopup("Your Current Location").openPopup();
+                });
+            }
+        }
+    </script>
+</body>
+</html>

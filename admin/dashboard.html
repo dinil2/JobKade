@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — JodKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <!-- Chart.js for analytics visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+  <!-- Dashboard Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="container dashboard-nav">
+      <div class="dashboard-nav-left">
+        <button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button>
+        <a href="../index.html" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg>
+          Jod<span>Kade</span> <span class="badge badge-pending" style="margin-left:8px;font-size:0.7rem;">ADMIN</span>
+        </a>
+      </div>
+      <div class="dashboard-nav-right">
+        <div class="notification-wrapper">
+          <button class="notification-bell">
+            <i data-lucide="bell" width="20" height="20"></i>
+            <span class="notif-count">4</span>
+          </button>
+          <div class="notification-dropdown">
+            <div class="notification-dropdown-header"><h4>Admin Alerts</h4><a href="#" class="text-sm text-primary-color">Clear all</a></div>
+            <div class="notification-list">
+              <div class="notification-item unread"><div class="notification-item-icon orange"><i data-lucide="shield-alert" width="16" height="16"></i></div><div class="notification-item-content"><p>3 new workers awaiting NIC verification.</p><span class="notif-time">10 minutes ago</span></div></div>
+              <div class="notification-item unread"><div class="notification-item-icon red"><i data-lucide="flag" width="16" height="16"></i></div><div class="notification-item-content"><p>New report filed against review #1042.</p><span class="notif-time">1 hour ago</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="avatar avatar-sm avatar-purple">AD</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar admin">
+      <div class="sidebar-header">
+        <div class="sidebar-user">
+          <div class="avatar avatar-md avatar-purple">AD</div>
+          <div><div class="sidebar-user-name">System Administrator</div><div class="sidebar-user-role">Platform Admin</div></div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-label">Management</div>
+        <a href="dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Overview</a>
+        <a href="kyc-moderation.html" class="sidebar-link"><i data-lucide="shield-check"></i> KYC Moderation</a>
+        <a href="workers.html" class="sidebar-link"><i data-lucide="users"></i> Manage Workers</a>
+        <a href="customers.html" class="sidebar-link"><i data-lucide="user-check"></i> Manage Customers</a>
+        <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Job Requests</a>
+        <a href="moderation.html" class="sidebar-link"><i data-lucide="flag"></i> Moderation</a>
+        <div class="sidebar-label">Insights</div>
+        <a href="analytics.html" class="sidebar-link"><i data-lucide="bar-chart-3"></i> Analytics & Reports</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>Admin Control Panel</h1>
+        <p>Monitor platform statistics, manage worker verifications, and supervise community activity.</p>
+      </div>
+
+      <!-- Key Platform Metrics -->
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon blue"><i data-lucide="users" width="24" height="24"></i></div>
+          <div class="admin-stat-content"><h3>542</h3><p>Total Registered Workers</p></div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon green"><i data-lucide="user-check" width="24" height="24"></i></div>
+          <div class="admin-stat-content"><h3>1,890</h3><p>Total Customers</p></div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon orange"><i data-lucide="clock" width="24" height="24"></i></div>
+          <div class="admin-stat-content"><h3>3</h3><p>Pending Verifications</p></div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon purple"><i data-lucide="briefcase" width="24" height="24"></i></div>
+          <div class="admin-stat-content"><h3>1,245</h3><p>Total Jobs Posted</p></div>
+        </div>
+      </div>
+
+      <!-- Quick Action Alert Banner -->
+      <div class="info-notice mb-3" style="background:#FFFBEB;border-color:#FCD34D;color:#B45309;">
+        <i data-lucide="shield-alert"></i>
+        <div style="flex:1;">
+          <strong>Action Required: 3 Pending Worker Identity Submissions</strong>
+          <p style="margin-top:2px;font-size:0.875rem;">Workers have uploaded NIC documents awaiting review before appearing publicly on the marketplace.</p>
+        </div>
+        <a href="verification.html" class="btn btn-sm" style="background:#F59E0B;color:white;">Review Now</a>
+      </div>
+
+      <!-- Charts Overview Grid -->
+      <div class="admin-charts-grid">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <h3>Worker Registration Trend</h3>
+            <span class="text-sm text-secondary">Last 8 Months</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="registrations-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <h3>Job Requests Volume</h3>
+            <span class="text-sm text-secondary">Last 8 Months</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="jobs-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Verifications Table Snippet -->
+      <div class="table-card mt-4">
+        <div class="table-header">
+          <div>
+            <h3>Pending Worker Verifications</h3>
+            <p class="text-sm text-secondary">Review identity submissions for safety & trust verification.</p>
+          </div>
+          <a href="verification.html" class="btn btn-outline btn-sm">View All Pending</a>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Worker Name</th>
+                <th>Category</th>
+                <th>NIC Number</th>
+                <th>Submission Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="avatar avatar-sm avatar-blue">KP</div>
+                    <div><strong>Kasun Perera</strong><br><span class="text-sm text-secondary">kasun@email.com</span></div>
+                  </div>
+                </td>
+                <td>Electrical</td>
+                <td>199214502841</td>
+                <td>Aug 14, 2026</td>
+                <td><span class="badge badge-pending">Pending Review</span></td>
+                <td>
+                  <div class="btn-group">
+                    <button class="btn btn-outline btn-sm view-nic-btn">View NIC</button>
+                    <button class="btn btn-success btn-sm approve-worker-btn" data-worker="Kasun Perera">Approve</button>
+                    <button class="btn btn-danger btn-sm reject-worker-btn" data-worker="Kasun Perera">Reject</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="avatar avatar-sm avatar-green">KM</div>
+                    <div><strong>Kamal Mendis</strong><br><span class="text-sm text-secondary">kamal@email.com</span></div>
+                  </div>
+                </td>
+                <td>Plumbing</td>
+                <td>198834109283</td>
+                <td>Aug 13, 2026</td>
+                <td><span class="badge badge-pending">Pending Review</span></td>
+                <td>
+                  <div class="btn-group">
+                    <button class="btn btn-outline btn-sm view-nic-btn">View NIC</button>
+                    <button class="btn btn-success btn-sm approve-worker-btn" data-worker="Kamal Mendis">Approve</button>
+                    <button class="btn btn-danger btn-sm reject-worker-btn" data-worker="Kamal Mendis">Reject</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="avatar avatar-sm avatar-orange">SS</div>
+                    <div><strong>Sunil Shantha</strong><br><span class="text-sm text-secondary">sunil@email.com</span></div>
+                  </div>
+                </td>
+                <td>AC Repair</td>
+                <td>199578201948</td>
+                <td>Aug 12, 2026</td>
+                <td><span class="badge badge-pending">Pending Review</span></td>
+                <td>
+                  <div class="btn-group">
+                    <button class="btn btn-outline btn-sm view-nic-btn">View NIC</button>
+                    <button class="btn btn-success btn-sm approve-worker-btn" data-worker="Sunil Shantha">Approve</button>
+                    <button class="btn btn-danger btn-sm reject-worker-btn" data-worker="Sunil Shantha">Reject</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <!-- Approve Modal -->
+  <div class="modal-overlay" id="approve-modal">
+    <div class="modal">
+      <div class="modal-header"><h3>Approve Worker Verification</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
+      <div class="modal-body">
+        <div class="modal-confirm-icon success"><i data-lucide="check-circle"></i></div>
+        <p class="text-center">Are you sure you want to approve identity verification for <strong id="approve-worker-name">Kasun Perera</strong>?</p>
+        <p class="text-center text-sm text-secondary mt-1">This will grant the worker a "Verified" badge on their public profile.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-success" id="confirm-approve">Confirm Approval</button></div>
+    </div>
+  </div>
+
+  <!-- Reject Modal -->
+  <div class="modal-overlay" id="reject-modal">
+    <div class="modal">
+      <div class="modal-header"><h3>Reject Worker Verification</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
+      <div class="modal-body">
+        <div class="modal-confirm-icon danger"><i data-lucide="alert-triangle"></i></div>
+        <p class="text-center">Are you sure you want to reject verification for <strong id="reject-worker-name">Kasun Perera</strong>?</p>
+        <div class="form-group mt-2"><label class="form-label">Reason for Rejection</label><textarea class="form-textarea" placeholder="e.g. NIC document image is unclear or mismatched..."></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirm-reject">Confirm Rejection</button></div>
+    </div>
+  </div>
+
+  <!-- NIC Document View Modal -->
+  <div class="modal-overlay" id="nic-modal">
+    <div class="modal" style="max-width:650px;">
+      <div class="modal-header"><h3>NIC Document Verification Preview</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
+      <div class="modal-body">
+        <div class="nic-doc-preview" style="background:#F3F4F6;padding:24px;border-radius:12px;text-align:center;border:2px dashed #D1D5DB;">
+          <div style="width:100%;max-width:480px;height:260px;background:#E5E7EB;margin:0 auto;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#6B7280;">
+            <i data-lucide="file-text" width="56" height="56" style="margin-bottom:12px;"></i>
+            <p><strong>NIC Document #199214502841</strong></p>
+            <span class="text-sm">National Identity Card Front & Back (Uploaded PDF/JPG)</span>
+          </div>
+        </div>
+        <div class="info-notice mt-2"><i data-lucide="lock"></i><span>Privileged Document View. Confidential identification record strictly restricted to platform moderation and verification purposes.</span></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Close</button></div>
+    </div>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

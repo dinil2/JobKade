@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identity & KYC Verification — Job Kade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/worker.css">
+  <style>
+    .kyc-status-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 24px;
+      border: 1px solid transparent;
+      transition: all var(--transition-normal);
+    }
+    .kyc-status-card.verified {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: #065f46;
+    }
+    .kyc-status-card.pending {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.25);
+      color: #92400e;
+    }
+    .kyc-status-card.rejected {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.25);
+      color: #991b1b;
+    }
+    .kyc-status-card.unverified {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.25);
+      color: #1e40af;
+    }
+    .file-dropzone {
+      border: 2px dashed #cbd5e1;
+      border-radius: var(--radius-lg);
+      padding: 32px 20px;
+      text-align: center;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      position: relative;
+    }
+    .file-dropzone:hover, .file-dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(89, 150, 255, 0.04);
+    }
+    .preview-container {
+      margin-top: 16px;
+      display: none;
+      padding: 12px 16px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      align-items: center;
+      gap: 12px;
+    }
+    .preview-thumbnail {
+      width: 54px;
+      height: 54px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      border: 1px solid #e2e8f0;
+    }
+    .badge-approved {
+      background: rgba(16, 185, 129, 0.12);
+      color: #059669;
+      font-weight: 600;
+    }
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.12);
+      color: #d97706;
+      font-weight: 600;
+    }
+    .badge-rejected {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="navbar">
+    <div class="container dashboard-nav">
+      <div class="dashboard-nav-left">
+        <button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button>
+        <a href="../index.html" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="8" fill="#5996FF"/>
+            <path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="16" cy="10" r="2" fill="#66BB6A"/>
+          </svg>
+          Job<span>Kade</span>
+        </a>
+      </div>
+      <div class="dashboard-nav-right">
+        <div class="avatar avatar-sm avatar-blue" id="navAvatar">WK</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar worker">
+      <div class="sidebar-header">
+        <div class="sidebar-user">
+          <div class="avatar avatar-md avatar-blue" id="sidebarAvatar">WK</div>
+          <div>
+            <div class="sidebar-user-name" id="sidebarUserName">Worker Account</div>
+            <div class="sidebar-user-role">Skilled Professional</div>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-label">Main</div>
+        <a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a>
+        <a href="kyc.html" class="sidebar-link active"><i data-lucide="shield-check"></i> Identity & KYC</a>
+        <a href="my-services.html" class="sidebar-link"><i data-lucide="briefcase"></i> My Services</a>
+        <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a>
+        <a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a>
+        <a href="subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a>
+        <div class="sidebar-label">Account</div>
+        <a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a>
+        <a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" id="logoutBtn" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>Identity & KYC Verification</h1>
+        <p>Upload your government identity documents to get verified and build trust with customers.</p>
+      </div>
+
+      <!-- Live Status Card (Dynamic) -->
+      <div id="kycStatusCard" class="kyc-status-card unverified">
+        <div id="kycStatusIcon"><i data-lucide="shield-alert" width="32" height="32"></i></div>
+        <div style="flex:1;">
+          <h4 id="kycStatusTitle" style="margin-bottom:4px;font-size:1.05rem;">Verification Status: Unverified</h4>
+          <p id="kycStatusDesc" style="margin:0;font-size:0.9rem;opacity:0.9;">
+            Submit your National Identity Card (NIC), Driving License, or NVQ Certification to get verified.
+          </p>
+        </div>
+        <div>
+          <span id="kycStatusBadge" class="badge badge-pending" style="font-size:0.8rem;padding:6px 12px;">Not Submitted</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+        <!-- Upload Form Card -->
+        <div class="profile-form-card" style="margin:0;">
+          <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="upload-cloud" width="20" height="20" class="text-primary-color"></i>
+            Submit Verification Document
+          </h3>
+
+          <form id="kycUploadForm">
+            <div class="form-group">
+              <label class="form-label" for="docType">Document Type <span>*</span></label>
+              <select id="docType" name="document_type" class="form-select" required>
+                <option value="nic" selected>National Identity Card (NIC) — Mandatory (KYC)</option>
+                <option value="police_report">Police Clearance Report — Mandatory</option>
+                <option value="trade_certificate">Trade Certification / NVQ Diploma — Optional</option>
+                <option value="driving_license">Driving License — Alternative ID</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="docName">Document Title or Number <span>*</span></label>
+              <input type="text" id="docName" name="document_name" class="form-input" placeholder="e.g. NIC 199012345678, Police Clearance #8821, or NVQ-L4" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Document File (Max 5MB) <span>*</span></label>
+              <div class="file-dropzone" id="dropzone">
+                <i data-lucide="file-up" width="32" height="32" style="color:#64748b;margin-bottom:8px;"></i>
+                <p style="margin:0;font-weight:600;color:#1e293b;">Click to upload or drag & drop</p>
+                <span style="font-size:0.8rem;color:#64748b;">Supports PDF, PNG, JPG or JPEG (Max 5MB)</span>
+                <input type="file" id="kycFile" name="kyc_file" accept=".pdf,.png,.jpg,.jpeg" style="display:none;" required>
+              </div>
+
+              <!-- Live File Preview -->
+              <div class="preview-container" id="previewContainer">
+                <img id="previewImage" class="preview-thumbnail" src="" alt="Preview" style="display:none;">
+                <div id="previewDocIcon" style="display:none;"><i data-lucide="file-text" width="36" height="36" style="color:var(--primary);"></i></div>
+                <div style="flex:1;overflow:hidden;">
+                  <div id="previewFileName" style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">file.pdf</div>
+                  <div id="previewFileSize" style="font-size:0.75rem;color:#64748b;">1.2 MB</div>
+                </div>
+                <button type="button" id="removeFileBtn" class="btn btn-sm btn-outline" style="padding:4px 8px;font-size:0.75rem;border-color:#e2e8f0;">
+                  <i data-lucide="x" width="14" height="14"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" id="submitKycBtn" class="btn btn-primary w-100" style="margin-top:8px;">
+              <i data-lucide="shield-check" width="18" height="18"></i> Submit for Verification
+            </button>
+          </form>
+        </div>
+
+        <!-- Verification Guidance Card -->
+        <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px;border-radius:var(--radius-lg);">
+          <h4 style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <i data-lucide="info" width="18" height="18" class="text-primary-color"></i>
+            Verification Guidelines & Rules
+          </h4>
+          <ul style="padding-left:20px;font-size:0.85rem;color:#475569;line-height:1.7;">
+            <li><strong>Mandatory Documents (Must):</strong> Both <strong>National Identity Card (NIC)</strong> and <strong>Police Clearance Report</strong> are required for account verification.</li>
+            <li><strong>Optional Documents:</strong> Trade certifications, NVQ diplomas, and apprenticeship certificates are optional and boost your worker profile credibility.</li>
+            <li><strong>Clear & Legible:</strong> Ensure all numbers, full legal name, and expiration dates are clearly readable.</li>
+            <li><strong>Supported Formats:</strong> PDF documents, PNG, and JPG/JPEG image formats up to 5MB.</li>
+            <li><strong>Review Timeframe:</strong> Administrators review submissions within 12 to 24 business hours.</li>
+            <li><strong>Verified Badge Benefits:</strong> Verified workers receive up to <strong>3.5x more customer messages & jobs</strong> and priority listing on the map.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Submitted Documents History Table -->
+      <div class="table-card" style="margin-top:32px;">
+        <div class="table-header">
+          <h3><i data-lucide="history" width="18" height="18" class="me-2 text-primary-color"></i> Submission History</h3>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Document Type</th>
+                <th>Title / Reference</th>
+                <th>File</th>
+                <th>Submitted Date</th>
+                <th>Status</th>
+                <th>Feedback / Notes</th>
+              </tr>
+            </thead>
+            <tbody id="kycHistoryTable">
+              <tr>
+                <td colspan="6" style="text-align:center;color:#64748b;padding:24px;">Loading verification records...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/kyc.js"></script>
+</body>
+</html>

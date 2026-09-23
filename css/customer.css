@@ -1,0 +1,255 @@
+/* ==========================================
+   JODKADE — Customer Dashboard Styles
+   ========================================== */
+
+/* Customer sidebar accent */
+.sidebar.customer .sidebar-link.active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.quick-action-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  color: inherit;
+}
+
+.quick-action-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  color: inherit;
+}
+
+.quick-action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.quick-action-card h4 {
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+}
+
+.quick-action-card p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Recent Activity */
+.activity-list {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  transition: var(--transition);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item:hover {
+  background: var(--bg-light);
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.activity-icon.green {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-content p {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.activity-content .activity-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Saved Worker Card */
+.saved-worker-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  transition: var(--transition);
+}
+
+.saved-worker-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.saved-worker-info {
+  flex: 1;
+}
+
+.saved-worker-info h4 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.saved-worker-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Recently Viewed */
+.recently-viewed {
+  margin-top: 32px;
+}
+
+.recently-viewed h3 {
+  margin-bottom: 16px;
+}
+
+.recent-workers-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.recent-workers-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.recent-workers-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.recent-worker-mini {
+  flex-shrink: 0;
+  width: 140px;
+  text-align: center;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.recent-worker-mini:hover {
+  border-color: var(--primary);
+}
+
+.recent-worker-mini .avatar {
+  margin: 0 auto 10px;
+}
+
+.recent-worker-mini h5 {
+  font-size: 0.8125rem;
+  margin-bottom: 2px;
+}
+
+.recent-worker-mini p {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/* Customer Profile */
+.profile-form-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 32px;
+}
+
+.profile-form-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-form-header .avatar-upload {
+  position: relative;
+}
+
+.profile-form-header .avatar-upload .upload-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--primary);
+  color: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid var(--white);
+}
+
+@media (max-width: 768px) {
+  .saved-worker-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .saved-worker-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+}

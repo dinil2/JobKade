@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JodKade — Find Trusted Local Workers Near You</title>
+  <meta name="description" content="JodKade connects you with verified local skilled workers — electricians, plumbers, AC technicians, carpenters and more. Find the right person for the job.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="has-navbar">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#5996FF"/>
+          <path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="16" cy="10" r="2" fill="#66BB6A"/>
+        </svg>
+        Jod<span>Kade</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="workers.html">Find Workers</a>
+        <a href="services.html">Services</a>
+        <a href="how-it-works.html">How It Works</a>
+      </div>
+
+      <div class="nav-auth">
+        <a href="auth/login.html" class="btn-login">Login</a>
+        <a href="auth/register.html" class="btn btn-primary">Sign Up</a>
+      </div>
+
+      <button class="mobile-menu-btn" aria-label="Menu">
+        <i data-lucide="menu" width="24" height="24"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu">
+    <a href="index.html"><i data-lucide="home" width="20" height="20"></i> Home</a>
+    <a href="workers.html"><i data-lucide="search" width="20" height="20"></i> Find Workers</a>
+    <a href="services.html"><i data-lucide="grid-3x3" width="20" height="20"></i> Services</a>
+    <a href="how-it-works.html"><i data-lucide="info" width="20" height="20"></i> How It Works</a>
+    <div class="mobile-auth">
+      <a href="auth/login.html" class="btn btn-outline w-full">Login</a>
+      <a href="auth/register.html" class="btn btn-primary w-full">Sign Up</a>
+    </div>
+  </div>
+
+  <!-- ===== HERO SECTION ===== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content animate-on-scroll">
+        <h1>Find Trusted Local<br>Workers <span>Near You</span></h1>
+        <p>From plumbing and electrical work to AC repairs and home maintenance — find verified professionals ready to help.</p>
+
+        <div class="hero-search">
+          <input type="text" placeholder="What service do you need?" aria-label="Service search">
+          <div class="search-divider"></div>
+          <input type="text" placeholder="Location" aria-label="Location" style="max-width: 160px;">
+          <a href="workers.html" class="btn btn-primary">
+            <i data-lucide="search" width="18" height="18"></i> Search
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="stat-num">500+</div>
+            <div class="stat-label">Verified Workers</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-num">1,200+</div>
+            <div class="stat-label">Jobs Completed</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-num">4.8</div>
+            <div class="stat-label">Average Rating</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual animate-on-scroll animate-delay-2">
+        <img src="assets/images/hero-worker.png" alt="Professional worker at work" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="hero-img-placeholder" style="display:none;">
+          <i data-lucide="wrench" width="100" height="100"></i>
+        </div>
+
+        <!-- Floating Cards -->
+        <div class="floating-card fc-verified">
+          <i data-lucide="shield-check" width="20" height="20"></i>
+          Verified Worker
+        </div>
+        <div class="floating-card fc-rating">
+          <i data-lucide="star" width="20" height="20"></i>
+          4.9 Rating
+        </div>
+        <div class="floating-card fc-location">
+          <i data-lucide="map-pin" width="20" height="20"></i>
+          Near You
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SERVICE CATEGORIES ===== -->
+  <section class="section" id="services">
+    <div class="container">
+      <div class="section-header animate-on-scroll">
+        <h2>What service do you need?</h2>
+        <p class="section-subtitle">Browse our categories to find the right skilled professional for your job.</p>
+      </div>
+
+      <div class="category-grid">
+        <a href="workers.html?cat=electrical" class="category-card animate-on-scroll animate-delay-1">
+          <div class="category-icon">
+            <img src="assets/icons/electrical.png" alt="Electrical">
+          </div>
+          <h3>Electrical</h3>
+          <p>Find verified electricians</p>
+          <span class="category-count">120+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=plumbing" class="category-card animate-on-scroll animate-delay-1">
+          <div class="category-icon">
+            <img src="assets/icons/plumbing.png" alt="Plumbing">
+          </div>
+          <h3>Plumbing</h3>
+          <p>Expert plumbing services</p>
+          <span class="category-count">95+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=ac-repair" class="category-card animate-on-scroll animate-delay-2">
+          <div class="category-icon">
+            <img src="assets/icons/ac-repair.png" alt="AC Repair">
+          </div>
+          <h3>AC Repair</h3>
+          <p>AC installation & repair</p>
+          <span class="category-count">80+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=carpentry" class="category-card animate-on-scroll animate-delay-2">
+          <div class="category-icon">
+            <img src="assets/icons/carpentry.png" alt="Carpentry">
+          </div>
+          <h3>Carpentry</h3>
+          <p>Custom woodwork & repairs</p>
+          <span class="category-count">65+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=painting" class="category-card animate-on-scroll animate-delay-3">
+          <div class="category-icon">
+            <img src="assets/icons/painting.png" alt="Painting">
+          </div>
+          <h3>Painting</h3>
+          <p>Interior & exterior painting</p>
+          <span class="category-count">55+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=cleaning" class="category-card animate-on-scroll animate-delay-3">
+          <div class="category-icon">
+            <img src="assets/icons/cleaning.png" alt="Cleaning">
+          </div>
+          <h3>Cleaning</h3>
+          <p>Professional cleaning services</p>
+          <span class="category-count">110+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=appliance" class="category-card animate-on-scroll animate-delay-4">
+          <div class="category-icon">
+            <img src="assets/icons/appliance.png" alt="Appliance Repair">
+          </div>
+          <h3>Appliance Repair</h3>
+          <p>Fix household appliances</p>
+          <span class="category-count">45+ workers</span>
+        </a>
+
+        <a href="workers.html?cat=masonry" class="category-card animate-on-scroll animate-delay-4">
+          <div class="category-icon">
+            <img src="assets/icons/masonry.png" alt="Masonry">
+          </div>
+          <h3>Masonry</h3>
+          <p>Brick & stonework services</p>
+          <span class="category-count">30+ workers</span>
+        </a>
+
+        <a href="workers.html" class="category-card animate-on-scroll animate-delay-4">
+          <div class="category-icon">
+            <img src="assets/icons/other-services.png" alt="Other Services">
+          </div>
+          <h3>Other Services</h3>
+          <p>Browse all categories</p>
+          <span class="category-count">View all</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="section-alt" id="how-it-works">
+    <div class="container">
+      <div class="section-header animate-on-scroll">
+        <h2>How It Works</h2>
+        <p class="section-subtitle">Get the help you need in three simple steps.</p>
+      </div>
+
+      <div class="steps-container">
+        <div class="step-card animate-on-scroll animate-delay-1">
+          <div class="step-number">01</div>
+          <h3>Search</h3>
+          <p>Find a service and browse verified workers in your area.</p>
+        </div>
+        <div class="step-card animate-on-scroll animate-delay-2">
+          <div class="step-number">02</div>
+          <h3>Choose</h3>
+          <p>Compare profiles, locations, ratings and service rates.</p>
+        </div>
+        <div class="step-card animate-on-scroll animate-delay-3">
+          <div class="step-number">03</div>
+          <h3>Contact</h3>
+          <p>Call or WhatsApp the worker directly to get started.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TRUST SECTION ===== -->
+  <section class="section" id="trust">
+    <div class="container">
+      <div class="section-header animate-on-scroll">
+        <h2>Built Around Trust</h2>
+        <p class="section-subtitle">Every part of JodKade is designed to keep customers and workers safe.</p>
+      </div>
+
+      <div class="trust-grid">
+        <div class="trust-card animate-on-scroll animate-delay-1">
+          <div class="trust-icon green">
+            <img src="assets/icons/shield-check.png" alt="Verified">
+          </div>
+          <h3>Verified Workers</h3>
+          <p>Worker identities are reviewed before verification.</p>
+        </div>
+
+        <div class="trust-card animate-on-scroll animate-delay-2">
+          <div class="trust-icon">
+            <img src="assets/icons/map-pin.png" alt="Location">
+          </div>
+          <h3>Local Professionals</h3>
+          <p>Find skilled workers serving your area.</p>
+        </div>
+
+        <div class="trust-card animate-on-scroll animate-delay-3">
+          <div class="trust-icon">
+            <img src="assets/icons/phone.png" alt="Contact">
+          </div>
+          <h3>Direct Contact</h3>
+          <p>Connect directly by phone or WhatsApp.</p>
+        </div>
+
+        <div class="trust-card animate-on-scroll animate-delay-4">
+          <div class="trust-icon green">
+            <img src="assets/icons/star.png" alt="Ratings">
+          </div>
+          <h3>Transparent Profiles</h3>
+          <p>See worker service information, ratings, and verified credentials.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEATURED WORKERS ===== -->
+  <section class="section-alt" id="featured">
+    <div class="container">
+      <div class="section-header animate-on-scroll">
+        <h2>Featured Workers</h2>
+        <p class="section-subtitle">Top-rated verified professionals ready to help.</p>
+      </div>
+
+      <div class="featured-grid">
+        <!-- Worker 1 -->
+        <div class="worker-card animate-on-scroll animate-delay-1">
+          <img src="assets/images/worker-kasun.png" alt="Kasun Perera" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="avatar avatar-xl avatar-blue" style="display:none;width:100%;height:200px;border-radius:12px 12px 0 0;font-size:3rem;">KP</div>
+          <div class="worker-card-body">
+            <div class="worker-card-header">
+              <div>
+                <div class="worker-card-name">Kasun Perera</div>
+                <div class="worker-card-profession">Professional Electrician</div>
+              </div>
+              <span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>
+            </div>
+            <div class="worker-card-meta">
+              <span><i data-lucide="map-pin"></i> Colombo</span>
+              <span><i data-lucide="star"></i> 4.9</span>
+            </div>
+            <p class="worker-card-desc">Experienced residential and commercial electrician with 8+ years of service.</p>
+            <div class="worker-card-footer">
+              <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
+              <a href="messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
+              <a href="tel:+94771234567" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
+              <a href="https://wa.me/94771234567" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Worker 2 -->
+        <div class="worker-card animate-on-scroll animate-delay-2">
+          <img src="assets/images/worker-nimal.png" alt="Nimal Fernando" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="avatar avatar-xl avatar-green" style="display:none;width:100%;height:200px;border-radius:12px 12px 0 0;font-size:3rem;">NF</div>
+          <div class="worker-card-body">
+            <div class="worker-card-header">
+              <div>
+                <div class="worker-card-name">Nimal Fernando</div>
+                <div class="worker-card-profession">Expert Plumber</div>
+              </div>
+              <span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>
+            </div>
+            <div class="worker-card-meta">
+              <span><i data-lucide="map-pin"></i> Negombo</span>
+              <span><i data-lucide="star"></i> 4.8</span>
+            </div>
+            <p class="worker-card-desc">Reliable plumber specializing in residential plumbing repairs and installations.</p>
+            <div class="worker-card-footer">
+              <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
+              <a href="messages.html?user_id=4" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
+              <a href="tel:+94772345678" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
+              <a href="https://wa.me/94772345678" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Worker 3 -->
+        <div class="worker-card animate-on-scroll animate-delay-3">
+          <img src="assets/images/worker-amal.png" alt="Amal Silva" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="avatar avatar-xl avatar-orange" style="display:none;width:100%;height:200px;border-radius:12px 12px 0 0;font-size:3rem;">AS</div>
+          <div class="worker-card-body">
+            <div class="worker-card-header">
+              <div>
+                <div class="worker-card-name">Amal Silva</div>
+                <div class="worker-card-profession">AC Technician</div>
+              </div>
+              <span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>
+            </div>
+            <div class="worker-card-meta">
+              <span><i data-lucide="map-pin"></i> Dehiwala</span>
+              <span><i data-lucide="star"></i> 4.7</span>
+            </div>
+            <p class="worker-card-desc">Specialist in AC installation, maintenance, and repair for all major brands.</p>
+            <div class="worker-card-footer">
+              <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
+              <a href="messages.html?user_id=5" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
+              <a href="tel:+94773456789" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
+              <a href="https://wa.me/94773456789" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Worker 4 -->
+        <div class="worker-card animate-on-scroll animate-delay-4">
+          <img src="assets/images/worker-tharindu.png" alt="Tharindu Jayasinghe" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="avatar avatar-xl avatar-purple" style="display:none;width:100%;height:200px;border-radius:12px 12px 0 0;font-size:3rem;">TJ</div>
+          <div class="worker-card-body">
+            <div class="worker-card-header">
+              <div>
+                <div class="worker-card-name">Tharindu Jayasinghe</div>
+                <div class="worker-card-profession">Master Carpenter</div>
+              </div>
+              <span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>
+            </div>
+            <div class="worker-card-meta">
+              <span><i data-lucide="map-pin"></i> Kandy</span>
+              <span><i data-lucide="star"></i> 4.9</span>
+            </div>
+            <p class="worker-card-desc">Custom furniture, woodwork, and carpentry repairs with fine craftsmanship.</p>
+            <div class="worker-card-footer">
+              <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
+              <a href="messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
+              <a href="tel:+94774567890" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
+              <a href="https://wa.me/94774567890" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="workers.html" class="btn btn-outline btn-lg">
+          <i data-lucide="users" width="20" height="20"></i> View All Workers
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA SECTION ===== -->
+  <section class="section" style="background: linear-gradient(135deg, #5996FF 0%, #7C4DFF 100%); color: white;">
+    <div class="container" style="text-align: center;">
+      <h2 style="color: white; margin-bottom: 16px;">Ready to get started?</h2>
+      <p style="color: rgba(255,255,255,0.85); max-width: 500px; margin: 0 auto 32px; font-size: 1.125rem;">
+        Whether you need a service or offer one — JodKade makes it simple.
+      </p>
+      <div class="btn-group" style="justify-content: center;">
+        <a href="workers.html" class="btn btn-lg" style="background: white; color: #5996FF;">
+          <i data-lucide="search" width="20" height="20"></i> Find a Worker
+        </a>
+        <a href="auth/register.html" class="btn btn-lg" style="background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.3);">
+          <i data-lucide="briefcase" width="20" height="20"></i> Offer Your Service
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="nav-logo">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="8" fill="#5996FF"/>
+              <path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="16" cy="10" r="2" fill="#66BB6A"/>
+            </svg>
+            Jod<span>Kade</span>
+          </a>
+          <p>Find trusted local professionals for your everyday service needs. One simple platform.</p>
+        </div>
+
+        <div class="footer-column">
+          <h4>Quick Links</h4>
+          <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="workers.html">Find Workers</a>
+            <a href="services.html">Services</a>
+            <a href="how-it-works.html">How It Works</a>
+          </div>
+        </div>
+
+        <div class="footer-column">
+          <h4>For Workers</h4>
+          <div class="footer-links">
+            <a href="auth/register.html">Offer Your Service</a>
+            <a href="auth/login.html">Worker Login</a>
+            <a href="worker/subscription.html">Subscriptions</a>
+          </div>
+        </div>
+
+        <div class="footer-column">
+          <h4>Support</h4>
+          <div class="footer-links">
+            <a href="#">Help Center</a>
+            <a href="#">Contact Us</a>
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 JodKade. All rights reserved.</p>
+        <p>Trusted local professionals, one simple platform.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      // 1. Hero Search Handler
+      const heroSearch = document.querySelector('.hero-search');
+      if (heroSearch) {
+        const searchInput = heroSearch.querySelector('input[placeholder*="service"]');
+        const locInput = heroSearch.querySelector('input[placeholder*="Location"]');
+        const searchBtn = heroSearch.querySelector('a.btn-primary');
+
+        function doSearch(e) {
+          if (e) e.preventDefault();
+          const q = encodeURIComponent(searchInput ? searchInput.value.trim() : '');
+          const loc = encodeURIComponent(locInput ? locInput.value.trim() : '');
+          window.location.href = 'workers.html?query=' + q + '&loc=' + loc;
+        }
+
+        if (searchBtn) {
+          searchBtn.addEventListener('click', doSearch);
+        }
+        if (searchInput) {
+          searchInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(e); });
+        }
+        if (locInput) {
+          locInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(e); });
+        }
+      }
+
+      // 2. Fetch Live Workers for Featured Grid
+      try {
+        const res = await apiFetch('workers.php?action=search');
+        if (res.ok && res.data && res.data.status === 'success' && res.data.workers && res.data.workers.length > 0) {
+          const grid = document.querySelector('.featured-grid');
+          if (grid) {
+            const apiHtml = res.data.workers.slice(0, 3).map(function (w) {
+              const catName = (w.categories && w.categories[0]) ? w.categories[0].name : 'Service Professional';
+              const rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
+              const phoneClean = (w.phone || '0771234567').replace(/\D/g, '');
+              const waNumber = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
+
+              return '<div class="worker-card">' +
+                '<img src="assets/images/hero-worker.png" alt="' + w.full_name + '" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.src=\'assets/images/worker-kasun.png\'">' +
+                '<div class="worker-card-body">' +
+                  '<div class="worker-card-header">' +
+                    '<div>' +
+                      '<div class="worker-card-name">' + w.full_name + '</div>' +
+                      '<div class="worker-card-profession">' + catName + '</div>' +
+                    '</div>' +
+                    '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' +
+                  '</div>' +
+                  '<div class="worker-card-meta">' +
+                    '<span><i data-lucide="map-pin"></i> ' + (w.address || 'Colombo') + '</span>' +
+                    '<span><i data-lucide="star"></i> ' + rating + '</span>' +
+                  '</div>' +
+                  '<p class="worker-card-desc">' + (w.bio || 'Verified skilled service professional.') + '</p>' +
+                  '<div class="worker-card-footer">' +
+                    '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
+                    '<a href="messages.html?user_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>' +
+                    '<a href="tel:' + (w.phone || '') + '" class="btn btn-call btn-sm btn-icon-sm" title="Call"><i data-lucide="phone" width="16" height="16"></i></a>' +
+                    '<a href="https://wa.me/' + waNumber + '" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="WhatsApp"><i data-lucide="message-circle" width="16" height="16"></i></a>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+            }).join('');
+
+            grid.insertAdjacentHTML('afterbegin', apiHtml);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+        }
+      } catch (err) {
+        console.warn('index featured workers error:', err);
+      }
+    });
+  </script>
+</body>
+</html>

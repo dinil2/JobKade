@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Job Requests — JodKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/worker.css">
+  <!-- Leaflet.js Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">KP</div></div></div></nav>
+
+  <div class="dashboard-layout">
+    <div class="sidebar-overlay"></div>
+    <aside class="sidebar worker"><div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-blue">KP</div><div><div class="sidebar-user-name">Kasun Perera</div><div class="sidebar-user-role">Worker</div></div></div></div><nav class="sidebar-nav"><div class="sidebar-label">Main</div><a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a><a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a><a href="kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a><a href="my-services.html" class="sidebar-link"><i data-lucide="briefcase"></i> My Services</a><a href="jobs.html" class="sidebar-link active"><i data-lucide="file-text"></i> Customer Jobs</a><a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a><a href="subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a><div class="sidebar-label">Account</div><a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a><a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a></nav><div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div></aside>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header"><h1>Customer Job Requests</h1><p>Browse and respond to job requests from customers in your area.</p></div>
+
+      <!-- Access Fee Notice / Gate Banner -->
+      <div id="job-access-banner" class="info-notice mb-3" style="background: linear-gradient(135deg, rgba(89,150,255,0.08), rgba(102,187,106,0.08)); border: 1px solid rgba(89,150,255,0.25); padding: 16px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="unlock" width="20" height="20"></i>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 0.95rem;">One-Time Job Marketplace Access</strong>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Pay Rs. 1,000 once or subscribe to unlock direct customer contacts and accept unlimited jobs.</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="btn-pay-access-pass" class="btn btn-primary btn-sm"><i data-lucide="shield-check" width="14" height="14"></i> Pay Rs. 1,000 (One-Time)</button>
+          <a href="subscription.html" class="btn btn-outline btn-sm"><i data-lucide="sparkles" width="14" height="14"></i> Subscribe (5% Rate)</a>
+        </div>
+      </div>
+
+      <div class="tabs" data-tabs>
+        <button class="tab active">All Jobs</button>
+        <button class="tab">Electrical</button>
+        <button class="tab">My Area</button>
+      </div>
+
+      <div id="worker-jobs-container" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="empty-state" id="worker-jobs-loading" style="text-align:center; padding: 40px 16px;">
+          <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 12px;"></i>
+          <p style="color: var(--text-secondary);">Loading available customer requests...</p>
+        </div>
+      </div>
+
+      <!-- Complete Job / Set Price Modal -->
+      <div class="modal-overlay" id="invoice-modal">
+        <div class="modal" style="max-width: 520px;">
+          <div class="modal-header">
+            <h3><i data-lucide="check-circle" width="20" height="20" style="display:inline;vertical-align:middle;color:var(--success);"></i> Mark Done & Set Working Price</h3>
+            <button class="modal-close" data-dismiss="modal"><i data-lucide="x" width="20" height="20"></i></button>
+          </div>
+          <form id="worker-invoice-form">
+            <div class="modal-body" style="padding: 20px 24px; display:flex; flex-direction:column; gap:16px;">
+              <input type="hidden" id="inv-job-id" name="job_id" value="">
+              
+              <div>
+                <label style="font-size: 0.85rem; font-weight: 600; display:block; margin-bottom: 6px;">Job Title</label>
+                <div id="inv-job-title" style="padding: 10px 14px; background: var(--bg-alt); border-radius: var(--radius-sm); font-weight: 500; font-size: 0.9rem;">AC Repair & Gas Refill</div>
+              </div>
+
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label for="inv-amount" style="font-size: 0.85rem; font-weight: 600; margin-bottom:0;">Real Working Price (Rs.) *</label>
+                  <span style="font-size:0.75rem; color:var(--text-muted);">Please add your honest real price</span>
+                </div>
+                <input type="number" id="inv-amount" name="amount" class="form-input" placeholder="e.g. 5000" min="100" step="50" required style="font-size: 1.1rem; font-weight: 700;">
+              </div>
+
+              <div>
+                <label for="inv-notes" style="font-size: 0.85rem; font-weight: 600; display:block; margin-bottom: 6px;">Work Done Details (Notes for Customer)</label>
+                <textarea id="inv-notes" name="notes" class="form-input" rows="2" placeholder="e.g. Completed all repair tasks honestly as requested."></textarea>
+              </div>
+
+              <!-- Live Breakdown Card -->
+              <div style="background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size: 0.875rem;">
+                  <span style="color: var(--text-secondary);">Customer Charged:</span>
+                  <strong id="breakdown-total">Rs. 0.00</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom: 8px; font-size: 0.875rem;">
+                  <span style="color: var(--text-secondary);">
+                    Platform Commission (<span id="breakdown-rate-label">10%</span>):
+                    <span id="breakdown-sub-badge" class="badge badge-sm badge-green" style="display:none; font-size: 0.7rem;">5% Subscribed</span>
+                  </span>
+                  <span id="breakdown-commission" style="color: var(--error); font-weight: 600;">- Rs. 0.00</span>
+                </div>
+                <hr style="border: 0; border-top: 1px dashed var(--border); margin: 8px 0;">
+                <div style="display:flex; justify-content:space-between; font-size: 0.95rem;">
+                  <span style="font-weight: 600;">Your Net Payout:</span>
+                  <strong id="breakdown-net" style="color: var(--success); font-size: 1.05rem;">Rs. 0.00</strong>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                  💡 Online Card: Rs. <span id="online-net-note">0.00</span> credited to wallet | Cash: Commission debited from wallet.
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" id="btn-submit-invoice" class="btn btn-primary"><i data-lucide="send" width="16" height="16"></i> Send Invoice to Customer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Job Location Map Modal for Worker -->
+      <div class="modal-overlay" id="job-map-modal">
+        <div class="modal" style="max-width: 620px;">
+          <div class="modal-header">
+            <h3 id="modal-map-title">Job Location</h3>
+            <button class="modal-close" data-dismiss="modal"><i data-lucide="x" width="20" height="20"></i></button>
+          </div>
+          <div class="modal-body" style="padding: 16px 24px;">
+            <p id="modal-map-address" style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 12px;">
+              <i data-lucide="map-pin" width="14" height="14" style="display:inline; vertical-align:middle; color:var(--primary);"></i> <span>Colombo</span>
+            </p>
+            <div id="worker-job-map" style="height: 300px; width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border); z-index: 1;"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <a id="modal-map-msg-btn" href="../messages.html" class="btn btn-primary"><i data-lucide="message-square" width="16" height="16"></i> Message Customer</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/worker.js"></script>
+</body>
+</html>
