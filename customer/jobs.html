@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Job Requests — JodKade</title>
+  <title>My Job Requests — JobKade</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="../js/lucide.min.js"></script>
@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../css/customer.css">
 </head>
 <body>
-  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">D</div></div></div></nav>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="notification-wrapper"><button class="notification-bell" aria-label="Notifications" title="Notifications"><i data-lucide="bell" width="22" height="22"></i><span class="notif-count">3</span></button><div class="notification-dropdown"><div class="notification-dropdown-header"><h4>Notifications</h4><a href="#" class="text-sm text-primary-color">Mark all read</a></div><div class="notification-list"><div class="notification-item unread"><div class="notification-item-icon green"><i data-lucide="check-circle" width="16" height="16"></i></div><div class="notification-item-content"><p>Your job request was posted successfully.</p><span class="notif-time">2 minutes ago</span></div></div><div class="notification-item unread"><div class="notification-item-icon"><i data-lucide="users" width="16" height="16"></i></div><div class="notification-item-content"><p>New worker matches your plumbing request.</p><span class="notif-time">1 hour ago</span></div></div></div></div></div><a href="profile.html" style="text-decoration:none;" title="My Profile"><div class="avatar avatar-nav avatar-blue">D</div></a><a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade"><i data-lucide="log-out" width="18" height="18"></i><span>Logout</span></a></div></div></nav>
 
   <div class="dashboard-layout">
     <div class="sidebar-overlay"></div>
@@ -75,20 +75,70 @@
                 <label style="font-size: 0.85rem; font-weight: 600; display:block; margin-bottom: 8px;">Select Payment Method</label>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                   <label style="display:flex; align-items:flex-start; gap:12px; padding: 12px 14px; border: 1px solid var(--primary); background: rgba(89,150,255,0.05); border-radius: var(--radius-md); cursor:pointer;">
-                    <input type="radio" name="payment_method" value="online" checked style="margin-top: 3px;">
+                    <input type="radio" name="payment_method" value="online" checked style="margin-top: 3px;" id="radio-pay-online">
                     <div>
                       <strong style="display:block; font-size: 0.9rem;"><i data-lucide="credit-card" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Online Card Payment (Visa / Mastercard)</strong>
-                      <span style="font-size: 0.78rem; color: var(--text-secondary);">Fast and secure. Net earnings are credited immediately to worker's wallet.</span>
+                      <span style="font-size: 0.78rem; color: var(--text-secondary);">Fast and secure mockup IPG gateway. Net earnings credited to worker's wallet.</span>
                     </div>
                   </label>
 
                   <label style="display:flex; align-items:flex-start; gap:12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); cursor:pointer;">
-                    <input type="radio" name="payment_method" value="cash" style="margin-top: 3px;">
+                    <input type="radio" name="payment_method" value="cash" style="margin-top: 3px;" id="radio-pay-cash">
                     <div>
                       <strong style="display:block; font-size: 0.9rem;"><i data-lucide="banknote" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--success);"></i> Cash on Completion</strong>
                       <span style="font-size: 0.78rem; color: var(--text-secondary);">Hand cash directly to worker. Platform commission is deducted from worker's wallet.</span>
                     </div>
                   </label>
+                </div>
+              </div>
+
+              <!-- Interactive Mockup Card Payment Box -->
+              <div id="mockup-card-fields" style="display: flex; flex-direction: column; gap: 12px; background: linear-gradient(145deg, #0f172a, #1e293b); padding: 18px 20px; border-radius: 12px; color: #ffffff; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                  <span style="font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: #94a3b8; font-weight: 700; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" width="14" height="14" style="color: #10b981;"></i> Secure Mockup IPG Gateway
+                  </span>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <span style="background: #2563eb; color:#ffffff; font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:4px;">VISA</span>
+                    <span style="background: #ea580c; color:#ffffff; font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:4px;">MASTERCARD</span>
+                  </div>
+                </div>
+
+                <!-- Visual Chip -->
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width: 34px; height: 26px; background: linear-gradient(135deg, #eab308, #ca8a04); border-radius: 5px; display:flex; align-items:center; justify-content:center;">
+                    <span style="font-size: 8px; color: #713f12; font-weight: 800; letter-spacing: -0.5px;">CHIP</span>
+                  </div>
+                  <i data-lucide="wifi" width="16" height="16" style="color: #64748b; transform: rotate(90deg);"></i>
+                </div>
+
+                <div>
+                  <label for="mock-card-number" style="font-size: 0.75rem; color: #cbd5e1; display:block; margin-bottom: 4px; font-weight: 500;">Card Number</label>
+                  <div style="position: relative;">
+                    <input type="text" id="mock-card-number" class="form-input" value="4532 8812 9043 2419" style="background: #1e293b; border-color: #334155; color: #f8fafc; font-family: 'Courier New', monospace; letter-spacing: 0.1em; font-size: 0.95rem; padding-right: 36px;" maxlength="19" placeholder="4532 •••• •••• ••••">
+                    <i data-lucide="lock" width="14" height="14" style="position: absolute; right: 12px; top: 13px; color: #10b981;"></i>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div>
+                    <label for="mock-card-exp" style="font-size: 0.75rem; color: #cbd5e1; display:block; margin-bottom: 4px; font-weight: 500;">Expiry Date</label>
+                    <input type="text" id="mock-card-exp" class="form-input" value="12/28" style="background: #1e293b; border-color: #334155; color: #f8fafc; font-family: monospace; font-size: 0.9rem;" maxlength="5" placeholder="MM/YY">
+                  </div>
+                  <div>
+                    <label for="mock-card-cvv" style="font-size: 0.75rem; color: #cbd5e1; display:block; margin-bottom: 4px; font-weight: 500;">CVV / CVC</label>
+                    <input type="password" id="mock-card-cvv" class="form-input" value="882" style="background: #1e293b; border-color: #334155; color: #f8fafc; font-family: monospace; font-size: 0.9rem;" maxlength="4" placeholder="•••">
+                  </div>
+                </div>
+
+                <div>
+                  <label for="mock-card-name" style="font-size: 0.75rem; color: #cbd5e1; display:block; margin-bottom: 4px; font-weight: 500;">Cardholder Name</label>
+                  <input type="text" id="mock-card-name" class="form-input" value="DINIL SANDARUWAN" style="background: #1e293b; border-color: #334155; color: #f8fafc; font-size: 0.85rem; text-transform: uppercase;">
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#94a3b8; border-top:1px solid #334155; padding-top:8px; margin-top:2px;">
+                  <span><i data-lucide="check-circle-2" width="13" height="13" style="display:inline; vertical-align:middle; color:#10b981;"></i> 3D-Secure Test Simulation</span>
+                  <button type="button" id="btn-autofill-demo-card" style="background:none; border:none; color:#60a5fa; cursor:pointer; font-size:0.75rem; text-decoration:underline;">Demo Autofill</button>
                 </div>
               </div>
             </div>

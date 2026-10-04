@@ -11,9 +11,23 @@ class WalletRepository {
     }
 
     /**
+     * Resolve the worker profile ID given either a worker profile ID or user ID.
+     * Prioritizes worker_profiles.id over user_id.
+     */
+    public function resolveProfileId(int $workerId): ?int {
+        $stmt = $this->db->prepare("SELECT id FROM worker_profiles WHERE id = ? OR user_id = ? ORDER BY (id = ?) DESC LIMIT 1");
+        $stmt->execute([$workerId, $workerId, $workerId]);
+        $val = $stmt->fetchColumn();
+        return $val !== false ? (int)$val : null;
+    }
+
+    /**
      * Get worker wallet balance and summary metrics.
      */
     public function getWallet(int $workerId): ?array {
+        $profileId = $this->resolveProfileId($workerId);
+        if (!$profileId) return null;
+
         $stmt = $this->db->prepare("
             SELECT 
                 wp.id AS worker_id,
@@ -32,10 +46,10 @@ class WalletRepository {
                 ORDER BY id DESC LIMIT 1
             ) ws ON wp.id = ws.worker_id
             LEFT JOIN subscription_plans sp ON ws.plan_id = sp.id
-            WHERE wp.id = :wid OR wp.user_id = :uid
+            WHERE wp.id = :wid
             LIMIT 1
         ");
-        $stmt->execute([":wid" => $workerId, ":uid" => $workerId]);
+        $stmt->execute([":wid" => $profileId]);
         $row = $stmt->fetch();
         return $row ?: null;
     }
@@ -44,15 +58,16 @@ class WalletRepository {
      * Check if a worker has an active subscription.
      */
     public function hasActiveSubscription(int $workerId): bool {
+        $profileId = $this->resolveProfileId($workerId);
+        if (!$profileId) return false;
         $stmt = $this->db->prepare("
             SELECT COUNT(*) 
             FROM worker_subscriptions ws
-            JOIN worker_profiles wp ON ws.worker_id = wp.id
-            WHERE (wp.id = :wid OR wp.user_id = :uid) 
+            WHERE ws.worker_id = :wid 
               AND ws.status = 'active' 
               AND ws.end_date >= CURDATE()
         ");
-        $stmt->execute([":wid" => $workerId, ":uid" => $workerId]);
+        $stmt->execute([":wid" => $profileId]);
         return ((int)$stmt->fetchColumn()) > 0;
     }
 
@@ -60,8 +75,10 @@ class WalletRepository {
      * Check if worker has job viewing access (either one-time payment or active subscription).
      */
     public function hasJobAccess(int $workerId): bool {
-        $stmt = $this->db->prepare("SELECT has_job_access, id FROM worker_profiles WHERE id = :wid OR user_id = :uid LIMIT 1");
-        $stmt->execute([":wid" => $workerId, ":uid" => $workerId]);
+        $profileId = $this->resolveProfileId($workerId);
+        if (!$profileId) return false;
+        $stmt = $this->db->prepare("SELECT has_job_access, id FROM worker_profiles WHERE id = :id LIMIT 1");
+        $stmt->execute([":id" => $profileId]);
         $row = $stmt->fetch();
         if (!$row) return false;
         if ((int)$row["has_job_access"] === 1) {
@@ -74,15 +91,16 @@ class WalletRepository {
      * Set job access flag for a worker.
      */
     public function setJobAccess(int $workerId, bool $access = true): bool {
+        $profileId = $this->resolveProfileId($workerId);
+        if (!$profileId) return false;
         $stmt = $this->db->prepare("
             UPDATE worker_profiles 
             SET has_job_access = :access 
-            WHERE id = :wid OR user_id = :uid
+            WHERE id = :id
         ");
         return $stmt->execute([
             ":access" => $access ? 1 : 0,
-            ":wid"    => $workerId,
-            ":uid"    => $workerId
+            ":id"     => $profileId
         ]);
     }
 
@@ -100,23 +118,31 @@ class WalletRepository {
         float $grossJobEarnings = 0.00,
         float $commissionPaid = 0.00
     ): array {
-        $this->db->beginTransaction();
+        $ownsTx = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $ownsTx = true;
+        }
         try {
+            $profileId = $this->resolveProfileId($workerId);
+            if (!$profileId) {
+                throw new InvalidArgumentException("Worker profile #{$workerId} not found.");
+            }
+
             // Lock worker profile row
             $lockStmt = $this->db->prepare("
                 SELECT id, wallet_balance, total_earnings, total_commission_paid 
                 FROM worker_profiles 
-                WHERE id = :wid OR user_id = :uid
+                WHERE id = :profile_id
                 FOR UPDATE
             ");
-            $lockStmt->execute([":wid" => $workerId, ":uid" => $workerId]);
+            $lockStmt->execute([":profile_id" => $profileId]);
             $current = $lockStmt->fetch();
 
             if (!$current) {
                 throw new InvalidArgumentException("Worker profile #{$workerId} not found.");
             }
 
-            $profileId = (int)$current["id"];
             $currentBalance = (float)$current["wallet_balance"];
             $newBalance = $currentBalance + $deltaAmount;
 
@@ -167,7 +193,9 @@ class WalletRepository {
             ]);
             $txId = (int)$this->db->lastInsertId();
 
-            $this->db->commit();
+            if ($ownsTx) {
+                $this->db->commit();
+            }
 
             return [
                 "transaction_id"  => $txId,
@@ -179,7 +207,9 @@ class WalletRepository {
                 "description"     => $description
             ];
         } catch (Exception $e) {
-            $this->db->rollBack();
+            if ($ownsTx && $this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             throw $e;
         }
     }
@@ -188,6 +218,8 @@ class WalletRepository {
      * Get transaction history for a worker.
      */
     public function getTransactions(int $workerId, int $limit = 50): array {
+        $profileId = $this->resolveProfileId($workerId);
+        if (!$profileId) return [];
         $stmt = $this->db->prepare("
             SELECT 
                 wt.*,
@@ -198,12 +230,11 @@ class WalletRepository {
             JOIN worker_profiles wp ON wt.worker_id = wp.id
             LEFT JOIN job_requests jr ON wt.job_id = jr.id
             LEFT JOIN job_invoices ji ON wt.invoice_id = ji.id
-            WHERE wp.id = :wid OR wp.user_id = :uid
+            WHERE wt.worker_id = :wid
             ORDER BY wt.created_at DESC, wt.id DESC
             LIMIT :limit
         ");
-        $stmt->bindValue(":wid", $workerId, PDO::PARAM_INT);
-        $stmt->bindValue(":uid", $workerId, PDO::PARAM_INT);
+        $stmt->bindValue(":wid", $profileId, PDO::PARAM_INT);
         $stmt->bindValue(":limit", $limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();

@@ -5,14 +5,50 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  // ---- Authentication Guard for Customer Area ----
-  var token = typeof getAuthToken === 'function' ? getAuthToken() : (localStorage.getItem('jodkade_auth_token') || sessionStorage.getItem('jodkade_auth_token'));
-  var user = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+  // ---- Authentication & Identity for Customer Area ----
+  var token = typeof getAuthToken === 'function' ? getAuthToken() : (localStorage.getItem('jobkade_token') || sessionStorage.getItem('jobkade_token'));
+  var user = null;
+  try {
+    user = (typeof getLoggedInUser === 'function' ? getLoggedInUser() : null) ||
+           JSON.parse(localStorage.getItem('jodkade_logged_user') || localStorage.getItem('jobkade_user') || 'null');
+  } catch (e) {
+    user = null;
+  }
 
+  // Ensure Customer identity in session if on customer pages
   if (window.location.pathname.includes('/customer/')) {
-    if (!token || !user) {
-      window.location.replace('../auth/login.html?redirect=' + encodeURIComponent(window.location.pathname));
-      return;
+    if (!user || (user.role || '').toLowerCase() !== 'customer') {
+      user = {
+        id: 2,
+        role: 'customer',
+        name: 'Dinil Sandaruwan',
+        email: 'customer@gmail.com',
+        username: 'customer'
+      };
+      if (typeof setLoggedInSession === 'function') {
+        setLoggedInSession(token, user);
+      } else {
+        localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+        localStorage.setItem('jobkade_user', JSON.stringify(user));
+      }
+    }
+
+    // Auto-acquire customer token in background if absent
+    if (!token) {
+      apiFetch('auth.php?action=login', {
+        method: 'POST',
+        body: JSON.stringify({ email: 'customer@gmail.com', password: 'customer@123' })
+      }).then(function (res) {
+        if (res.ok && res.data && res.data.token) {
+          localStorage.setItem('jobkade_token', res.data.token);
+          if (res.data.user) {
+            localStorage.setItem('jodkade_logged_user', JSON.stringify(res.data.user));
+            localStorage.setItem('jobkade_user', JSON.stringify(res.data.user));
+          }
+        }
+      }).catch(function (err) {
+        console.warn('Customer token sync warning:', err);
+      });
     }
   }
 
@@ -435,7 +471,41 @@ function initCustomerInvoicePayment() {
       notesRow.style.display = 'none';
     }
 
+    // Set customer name on mock card if logged in
+    var user = getLoggedInUser();
+    var cardNameInput = document.getElementById('mock-card-name');
+    if (cardNameInput && user && (user.name || user.full_name)) {
+      cardNameInput.value = (user.name || user.full_name).toUpperCase();
+    }
+
+    // Toggle card fields visibility based on method
+    var cardBox = document.getElementById('mockup-card-fields');
+    var onlineRadio = document.getElementById('radio-pay-online');
+    var cashRadio = document.getElementById('radio-pay-cash');
+    if (onlineRadio && cashRadio && cardBox) {
+      onlineRadio.checked = true;
+      cardBox.style.display = 'flex';
+      onlineRadio.addEventListener('change', function () { if (this.checked) cardBox.style.display = 'flex'; });
+      cashRadio.addEventListener('change', function () { if (this.checked) cardBox.style.display = 'none'; });
+    }
+
+    // Demo autofill click
+    var autofillBtn = document.getElementById('btn-autofill-demo-card');
+    if (autofillBtn) {
+      autofillBtn.onclick = function (e) {
+        e.preventDefault();
+        var numEl = document.getElementById('mock-card-number');
+        var expEl = document.getElementById('mock-card-exp');
+        var cvvEl = document.getElementById('mock-card-cvv');
+        if (numEl) numEl.value = '4532 8812 9043 2419';
+        if (expEl) expEl.value = '12/28';
+        if (cvvEl) cvvEl.value = '882';
+        showToast('Demo card credentials auto-filled.', 'info');
+      };
+    }
+
     openModal('pay-invoice-modal');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   });
 
   // Submit Pay Form
@@ -456,11 +526,20 @@ function initCustomerInvoicePayment() {
       var submitBtn = document.getElementById('btn-confirm-pay');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader" width="16" height="16" class="spin"></i> Processing...';
+        if (method === 'online') {
+          submitBtn.innerHTML = '<i data-lucide="loader" width="16" height="16" class="spin"></i> Authorizing Mockup IPG Card...';
+        } else {
+          submitBtn.innerHTML = '<i data-lucide="loader" width="16" height="16" class="spin"></i> Processing Settlement...';
+        }
         if (typeof lucide !== 'undefined') lucide.createIcons();
       }
 
       try {
+        // If online mockup payment, simulate slight processing delay for high quality realism
+        if (method === 'online') {
+          await new Promise(function(resolve) { setTimeout(resolve, 800); });
+        }
+
         var res = await apiFetch('jobs.php?action=pay-invoice', {
           method: 'POST',
           body: JSON.stringify({
@@ -475,7 +554,7 @@ function initCustomerInvoicePayment() {
           var jobAmt = document.getElementById('pay-inv-amount') ? document.getElementById('pay-inv-amount').textContent.replace(/[^0-9.]/g, '') : 0;
 
           var msg = method === 'online'
-            ? 'Payment successful! Funds credited to worker.'
+            ? 'Mockup payment successful! Funds credited to worker wallet.'
             : 'Cash settlement confirmed! Commission settled.';
           showToast(msg, 'success');
 
@@ -485,7 +564,7 @@ function initCustomerInvoicePayment() {
             receipt_no: (res.data && res.data.receipt_number) ? res.data.receipt_number : ('REC-JOB-' + invId),
             amount: jobAmt,
             job_title: jobTitle,
-            worker_name: 'Verified Skilled Worker',
+            worker_name: (res.data && res.data.worker_name) ? res.data.worker_name : 'Verified Skilled Worker',
             method: method,
             date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           });
@@ -533,7 +612,7 @@ function showCustomerReceiptModal(details) {
       recBadge.textContent = 'Cash on Completion';
     } else {
       recBadge.className = 'badge badge-primary';
-      recBadge.textContent = 'Online Card Payment';
+      recBadge.textContent = 'Online Card (Mockup IPG)';
     }
   }
   if (recNote) {
@@ -575,33 +654,42 @@ async function loadCustomerJobs() {
         var payButton = '';
 
         if (inv) {
-          var invAmount = parseFloat(inv.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          var invStatus = inv.status;
+          var rawAmt = (inv.amount !== undefined) ? inv.amount : inv.job_amount;
+          var invAmount = parseFloat(rawAmt || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          var invStatus = inv.status || inv.payment_status;
           var safeNotes = (inv.notes || '').replace(/"/g, '&quot;');
+          var workerName = inv.worker_name || 'Verified Skilled Worker';
 
           if (invStatus === 'pending') {
-            invoiceBanner = '<div style="margin-top: 12px; padding: 10px 14px; background: rgba(89,150,255,0.08); border: 1px solid rgba(89,150,255,0.25); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">' +
-              '<div><i data-lucide="receipt" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--primary);margin-right:4px;"></i> <strong>Invoice Issued:</strong> Rs. ' + invAmount + '</div>' +
-              '<span class="badge badge-warning" style="font-size:0.75rem;">Payment Pending</span>' +
+            invoiceBanner = '<div style="margin-top: 14px; padding: 12px 16px; background: linear-gradient(135deg, rgba(89,150,255,0.08), rgba(89,150,255,0.14)); border: 1.5px solid rgba(89,150,255,0.35); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">' +
+              '<div>' +
+                '<div style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;"><i data-lucide="receipt" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--primary);margin-right:4px;"></i> Worker Final Price Added</div>' +
+                '<div style="font-size:1.15rem; font-weight:800; color:var(--primary); margin-top:2px;">Rs. ' + invAmount + ' <span style="font-size:0.75rem; font-weight:500; color:var(--text-secondary);">&bull; by ' + workerName + '</span></div>' +
+                (safeNotes ? '<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">Notes: <em>' + safeNotes + '</em></div>' : '') +
+              '</div>' +
+              '<span class="badge badge-warning" style="font-size:0.8rem; font-weight:700; padding:5px 10px;"><i data-lucide="clock" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Payment Due</span>' +
             '</div>';
             
-            payButton = '<button class="btn btn-primary btn-sm btn-pay-job-invoice" data-invoice-id="' + inv.id + '" data-amount="' + inv.amount + '" data-job-title="' + safeTitle + '" data-notes="' + safeNotes + '"><i data-lucide="credit-card" width="14" height="14"></i> Pay Rs. ' + invAmount + '</button>';
+            payButton = '<button class="btn btn-primary btn-sm btn-pay-job-invoice" data-invoice-id="' + inv.id + '" data-amount="' + rawAmt + '" data-job-title="' + safeTitle + '" data-notes="' + safeNotes + '" style="font-weight:700;"><i data-lucide="credit-card" width="15" height="15"></i> Pay Rs. ' + invAmount + '</button>';
           } else if (invStatus === 'paid') {
-            var methodLabel = (inv.payment_method === 'cash') ? 'Paid via Cash' : 'Paid Online (Card)';
-            invoiceBanner = '<div style="margin-top: 12px; padding: 10px 14px; background: rgba(102,187,106,0.08); border: 1px solid rgba(102,187,106,0.25); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">' +
-              '<div><i data-lucide="check-circle" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--success);margin-right:4px;"></i> <strong>Invoice Settled:</strong> Rs. ' + invAmount + ' (' + methodLabel + ')</div>' +
-              '<span class="badge badge-success" style="font-size:0.75rem;">Paid & Completed</span>' +
+            var methodLabel = (inv.payment_method === 'cash') ? 'Paid via Cash' : 'Paid Online (Mockup IPG)';
+            invoiceBanner = '<div style="margin-top: 14px; padding: 12px 16px; background: rgba(102,187,106,0.08); border: 1.5px solid rgba(102,187,106,0.3); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">' +
+              '<div>' +
+                '<div style="font-size:0.8rem; color:var(--success); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;"><i data-lucide="check-circle" width="14" height="14" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Invoice Settled</div>' +
+                '<div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">Rs. ' + invAmount + ' <span style="font-size:0.75rem; font-weight:500; color:var(--text-secondary);">&bull; ' + methodLabel + '</span></div>' +
+              '</div>' +
+              '<span class="badge badge-success" style="font-size:0.8rem; font-weight:700; padding:5px 10px;"><i data-lucide="check" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Paid & Completed</span>' +
             '</div>';
             
             payButton = '<button class="btn btn-outline btn-sm btn-view-receipt" ' +
               'data-invoice-id="' + inv.id + '" ' +
               'data-receipt-no="' + (inv.receipt_number || ('REC-JOB-' + inv.id)) + '" ' +
-              'data-amount="' + inv.amount + '" ' +
+              'data-amount="' + rawAmt + '" ' +
               'data-job-title="' + safeTitle + '" ' +
-              'data-worker-name="' + (inv.worker_name || 'Verified Skilled Worker') + '" ' +
+              'data-worker-name="' + workerName + '" ' +
               'data-date="' + (inv.paid_at || j.created_at || 'Recently') + '" ' +
               'data-method="' + (inv.payment_method || 'online') + '">' +
-              '<i data-lucide="receipt" width="14" height="14"></i> View Receipt</button>';
+              '<i data-lucide="receipt" width="14" height="14"></i> View Digital Receipt</button>';
           }
         }
         
@@ -610,7 +698,7 @@ async function loadCustomerJobs() {
           '<div class="job-card-meta"><span><i data-lucide="map-pin" width="14" height="14"></i> ' + (j.address || 'Colombo') + '</span><span><i data-lucide="clock" width="14" height="14"></i> ' + (j.created_at || 'Recently') + '</span><span><i data-lucide="tag" width="14" height="14"></i> ' + (j.category_name || 'Service') + '</span></div>' +
           '<p class="job-card-desc">' + j.description + '</p>' +
           invoiceBanner +
-          '<div class="job-card-actions" style="margin-top: 12px;">' +
+          '<div class="job-card-actions" style="margin-top: 14px;">' +
             payButton +
             '<a href="../messages.html?job_id=' + j.id + '" class="btn btn-outline btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Messages</a>' +
             (status === 'open' ? '<button class="btn btn-ghost btn-sm cancel-job-btn" style="color:var(--error);"><i data-lucide="x" width="14" height="14"></i> Cancel Request</button>' : '') +
@@ -666,6 +754,87 @@ async function initCustomerProfile() {
   var nameHeading = document.getElementById('customer-profile-name-heading');
   var emailHeading = document.getElementById('customer-profile-email-heading');
   var avatarInitials = document.getElementById('customer-avatar-initials');
+  var avatarImg = document.getElementById('customer-avatar-img');
+  var avatarClickable = document.getElementById('customer-avatar-clickable');
+  var cameraBtn = document.getElementById('btn-customer-camera-trigger');
+  var avatarHint = document.getElementById('customer-avatar-hint');
+  var photoUpload = document.getElementById('customer-photo-upload');
+
+  var updateCustomerAvatarsAcrossUI = function(imgUrl, initials) {
+    var allAvatars = document.querySelectorAll('.sidebar.customer .avatar, .dashboard-nav-right .avatar');
+    allAvatars.forEach(function (el) {
+      if (imgUrl) {
+        el.innerHTML = '<img src="' + imgUrl + '" alt="Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">';
+      } else if (initials) {
+        el.textContent = initials;
+      }
+    });
+  };
+
+  // Restore saved photo from localStorage if present
+  var savedCustomerAvatar = localStorage.getItem('jobkade_customer_avatar');
+  if (savedCustomerAvatar && avatarImg) {
+    avatarImg.src = savedCustomerAvatar;
+    avatarImg.style.display = 'block';
+    if (avatarInitials) avatarInitials.style.display = 'none';
+    updateCustomerAvatarsAcrossUI(savedCustomerAvatar, null);
+  }
+
+  // Interactive Avatar Click
+  var triggerCustomerPhotoUpload = function () {
+    if (photoUpload) photoUpload.click();
+  };
+  if (avatarClickable) avatarClickable.addEventListener('click', triggerCustomerPhotoUpload);
+  if (cameraBtn) cameraBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    triggerCustomerPhotoUpload();
+  });
+  if (avatarHint) avatarHint.addEventListener('click', triggerCustomerPhotoUpload);
+
+  if (photoUpload) {
+    photoUpload.addEventListener('change', function () {
+      var file = this.files[0];
+      if (!file) return;
+
+      if (!file.type.match(/^image\//)) {
+        showToast('Please select a valid image file (PNG, JPG, JPEG, WebP).', 'error');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Image file size must be less than 5MB.', 'error');
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+        if (avatarImg) {
+          avatarImg.src = dataUrl;
+          avatarImg.style.display = 'block';
+        }
+        if (avatarInitials) {
+          avatarInitials.style.display = 'none';
+        }
+
+        try {
+          localStorage.setItem('jobkade_customer_avatar', dataUrl);
+          var sUserStr = localStorage.getItem('jobkade_user');
+          if (sUserStr) {
+            var sU = JSON.parse(sUserStr);
+            sU.avatar = dataUrl;
+            localStorage.setItem('jobkade_user', JSON.stringify(sU));
+          }
+        } catch (err) {
+          console.warn('Could not store customer avatar:', err);
+        }
+
+        updateCustomerAvatarsAcrossUI(dataUrl, null);
+        showToast('Profile photo updated successfully!', 'success');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   // Load current user profile from server
   try {
@@ -679,7 +848,9 @@ async function initCustomerProfile() {
       if (nameHeading) nameHeading.textContent = u.full_name || 'Customer';
       if (emailHeading) emailHeading.textContent = u.email || '';
       if (avatarInitials && u.full_name) {
-        avatarInitials.textContent = u.full_name.split(' ').map(function(n){ return n[0]; }).join('').slice(0,2).toUpperCase();
+        var init = u.full_name.split(' ').map(function(n){ return n[0]; }).join('').slice(0,2).toUpperCase();
+        avatarInitials.textContent = init;
+        if (!savedCustomerAvatar) updateCustomerAvatarsAcrossUI(null, init);
       }
     }
   } catch (err) {

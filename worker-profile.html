@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kasun Perera — Professional Electrician — JodKade</title>
+  <title>Kasun Perera — Professional Electrician — JobKade</title>
   <meta name="description" content="View Kasun Perera's profile — verified professional electrician serving Colombo. 4.9 rating, 8+ years experience.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
   <!-- NAVBAR -->
   <nav class="navbar" id="navbar">
     <div class="container">
-      <a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a>
+      <a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span></a>
       <div class="nav-links"><a href="index.html">Home</a><a href="workers.html" class="active">Find Workers</a><a href="services.html">Services</a><a href="how-it-works.html">How It Works</a></div>
       <div class="nav-auth"><a href="auth/login.html" class="btn-login">Login</a><a href="auth/register.html" class="btn btn-primary">Sign Up</a></div>
       <button class="mobile-menu-btn" aria-label="Menu"><i data-lucide="menu" width="24" height="24"></i></button>
@@ -168,7 +168,7 @@
             <i data-lucide="shield-check"></i>
             <div>
               <strong>Verified Worker</strong>
-              <p style="margin-top: 4px;">Verified workers have submitted identity documents that were reviewed by JodKade administrators.</p>
+              <p style="margin-top: 4px;">Verified workers have submitted identity documents that were reviewed by JobKade administrators.</p>
             </div>
           </div>
         </div>
@@ -180,12 +180,12 @@
   <footer class="footer">
     <div class="container">
       <div class="footer-grid">
-        <div class="footer-brand"><a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a><p>Find trusted local professionals for your everyday service needs.</p></div>
+        <div class="footer-brand"><a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span></a><p>Find trusted local professionals for your everyday service needs.</p></div>
         <div class="footer-column"><h4>Quick Links</h4><div class="footer-links"><a href="index.html">Home</a><a href="workers.html">Find Workers</a><a href="services.html">Services</a></div></div>
         <div class="footer-column"><h4>For Workers</h4><div class="footer-links"><a href="auth/register.html">Offer Your Service</a><a href="auth/login.html">Worker Login</a></div></div>
         <div class="footer-column"><h4>Support</h4><div class="footer-links"><a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">Privacy Policy</a></div></div>
       </div>
-      <div class="footer-bottom"><p>&copy; 2026 JodKade. All rights reserved.</p><p>Trusted local professionals, one simple platform.</p></div>
+      <div class="footer-bottom"><p>&copy; 2026 JobKade. All rights reserved.</p><p>Trusted local professionals, one simple platform.</p></div>
     </div>
   </footer>
 
@@ -200,7 +200,7 @@
         if (e) e.preventDefault();
         const user = getLoggedInUser();
         const token = getAuthToken();
-        const targetUrl = 'messages.html?recipient_id=' + workerUserId;
+        const targetUrl = 'messages.html?user_id=' + workerUserId;
 
         if (!token || !user) {
           // If customer not logged in, take them to login with return redirect
@@ -230,7 +230,7 @@
             
             if (w.user_id) {
               workerUserId = parseInt(w.user_id, 10);
-              const targetUrl = 'messages.html?recipient_id=' + workerUserId;
+              const targetUrl = 'messages.html?user_id=' + workerUserId;
               if (bannerMsgBtn) bannerMsgBtn.href = targetUrl;
               if (inappChatBtn) inappChatBtn.href = targetUrl;
             }

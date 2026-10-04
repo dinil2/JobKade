@@ -101,6 +101,10 @@
       overflow: hidden;
       animation: modalFadeIn 0.2s ease-out;
     }
+    .custom-modal.modal-xl {
+      max-width: 1080px;
+      width: 95%;
+    }
     @keyframes modalFadeIn {
       from { opacity: 0; transform: scale(0.96); }
       to { opacity: 1; transform: scale(1); }
@@ -125,6 +129,103 @@
       gap: 12px;
       background: #f8fafc;
     }
+    .btn-packet {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s;
+    }
+    .btn-packet:hover {
+      background: #4338ca;
+    }
+    .dossier-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 860px) {
+      .dossier-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .dossier-card {
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .dossier-card.active-match {
+      border-color: #3b82f6;
+    }
+    .dossier-card-header {
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dossier-card-header h5 {
+      margin: 0;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dossier-card-body {
+      padding: 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      background: #fafbfc;
+      text-align: center;
+    }
+    .dossier-preview-img {
+      width: 100%;
+      height: 190px;
+      object-fit: contain;
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .dossier-preview-img:hover {
+      transform: scale(1.02);
+    }
+    .dossier-card-footer {
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+    }
+    .dossier-checklist-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -144,7 +245,24 @@
         </a>
       </div>
       <div class="dashboard-nav-right">
-        <div class="avatar avatar-sm avatar-purple" id="adminNavAvatar">AD</div>
+        <div class="notification-wrapper">
+          <button class="notification-bell" aria-label="Admin Alerts" title="Admin Alerts">
+            <i data-lucide="bell" width="22" height="22"></i>
+            <span class="notif-count">4</span>
+          </button>
+          <div class="notification-dropdown">
+            <div class="notification-dropdown-header"><h4>Admin Alerts</h4><a href="#" class="text-sm text-primary-color">Clear all</a></div>
+            <div class="notification-list">
+              <div class="notification-item unread"><div class="notification-item-icon orange"><i data-lucide="shield-alert" width="16" height="16"></i></div><div class="notification-item-content"><p>3 new workers awaiting NIC verification.</p><span class="notif-time">10 minutes ago</span></div></div>
+              <div class="notification-item unread"><div class="notification-item-icon red"><i data-lucide="flag" width="16" height="16"></i></div><div class="notification-item-content"><p>New report filed against review #1042.</p><span class="notif-time">1 hour ago</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="avatar avatar-nav avatar-purple" id="adminNavAvatar" title="System Administrator">AD</div>
+        <a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade">
+          <i data-lucide="log-out" width="18" height="18"></i>
+          <span>Logout</span>
+        </a>
       </div>
     </div>
   </nav>
@@ -248,6 +366,118 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Worker Verification Packet Dossier Modal -->
+  <div class="custom-modal-backdrop" id="workerDossierModal">
+    <div class="custom-modal modal-xl">
+      <div class="custom-modal-header" style="background:linear-gradient(to right, #f8fafc, #eff6ff);">
+        <div>
+          <h4 id="dossierWorkerName" style="margin:0;font-size:1.15rem;font-weight:700;display:flex;align-items:center;gap:8px;color:#1e293b;">
+            <i data-lucide="shield-check" width="22" height="22" style="color:#4f46e5;"></i>
+            Worker Identity & KYC Verification Dossier
+          </h4>
+          <p id="dossierWorkerSub" style="margin:4px 0 0;font-size:0.82rem;color:#64748b;">
+            Review National ID, Police Report, and Live Selfie side-by-side to authenticate worker.
+          </p>
+        </div>
+        <button type="button" class="btn-close" onclick="closeDossierModal()" style="background:none;border:none;cursor:pointer;color:#64748b;">
+          <i data-lucide="x" width="22" height="22"></i>
+        </button>
+      </div>
+
+      <div class="custom-modal-body">
+        <!-- Worker Profile Summary Bar -->
+        <div id="dossierProfileBar" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:18px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Verification Guidance Checklist -->
+        <div class="dossier-checklist-box">
+          <div style="font-weight:700;font-size:0.85rem;color:#166534;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="check-circle-2" width="16" height="16"></i>
+            Identity Verification Standard Operating Procedure (SOP)
+          </div>
+          <div style="font-size:0.8rem;color:#15803d;display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:8px;">
+            <div>• <strong>Facial Match:</strong> Confirm the face on the Live Selfie matches the National ID photograph.</div>
+            <div>• <strong>Police Clearance:</strong> Verify certificate authenticity, stamp/seal, and clean record status.</div>
+            <div>• <strong>Name Verification:</strong> Ensure full legal name is identical on all submitted credentials.</div>
+          </div>
+        </div>
+
+        <!-- 3-Column Document Inspection Grid -->
+        <div class="dossier-grid">
+          <!-- 1. National Identity Card -->
+          <div class="dossier-card" id="dossierCardNic">
+            <div class="dossier-card-header">
+              <h5><i data-lucide="id-card" width="16" height="16" style="color:#0284c7;"></i> 1. National Identity / ID</h5>
+              <span id="badgeNicStatus" class="badge badge-pending">Pending</span>
+            </div>
+            <div class="dossier-card-body" id="dossierBodyNic">
+              <span style="color:#94a3b8;">Loading ID...</span>
+            </div>
+            <div class="dossier-card-footer" id="dossierFooterNic">
+              <span id="dossierTitleNic" style="font-weight:600;color:#334155;">NIC Document</span>
+              <button type="button" class="btn btn-sm btn-outline" id="dossierZoomNic" style="padding:2px 8px;font-size:0.75rem;">Zoom</button>
+            </div>
+          </div>
+
+          <!-- 2. Police Clearance Report -->
+          <div class="dossier-card" id="dossierCardPolice">
+            <div class="dossier-card-header">
+              <h5><i data-lucide="file-check-2" width="16" height="16" style="color:#059669;"></i> 2. Police Clearance</h5>
+              <span id="badgePoliceStatus" class="badge badge-pending">Pending</span>
+            </div>
+            <div class="dossier-card-body" id="dossierBodyPolice">
+              <span style="color:#94a3b8;">Loading Police Report...</span>
+            </div>
+            <div class="dossier-card-footer" id="dossierFooterPolice">
+              <span id="dossierTitlePolice" style="font-weight:600;color:#334155;">Police Report</span>
+              <button type="button" class="btn btn-sm btn-outline" id="dossierZoomPolice" style="padding:2px 8px;font-size:0.75rem;">Zoom</button>
+            </div>
+          </div>
+
+          <!-- 3. Live Verification Selfie -->
+          <div class="dossier-card active-match" id="dossierCardSelfie">
+            <div class="dossier-card-header" style="background:#eff6ff;">
+              <h5 style="color:#1d4ed8;"><i data-lucide="camera" width="16" height="16" style="color:#2563eb;"></i> 3. Live Selfie (Face Match)</h5>
+              <span id="badgeSelfieStatus" class="badge badge-pending">Pending</span>
+            </div>
+            <div class="dossier-card-body" id="dossierBodySelfie">
+              <span style="color:#94a3b8;">Loading Selfie...</span>
+            </div>
+            <div class="dossier-card-footer" id="dossierFooterSelfie">
+              <span id="dossierTitleSelfie" style="font-weight:600;color:#334155;">Verification Selfie</span>
+              <button type="button" class="btn btn-sm btn-outline" id="dossierZoomSelfie" style="padding:2px 8px;font-size:0.75rem;">Zoom</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Decision & Notes Input -->
+        <input type="hidden" id="dossierWorkerId" value="">
+        <div class="form-group" style="margin-top:16px;">
+          <label class="form-label" for="dossierAdminNotes" style="font-weight:600;display:flex;justify-content:space-between;">
+            <span>Moderator Assessment & Audit Remarks</span>
+            <span style="font-size:0.75rem;font-weight:normal;color:#64748b;">(Visible on audit trail and worker notification)</span>
+          </label>
+          <textarea id="dossierAdminNotes" class="form-textarea" rows="2" placeholder="e.g. NIC, Police clearance report, and Live selfie verified and confirmed. Facial identity matches National ID photograph."></textarea>
+        </div>
+      </div>
+
+      <div class="custom-modal-footer" style="justify-content:space-between;background:#f8fafc;">
+        <div>
+          <button type="button" class="btn btn-outline" onclick="closeDossierModal()">Close</button>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="button" id="dossierRejectBtn" class="btn-reject" style="padding:8px 16px;font-size:0.88rem;">
+            <i data-lucide="x-circle" width="16" height="16"></i> Reject Packet
+          </button>
+          <button type="button" id="dossierApproveBtn" class="btn-approve" style="padding:8px 18px;font-size:0.88rem;">
+            <i data-lucide="check-circle-2" width="16" height="16"></i> Approve Worker & Award Verified Badge
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Document Viewer Modal -->

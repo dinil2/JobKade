@@ -3,7 +3,14 @@
 // Pure PHP JSON Web Token (JWT) implementation (HMAC-SHA256)
 
 class JWT {
-    private static string $secretKey = 'JobKade_Super_Secure_Secret_Key_2026_ICBT_CSE5015!';
+    private static string $secretKey = '';
+
+    private static function getSecretKey(): string {
+        if (self::$secretKey === '') {
+            self::$secretKey = (string)(getenv('JOBKADE_JWT_SECRET') ?: 'JobKade_Super_Secure_Secret_Key_2026_ICBT_CSE5015!');
+        }
+        return self::$secretKey;
+    }
 
     /**
      * Generate a signed JWT token.
@@ -21,7 +28,7 @@ class JWT {
         $base64UrlHeader = self::base64UrlEncode($header);
         $base64UrlPayload = self::base64UrlEncode(json_encode($payload));
 
-        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, self::$secretKey, true);
+        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, self::getSecretKey(), true);
         $base64UrlSignature = self::base64UrlEncode($signature);
 
         return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
@@ -41,7 +48,7 @@ class JWT {
 
         list($headerB64, $payloadB64, $signatureB64) = $parts;
 
-        $expectedSig = hash_hmac('sha256', $headerB64 . "." . $payloadB64, self::$secretKey, true);
+        $expectedSig = hash_hmac('sha256', $headerB64 . "." . $payloadB64, self::getSecretKey(), true);
         $expectedSigB64 = self::base64UrlEncode($expectedSig);
 
         if (!hash_equals($expectedSigB64, $signatureB64)) {

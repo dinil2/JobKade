@@ -1,6 +1,7 @@
 <?php
 // services/WalletService.php
 
+require_once __DIR__ . "/../config/Database.php";
 require_once __DIR__ . "/../repositories/WalletRepository.php";
 require_once __DIR__ . "/../repositories/WorkerRepository.php";
 require_once __DIR__ . "/../repositories/InvoiceRepository.php";
@@ -62,68 +63,92 @@ class WalletService {
      * Cash   -> - (Platform Commission debited from worker wallet)
      */
     public function settleInvoice(int $invoiceId, string $paymentMethod): array {
-        $invoice = $this->invoiceRepo->getInvoiceById($invoiceId);
-        if (!$invoice) {
-            throw new InvalidArgumentException("Invoice #{$invoiceId} not found.");
+        $pdo = Database::getConnection();
+        $ownsTx = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $ownsTx = true;
         }
 
-        if ($invoice["payment_status"] === "paid") {
-            throw new InvalidArgumentException("Invoice #{$invoiceId} is already paid and settled.");
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM job_invoices WHERE id = :id FOR UPDATE");
+            $stmt->execute([':id' => $invoiceId]);
+            $invoice = $stmt->fetch();
+
+            if (!$invoice) {
+                throw new InvalidArgumentException("Invoice #{$invoiceId} not found.");
+            }
+
+            if ($invoice["payment_status"] === "paid") {
+                throw new InvalidArgumentException("Invoice #{$invoiceId} is already paid and settled.");
+            }
+
+            $workerId = (int)$invoice["worker_id"];
+            $jobId = (int)$invoice["job_id"];
+            $jobAmount = (float)$invoice["job_amount"];
+            $commissionAmount = (float)$invoice["commission_amount"];
+            $workerNetAmount = (float)$invoice["worker_net_amount"];
+            $cleanMethod = strtolower(trim($paymentMethod));
+
+            if (!in_array($cleanMethod, ["online", "cash"], true)) {
+                $cleanMethod = strtolower($invoice["payment_method"]);
+            }
+
+            // Mark invoice as paid conditionally
+            $updated = $this->invoiceRepo->markAsPaid($invoiceId, $cleanMethod);
+            if (!$updated) {
+                throw new InvalidArgumentException("Invoice #{$invoiceId} is already paid and settled.");
+            }
+
+            if ($cleanMethod === "online") {
+                // Customer paid online. Platform keeps commission, credits net amount to worker.
+                $txResult = $this->walletRepo->applyTransaction(
+                    $workerId,
+                    $workerNetAmount, // Positive delta (Credit)
+                    "online_credit",
+                    "Online Payment for Job #{$jobId} (Total: LKR " . number_format($jobAmount, 2) . ", Commission: LKR " . number_format($commissionAmount, 2) . ")",
+                    $jobId,
+                    $invoiceId,
+                    "online",
+                    $jobAmount,
+                    $commissionAmount
+                );
+            } else {
+                // Customer paid cash in hand. Worker has full amount. Platform debits commission fee.
+                $txResult = $this->walletRepo->applyTransaction(
+                    $workerId,
+                    -$commissionAmount, // Negative delta (Debit)
+                    "cash_commission_debit",
+                    "Platform Commission Deduction for Cash Job #{$jobId} (Collected: LKR " . number_format($jobAmount, 2) . ")",
+                    $jobId,
+                    $invoiceId,
+                    "cash",
+                    $jobAmount,
+                    $commissionAmount
+                );
+            }
+
+            if ($ownsTx) {
+                $pdo->commit();
+            }
+
+            return [
+                "status"          => "success",
+                "message"         => "Invoice #{$invoiceId} successfully settled via " . strtoupper($cleanMethod) . " payment.",
+                "invoice_id"      => $invoiceId,
+                "payment_method"  => $cleanMethod,
+                "job_amount"      => $jobAmount,
+                "commission_paid" => $commissionAmount,
+                "wallet_impact"   => $txResult["delta_amount"],
+                "wallet_balance"  => $txResult["balance_after"],
+                "transaction_ref" => $txResult["transaction_ref"]
+            ];
+        } catch (Exception $e) {
+            if ($ownsTx && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
         }
-
-        $workerId = (int)$invoice["worker_id"];
-        $jobId = (int)$invoice["job_id"];
-        $jobAmount = (float)$invoice["job_amount"];
-        $commissionAmount = (float)$invoice["commission_amount"];
-        $workerNetAmount = (float)$invoice["worker_net_amount"];
-        $cleanMethod = strtolower(trim($paymentMethod));
-
-        if (!in_array($cleanMethod, ["online", "cash"], true)) {
-            $cleanMethod = strtolower($invoice["payment_method"]);
-        }
-
-        // Mark invoice as paid
-        $this->invoiceRepo->markAsPaid($invoiceId, $cleanMethod);
-
-        if ($cleanMethod === "online") {
-            // Customer paid online. Platform keeps commission, credits net amount to worker.
-            $txResult = $this->walletRepo->applyTransaction(
-                $workerId,
-                $workerNetAmount, // Positive delta (Credit)
-                "online_credit",
-                "Online Payment for Job #{$jobId} (Total: LKR " . number_format($jobAmount, 2) . ", Commission: LKR " . number_format($commissionAmount, 2) . ")",
-                $jobId,
-                $invoiceId,
-                "online",
-                $jobAmount,
-                $commissionAmount
-            );
-        } else {
-            // Customer paid cash in hand. Worker has full amount. Platform debits commission fee.
-            $txResult = $this->walletRepo->applyTransaction(
-                $workerId,
-                -$commissionAmount, // Negative delta (Debit)
-                "cash_commission_debit",
-                "Platform Commission Deduction for Cash Job #{$jobId} (Collected: LKR " . number_format($jobAmount, 2) . ")",
-                $jobId,
-                $invoiceId,
-                "cash",
-                $jobAmount,
-                $commissionAmount
-            );
-        }
-
-        return [
-            "status"          => "success",
-            "message"         => "Invoice #{$invoiceId} successfully settled via " . strtoupper($cleanMethod) . " payment.",
-            "invoice_id"      => $invoiceId,
-            "payment_method"  => $cleanMethod,
-            "job_amount"      => $jobAmount,
-            "commission_paid" => $commissionAmount,
-            "wallet_impact"   => $txResult["delta_amount"],
-            "wallet_balance"  => $txResult["balance_after"],
-            "transaction_ref" => $txResult["transaction_ref"]
-        ];
     }
 
     /**

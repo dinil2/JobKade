@@ -140,7 +140,12 @@ class JobController {
         }
 
         try {
-            $result = $this->invoiceService->payInvoice($invoiceId, $method);
+            $result = $this->invoiceService->payInvoice(
+                $invoiceId,
+                $method,
+                (int)$user['user_id'],
+                (string)($user['role'] ?? '')
+            );
             sendJsonResponse(200, $result);
         } catch (InvalidArgumentException $e) {
             sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);

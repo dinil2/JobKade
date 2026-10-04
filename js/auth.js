@@ -32,6 +32,12 @@ document.addEventListener('DOMContentLoaded', function () {
           if (workerForm) workerForm.classList.remove('hidden');
           if (customerForm) customerForm.classList.add('hidden');
         }
+
+        // Scroll form panel cleanly to top so Full Name and Phone are immediately visible
+        var leftPanel = document.querySelector('.auth-left-panel');
+        if (leftPanel) {
+          leftPanel.scrollTop = 0;
+        }
       }, 300);
     });
   });
@@ -43,6 +49,11 @@ document.addEventListener('DOMContentLoaded', function () {
       if (formStep) formStep.classList.add('hidden');
       if (roleStep) roleStep.classList.remove('hidden');
       roleCards.forEach(function (c) { c.classList.remove('selected'); });
+
+      var leftPanel = document.querySelector('.auth-left-panel');
+      if (leftPanel) {
+        leftPanel.scrollTop = 0;
+      }
     });
   });
 
@@ -84,14 +95,35 @@ document.addEventListener('DOMContentLoaded', function () {
           setTimeout(function () {
             var urlParams = new URLSearchParams(window.location.search);
             var redirectUrl = urlParams.get('redirect');
+            var role = (user.role || 'customer').toLowerCase();
+
+            // Only allow redirect if it matches the authenticated user's role
+            var isSafeRedirect = false;
             if (redirectUrl) {
-              window.location.href = prefix + decodeURIComponent(redirectUrl);
+              redirectUrl = decodeURIComponent(redirectUrl).trim();
+              if (!redirectUrl.startsWith('http') && !redirectUrl.startsWith('//') && !redirectUrl.match(/^[a-zA-Z]:/)) {
+                if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
+                if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
+                if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
+                if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
+              }
+            }
+
+            if (isSafeRedirect && redirectUrl) {
+              var target = redirectUrl.replace(/^\.?\//, '');
+              window.location.href = prefix + target;
               return;
             }
-            if (user.role === 'admin') window.location.href = prefix + 'admin/dashboard.html';
-            else if (user.role === 'worker') window.location.href = prefix + 'worker/dashboard.html';
-            else window.location.href = prefix + 'customer/dashboard.html';
-          }, 800);
+
+            // Route to correct portal dashboard based on role
+            if (role === 'admin') {
+              window.location.href = prefix + 'admin/dashboard.html';
+            } else if (role === 'worker') {
+              window.location.href = prefix + 'worker/dashboard.html';
+            } else {
+              window.location.href = prefix + 'customer/dashboard.html';
+            }
+          }, 600);
         } else {
           var errMsg = (res.data && res.data.message) ? res.data.message : 'Invalid login credentials.';
           showToast(errMsg, 'error');
@@ -152,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }, 800);
         } else {
           // Fallback to local session if offline
-          setLoggedInUser(role, role === 'admin' ? 'System Administrator' : (role === 'worker' ? 'Sunil Perera' : 'Sasmitha Customer'), cred.email);
+          setLoggedInUser(role, role === 'admin' ? 'System Administrator' : (role === 'worker' ? 'Kasun Perera' : 'Dinil Sandaruwan'), cred.email);
           var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
           setTimeout(function () {
             if (role === 'admin') window.location.href = prefix + 'admin/dashboard.html';
@@ -228,9 +260,6 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isWorker) {
         var serviceInput = form.querySelector('[name="service"]');
         var nicInput = form.querySelector('[name="nic"]');
-        var nicFileInput = document.getElementById('nic-upload');
-        var policeFileInput = document.getElementById('police-upload');
-        var qualFileInput = document.getElementById('qual-upload');
 
         var serviceVal = serviceInput ? serviceInput.value : '';
         var nic = nicInput ? nicInput.value.trim() : '';
@@ -245,32 +274,10 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!firstInvalid) firstInvalid = nicInput;
         }
 
-        // KYC (NIC) Document MUST be provided
-        if (!nicFileInput || !nicFileInput.files || nicFileInput.files.length === 0) {
-          showToast('National Identity Card (NIC) document is mandatory for worker registration.', 'error');
-          var nicDrop = document.getElementById('nic-dropzone');
-          if (nicDrop) nicDrop.style.borderColor = '#dc2626';
-          if (!firstInvalid) firstInvalid = nicFileInput;
-        }
-
-        // Police Report MUST be provided
-        if (!policeFileInput || !policeFileInput.files || policeFileInput.files.length === 0) {
-          showToast('Police clearance report is mandatory for worker registration.', 'error');
-          var policeDrop = document.getElementById('police-dropzone');
-          if (policeDrop) policeDrop.style.borderColor = '#dc2626';
-          if (!firstInvalid) firstInvalid = policeFileInput;
-        }
-
         if (firstInvalid) {
           firstInvalid.focus();
-          showToast('Please correct the highlighted fields and upload the mandatory documents.', 'error');
+          showToast('Please correct the highlighted fields.', 'error');
           return;
-        }
-
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.innerHTML = '<i data-lucide="loader" class="spin" width="16" height="16"></i> Registering Worker...';
-          if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         var formData = new FormData();
@@ -285,16 +292,6 @@ document.addEventListener('DOMContentLoaded', function () {
         formData.append('service', serviceVal);
         formData.append('category_id', parseInt(serviceVal, 10) || 1);
         formData.append('nic', nic);
-
-        if (nicFileInput && nicFileInput.files[0]) {
-          formData.append('nic_document', nicFileInput.files[0]);
-        }
-        if (policeFileInput && policeFileInput.files[0]) {
-          formData.append('police_report', policeFileInput.files[0]);
-        }
-        if (qualFileInput && qualFileInput.files[0]) {
-          formData.append('qualification_document', qualFileInput.files[0]);
-        }
 
         // Open Mandatory One-Time Registration Mock Payment Modal
         var payModal = document.getElementById('worker-payment-modal');
@@ -345,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function () {
                   console.warn('Could not auto-trigger pay-access:', payErr);
                 }
 
-                showToast('Registration & One-Time Payment Successful! Profile activated.', 'success');
+                showToast('Registration & One-Time Payment Successful! You can upload your KYC documents in your Identity & KYC section.', 'success');
                 payModal.style.display = 'none';
 
                 var prefix = window.location.pathname.includes('/auth/') ? '../' : './';

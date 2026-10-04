@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard — JodKade</title>
+  <title>Admin Dashboard — JobKade</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="../js/lucide.min.js"></script>
@@ -21,13 +21,13 @@
         <button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button>
         <a href="../index.html" class="nav-logo">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg>
-          Jod<span>Kade</span> <span class="badge badge-pending" style="margin-left:8px;font-size:0.7rem;">ADMIN</span>
+          Job<span>Kade</span> <span class="badge badge-pending" style="margin-left:8px;font-size:0.7rem;">ADMIN</span>
         </a>
       </div>
       <div class="dashboard-nav-right">
         <div class="notification-wrapper">
-          <button class="notification-bell">
-            <i data-lucide="bell" width="20" height="20"></i>
+          <button class="notification-bell" aria-label="Admin Alerts" title="Admin Alerts">
+            <i data-lucide="bell" width="22" height="22"></i>
             <span class="notif-count">4</span>
           </button>
           <div class="notification-dropdown">
@@ -38,7 +38,11 @@
             </div>
           </div>
         </div>
-        <div class="avatar avatar-sm avatar-purple">AD</div>
+        <div class="avatar avatar-nav avatar-purple" id="adminNavAvatar" title="System Administrator">AD</div>
+        <a href="../auth/login.html" class="nav-logout-btn" id="adminHeaderLogoutBtn" title="Logout from JobKade">
+          <i data-lucide="log-out" width="18" height="18"></i>
+          <span>Logout</span>
+        </a>
       </div>
     </div>
   </nav>
@@ -95,16 +99,6 @@
           <div class="admin-stat-icon purple"><i data-lucide="briefcase" width="24" height="24"></i></div>
           <div class="admin-stat-content"><h3>1,245</h3><p>Total Jobs Posted</p></div>
         </div>
-      </div>
-
-      <!-- Quick Action Alert Banner -->
-      <div class="info-notice mb-3" style="background:#FFFBEB;border-color:#FCD34D;color:#B45309;">
-        <i data-lucide="shield-alert"></i>
-        <div style="flex:1;">
-          <strong>Action Required: 3 Pending Worker Identity Submissions</strong>
-          <p style="margin-top:2px;font-size:0.875rem;">Workers have uploaded NIC documents awaiting review before appearing publicly on the marketplace.</p>
-        </div>
-        <a href="verification.html" class="btn btn-sm" style="background:#F59E0B;color:white;">Review Now</a>
       </div>
 
       <!-- Charts Overview Grid -->

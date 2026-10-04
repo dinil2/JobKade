@@ -37,7 +37,7 @@ class KycService {
         }
 
         $docType = strtolower(trim((string)($data['document_type'] ?? 'nic')));
-        $validTypes = ['nic', 'driving_license', 'trade_certificate', 'police_report'];
+        $validTypes = ['nic', 'driving_license', 'trade_certificate', 'police_report', 'selfie'];
         if (!in_array($docType, $validTypes, true)) {
             $docType = 'nic';
         }

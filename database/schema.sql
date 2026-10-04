@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `worker_categories` (
 CREATE TABLE IF NOT EXISTS `kyc_documents` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `worker_id` INT NOT NULL,
-    `document_type` ENUM('nic', 'driving_license', 'trade_certificate', 'police_report') NOT NULL,
+    `document_type` ENUM('nic', 'driving_license', 'trade_certificate', 'police_report', 'selfie') NOT NULL,
     `document_name` VARCHAR(255) NOT NULL,
     `document_path` VARCHAR(255) NOT NULL,
     `file_path` VARCHAR(255) DEFAULT NULL,
@@ -311,47 +311,74 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `price`=VALUES(`price`), `duratio
 -- Worker 1: sunil.electric@gmail.com / worker@123
 -- Worker 2: kamal.plumber@gmail.com / worker@123
 -- Worker 3: nimal.ac@gmail.com / worker@123
--- Note: bcrypt hashes for admin@123, customer@123, worker@123
-INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `password_hash`, `role`, `phone`, `status`) VALUES
-(1, 'System Administrator', 'admin', 'admin@jobkade.lk', '$2y$10$8V35MBsXkedRl0xmTCTWLOmgiXeLb8c7ad9DUOaXP3TeynrqNr41a', 'admin', '0771234567', 'active'),
-(2, 'Sasmitha Customer', 'customer', 'customer@gmail.com', '$2y$10$Jb8VEfdQ5upScS1uP7VTpelgTXq1g8DO7DB4t/1vMaHjjY/A0AOCy', 'customer', '0719876543', 'active'),
-(3, 'Sunil Perera (Electrician)', 'sunilelectric', 'sunil.electric@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0751122334', 'active'),
-(4, 'Kamal Silva (Plumber)', 'kamalplumber', 'kamal.plumber@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0764433221', 'active'),
-(5, 'Nimal Fernando (AC Tech)', 'nimalac', 'nimal.ac@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0789988776', 'active')
+-- Worker 4: tharindu.carpenter@gmail.com / worker@123
+-- Worker 5: ruwan.painter@gmail.com / worker@123
+INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `password_hash`, `role`, `phone`, `address`, `status`) VALUES
+(1, 'System Administrator', 'admin', 'admin@jobkade.lk', '$2y$10$8V35MBsXkedRl0xmTCTWLOmgiXeLb8c7ad9DUOaXP3TeynrqNr41a', 'admin', '0771234567', 'Colombo 01', 'active'),
+(2, 'Dinil Sandaruwan', 'customer', 'customer@gmail.com', '$2y$10$Jb8VEfdQ5upScS1uP7VTpelgTXq1g8DO7DB4t/1vMaHjjY/A0AOCy', 'customer', '0719876543', 'Colombo 05 (Havelock Town)', 'active'),
+(3, 'Sunil Perera (Electrician)', 'sunilelectric', 'sunil.electric@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0751122334', 'Colombo 03 (Kollupitiya)', 'active'),
+(4, 'Kamal Silva (Plumber)', 'kamalplumber', 'kamal.plumber@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0764433221', 'Bambalapitiya, Colombo 04', 'active'),
+(5, 'Nimal Fernando (AC Tech)', 'nimalac', 'nimal.ac@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0789988776', 'Colombo 07 (Cinnamon Gardens)', 'active'),
+(6, 'Tharindu Jayasinghe (Carpenter)', 'tharinducarpenter', 'tharindu.carpenter@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0712345678', 'Nugegoda & Colombo', 'active'),
+(7, 'Ruwan Samarasinghe (Painter)', 'ruwanpainter', 'ruwan.painter@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0779988112', 'Dehiwala - Mount Lavinia', 'active')
 ON DUPLICATE KEY UPDATE `email`=VALUES(`email`), `password_hash`=VALUES(`password_hash`);
 
 -- Seed Worker Profiles (Centered in Colombo/Western Province for Leaflet.js Map)
 INSERT INTO `worker_profiles` (`id`, `user_id`, `bio`, `service_radius_km`, `latitude`, `longitude`, `address`, `is_verified`, `verify_status`, `rating_avg`, `reviews_count`, `working_hours`) VALUES
-(1, 3, 'Certified Master Electrician with 12+ years experience in commercial & domestic wiring, fault diagnosis, and solar installation.', 20, 6.9271, 79.8612, 'Colombo 03 (Kollupitiya)', 1, 'verified', 4.90, 18, '7:30 AM - 7:00 PM'),
-(2, 4, 'Licensed Plumber specialized in leak detection, bathroom sanitary plumbing, water pumps, and high-pressure water systems.', 15, 6.8950, 79.8730, 'Bambalapitiya, Colombo 04', 1, 'verified', 4.85, 14, '8:00 AM - 6:00 PM'),
-(3, 5, 'HVAC & Inverter Air Conditioner specialist. Deep chemical wash, PCB repairs, refrigerant charging, and energy-saving setups.', 25, 6.9015, 79.8550, 'Colombo 07 (Cinnamon Gardens)', 1, 'verified', 4.95, 22, '8:30 AM - 8:00 PM')
+(1, 3, 'Certified Master Electrician with 12+ years experience in commercial & domestic wiring, fault diagnosis, and solar installation.', 20, 6.9271, 79.8612, 'Colombo 03 (Kollupitiya)', 1, 'verified', 4.95, 24, '7:30 AM - 7:00 PM'),
+(2, 4, 'Licensed Plumber specialized in leak detection, bathroom sanitary plumbing, water pumps, and high-pressure water systems.', 15, 6.8950, 79.8730, 'Bambalapitiya, Colombo 04', 1, 'verified', 4.85, 19, '8:00 AM - 6:00 PM'),
+(3, 5, 'HVAC & Inverter Air Conditioner specialist. Deep chemical wash, PCB repairs, refrigerant charging, and energy-saving setups.', 25, 6.9015, 79.8550, 'Colombo 07 (Cinnamon Gardens)', 1, 'verified', 4.92, 28, '8:30 AM - 8:00 PM'),
+(4, 6, 'Master Carpenter crafting custom wooden furniture, roofing structures, doors, pantry cupboards, and restoration.', 20, 6.8649, 79.8997, 'Nugegoda & Colombo', 1, 'verified', 4.88, 16, '8:00 AM - 6:00 PM'),
+(5, 7, 'Professional interior and exterior painting contractor. Expert in weather-shield coatings, smooth wall putty application, and wood varnishing.', 18, 6.8400, 79.8700, 'Dehiwala - Mount Lavinia', 0, 'pending', 4.80, 15, '8:00 AM - 5:30 PM')
 ON DUPLICATE KEY UPDATE `bio`=VALUES(`bio`), `verify_status`=VALUES(`verify_status`);
 
 -- Seed Worker Categories
 INSERT INTO `worker_categories` (`worker_id`, `category_id`) VALUES
 (1, 1), -- Sunil -> Electrician
 (2, 2), -- Kamal -> Plumber
-(3, 3)  -- Nimal -> AC Tech
+(3, 3), -- Nimal -> AC Tech
+(4, 5), -- Tharindu -> Carpenter
+(5, 4)  -- Ruwan -> Painter
 ON DUPLICATE KEY UPDATE `worker_id`=VALUES(`worker_id`);
 
 -- Seed Active Subscriptions & Receipts
 INSERT INTO `worker_subscriptions` (`id`, `worker_id`, `plan_id`, `start_date`, `end_date`, `status`) VALUES
-(1, 1, 2, '2026-09-01', '2026-10-31', 'active'),
-(2, 2, 2, '2026-09-01', '2026-10-31', 'active'),
-(3, 3, 3, '2026-08-15', '2026-11-15', 'active')
+(1, 1, 1, '2026-09-01', '2026-11-30', 'active'),
+(2, 2, 1, '2026-09-01', '2026-11-30', 'active'),
+(3, 3, 2, '2026-09-01', '2026-11-30', 'active'),
+(4, 4, 1, '2026-09-01', '2026-11-30', 'active'),
+(5, 5, 1, '2026-09-01', '2026-11-30', 'active')
 ON DUPLICATE KEY UPDATE `status`=VALUES(`status`);
 
 INSERT INTO `subscription_payments` (`id`, `worker_id`, `plan_id`, `amount`, `payment_method`, `transaction_ref`, `receipt_number`, `status`) VALUES
-(1, 1, 2, 3000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8812', 'RCPT-202609-001', 'completed'),
-(2, 2, 2, 3000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8813', 'RCPT-202609-002', 'completed'),
-(3, 3, 3, 5500.00, 'IPG Visa/Mastercard', 'TXN-2026-0815-4421', 'RCPT-202608-099', 'completed')
+(1, 1, 1, 3000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8801', 'RCPT-202609-001', 'completed'),
+(2, 2, 1, 3000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8802', 'RCPT-202609-002', 'completed'),
+(3, 3, 2, 30000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8803', 'RCPT-202609-003', 'completed'),
+(4, 4, 1, 3000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8804', 'RCPT-202609-004', 'completed'),
+(5, 5, 1, 3000.00, 'IPG Visa/Mastercard', 'TXN-2026-0901-8805', 'RCPT-202609-005', 'completed')
 ON DUPLICATE KEY UPDATE `status`=VALUES(`status`);
 
 -- Seed KYC Documents
-INSERT INTO `kyc_documents` (`id`, `worker_id`, `document_type`, `document_name`, `document_path`, `status`, `reviewed_by`, `reviewed_at`) VALUES
-(1, 1, 'nic', 'National Identity Card (Front/Back)', 'uploads/kyc/nic_sunil.pdf', 'approved', 1, NOW()),
-(2, 1, 'trade_certificate', 'NVQ Level 4 Electrical Engineering Certification', 'uploads/kyc/nvq_sunil.pdf', 'approved', 1, NOW()),
-(3, 2, 'nic', 'National Identity Card', 'uploads/kyc/nic_kamal.pdf', 'approved', 1, NOW()),
-(4, 3, 'nic', 'National Identity Card', 'uploads/kyc/nic_nimal.pdf', 'approved', 1, NOW())
+INSERT INTO `kyc_documents` (`id`, `worker_id`, `document_type`, `document_name`, `document_path`, `file_path`, `status`, `reviewed_by`, `reviewed_at`) VALUES
+(1, 1, 'nic', 'National Identity Card (Front & Back)', 'uploads/kyc/sample_nic.svg', 'uploads/kyc/sample_nic.svg', 'approved', 1, NOW()),
+(2, 1, 'police_report', 'Police Clearance Certificate', 'uploads/kyc/sample_police_report.svg', 'uploads/kyc/sample_police_report.svg', 'approved', 1, NOW()),
+(3, 1, 'selfie', 'Live Verification Selfie', 'uploads/kyc/selfie_worker_1.png', 'uploads/kyc/selfie_worker_1.png', 'approved', 1, NOW()),
+(4, 1, 'trade_certificate', 'NVQ Level 4 Electrical Engineering Certification', 'uploads/kyc/sample_trade_certificate.svg', 'uploads/kyc/sample_trade_certificate.svg', 'approved', 1, NOW()),
+(5, 2, 'nic', 'National Identity Card (Front & Back)', 'uploads/kyc/sample_nic.svg', 'uploads/kyc/sample_nic.svg', 'approved', 1, NOW()),
+(6, 2, 'police_report', 'Police Clearance Certificate', 'uploads/kyc/sample_police_report.svg', 'uploads/kyc/sample_police_report.svg', 'approved', 1, NOW()),
+(7, 2, 'selfie', 'Live Verification Selfie', 'uploads/kyc/selfie_worker_2.png', 'uploads/kyc/selfie_worker_2.png', 'approved', 1, NOW()),
+(8, 2, 'trade_certificate', 'NVQ Level 3 Plumbing Certification', 'uploads/kyc/sample_trade_certificate.svg', 'uploads/kyc/sample_trade_certificate.svg', 'approved', 1, NOW()),
+(9, 3, 'nic', 'National Identity Card (Front & Back)', 'uploads/kyc/sample_nic.svg', 'uploads/kyc/sample_nic.svg', 'approved', 1, NOW()),
+(10, 3, 'police_report', 'Police Clearance Certificate', 'uploads/kyc/sample_police_report.svg', 'uploads/kyc/sample_police_report.svg', 'approved', 1, NOW()),
+(11, 3, 'selfie', 'Live Verification Selfie', 'uploads/kyc/selfie_worker_3.png', 'uploads/kyc/selfie_worker_3.png', 'approved', 1, NOW()),
+(12, 3, 'trade_certificate', 'Refrigeration & AC Trade License', 'uploads/kyc/sample_trade_certificate.svg', 'uploads/kyc/sample_trade_certificate.svg', 'approved', 1, NOW()),
+(13, 4, 'nic', 'National Identity Card (Front & Back)', 'uploads/kyc/sample_nic.svg', 'uploads/kyc/sample_nic.svg', 'approved', 1, NOW()),
+(14, 4, 'police_report', 'Police Clearance Certificate', 'uploads/kyc/sample_police_report.svg', 'uploads/kyc/sample_police_report.svg', 'approved', 1, NOW()),
+(15, 4, 'selfie', 'Live Verification Selfie', 'uploads/kyc/selfie_worker_4.png', 'uploads/kyc/selfie_worker_4.png', 'approved', 1, NOW()),
+(16, 4, 'trade_certificate', 'Master Carpentry Qualification Certificate', 'uploads/kyc/sample_trade_certificate.svg', 'uploads/kyc/sample_trade_certificate.svg', 'approved', 1, NOW()),
+(17, 5, 'nic', 'National Identity Card (Front & Back)', 'uploads/kyc/sample_nic.svg', 'uploads/kyc/sample_nic.svg', 'pending', NULL, NULL),
+(18, 5, 'police_report', 'Police Clearance Certificate', 'uploads/kyc/sample_police_report.svg', 'uploads/kyc/sample_police_report.svg', 'pending', NULL, NULL),
+(19, 5, 'selfie', 'Live Verification Selfie', 'uploads/kyc/selfie_worker_5.png', 'uploads/kyc/selfie_worker_5.png', 'pending', NULL, NULL),
+(20, 5, 'trade_certificate', 'Painting & Surface Finishing Certification', 'uploads/kyc/sample_trade_certificate.svg', 'uploads/kyc/sample_trade_certificate.svg', 'pending', NULL, NULL)
 ON DUPLICATE KEY UPDATE `status`=VALUES(`status`);
 

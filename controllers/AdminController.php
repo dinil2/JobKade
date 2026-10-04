@@ -101,17 +101,44 @@ class AdminController {
         $data = getRequestData();
 
         $kycId = (int)($data['kyc_id'] ?? $data['document_id'] ?? 0);
+        $workerId = (int)($data['worker_id'] ?? 0);
+        $verifyPacket = !empty($data['verify_packet']) || ($kycId <= 0 && $workerId > 0);
         $status = $data['status'] ?? 'approved';
         $notes = $data['notes'] ?? $data['admin_notes'] ?? $data['rejection_reason'] ?? null;
 
         try {
-            $result = $this->adminService->verifyKyc($kycId, $status, $notes, (int)$admin['user_id']);
+            if ($verifyPacket && $workerId > 0) {
+                $result = $this->adminService->verifyWorkerPacket($workerId, $status, $notes, (int)$admin['user_id']);
+            } else {
+                $result = $this->adminService->verifyKyc($kycId, $status, $notes, (int)$admin['user_id']);
+            }
             sendJsonResponse(200, $result);
         } catch (InvalidArgumentException $e) {
             sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
         } catch (Exception $e) {
             sendJsonResponse(500, ['status' => 'error', 'message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Endpoint: GET /api/admin/kyc/packet?worker_id=...
+     */
+    public function kycWorkerPacket(): void {
+        $this->requireAdmin();
+        $workerId = (int)($_GET['worker_id'] ?? 0);
+        if ($workerId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid worker_id required.']);
+        }
+
+        $docs = $this->kycRepo->getDocumentsByWorkerId($workerId);
+        $profile = $this->workerRepo->getProfileById($workerId);
+        sendJsonResponse(200, [
+            'status'    => 'success',
+            'worker_id' => $workerId,
+            'profile'   => $profile,
+            'documents' => $docs,
+            'count'     => count($docs)
+        ]);
     }
 
     /**

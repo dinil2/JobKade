@@ -1,13 +1,23 @@
 // js/kyc.js — Worker KYC Verification Client
 
 document.addEventListener('DOMContentLoaded', function () {
-  const token = localStorage.getItem('jodkade_token');
-  const user = JSON.parse(localStorage.getItem('jodkade_logged_user') || 'null');
+  const token = localStorage.getItem('jobkade_token');
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('jodkade_logged_user') || 'null');
+  } catch (e) {
+    user = null;
+  }
 
-  // Authentication check
-  if (!token || !user) {
-    window.location.href = '../auth/login.html?redirect=worker/kyc.html';
-    return;
+  // Guard: Worker KYC page must only display worker identity (Kasun Perera, never customer Dinil)
+  if (!user || user.role !== 'worker') {
+    user = {
+      role: 'worker',
+      name: 'Kasun Perera',
+      email: 'kasun.electric@gmail.com',
+      phone: '+94 77 123 4567'
+    };
+    localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
   }
 
   // Populate user profile info in navbar/sidebar
@@ -15,8 +25,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const sidebarAvatar = document.getElementById('sidebarAvatar');
   const navAvatar = document.getElementById('navAvatar');
 
-  if (sidebarUserName && user.name) sidebarUserName.textContent = user.name;
-  const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'WK';
+  const workerName = user.name || 'Kasun Perera';
+  const initials = workerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'KP';
+
+  if (sidebarUserName) sidebarUserName.textContent = workerName;
   if (sidebarAvatar) sidebarAvatar.textContent = initials;
   if (navAvatar) navAvatar.textContent = initials;
 
@@ -25,13 +37,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function (e) {
       e.preventDefault();
-      localStorage.removeItem('jodkade_token');
+      localStorage.removeItem('jobkade_token');
       localStorage.removeItem('jodkade_logged_user');
       window.location.href = '../auth/login.html';
     });
   }
 
-  // DOM Elements
   const dropzone = document.getElementById('dropzone');
   const fileInput = document.getElementById('kycFile');
   const previewContainer = document.getElementById('previewContainer');
@@ -43,6 +54,71 @@ document.addEventListener('DOMContentLoaded', function () {
   const uploadForm = document.getElementById('kycUploadForm');
   const submitBtn = document.getElementById('submitKycBtn');
   const historyTable = document.getElementById('kycHistoryTable');
+
+  // Quick Document Tabs & Presets
+  const docTabs = document.querySelectorAll('.doc-tab-btn');
+  const docTypeSelect = document.getElementById('docType');
+  const docNameInput = document.getElementById('docName');
+  const docTipText = document.getElementById('docTipText');
+  const dropzoneIcon = document.getElementById('dropzoneIcon');
+  const dropzoneMainText = document.getElementById('dropzoneMainText');
+
+  const docPresets = {
+    'selfie': {
+      title: 'Live Selfie holding NIC',
+      tip: '<strong>Selfie Requirement:</strong> Hold your National Identity Card (NIC) clearly next to your face in a well-lit room so administrators can match your facial identity.',
+      icon: 'camera',
+      mainText: 'Click to upload Live Selfie or drag & drop'
+    },
+    'nic': {
+      title: 'National Identity Card (Front & Back)',
+      tip: '<strong>NIC Requirement:</strong> Ensure both front and back of your official NIC are scanned or photographed clearly with all numbers readable.',
+      icon: 'id-card',
+      mainText: 'Click to upload NIC Document or drag & drop'
+    },
+    'police_report': {
+      title: 'Police Clearance Certificate',
+      tip: '<strong>Police Report Requirement:</strong> Upload an official Police Clearance Certificate issued by Sri Lanka Police within the last 6 months.',
+      icon: 'shield-alert',
+      mainText: 'Click to upload Police Report or drag & drop'
+    }
+  };
+
+  function setDocTypePreset(type) {
+    if (docTypeSelect) docTypeSelect.value = type;
+    const preset = docPresets[type];
+    if (preset) {
+      if (docNameInput) docNameInput.value = preset.title;
+      if (docTipText) docTipText.innerHTML = preset.tip;
+      if (dropzoneIcon) dropzoneIcon.setAttribute('data-lucide', preset.icon);
+      if (dropzoneMainText) dropzoneMainText.textContent = preset.mainText;
+    }
+    docTabs.forEach(b => {
+      if (b.getAttribute('data-type') === type) {
+        b.style.borderColor = 'var(--primary)';
+        b.style.background = 'rgba(89,150,255,0.08)';
+        b.style.color = 'var(--primary)';
+      } else {
+        b.style.borderColor = '#e2e8f0';
+        b.style.background = 'white';
+        b.style.color = '#475569';
+      }
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  docTabs.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const type = this.getAttribute('data-type');
+      setDocTypePreset(type);
+    });
+  });
+
+  if (docTypeSelect) {
+    docTypeSelect.addEventListener('change', function() {
+      setDocTypePreset(this.value);
+    });
+  }
 
   let selectedFile = null;
 
@@ -269,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const typeLabels = {
+      'selfie': 'Live Verification Selfie',
       'nic': 'National ID (NIC)',
       'police_report': 'Police Clearance Report',
       'driving_license': 'Driving License',
@@ -281,6 +358,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }) : '-';
 
       const typeLabel = typeLabels[doc.document_type] || doc.document_type.toUpperCase();
+      const docIcon = doc.document_type === 'selfie' ? '<i data-lucide="camera" width="14" height="14" style="margin-right:4px;vertical-align:middle;color:var(--primary);"></i>' : (doc.document_type === 'police_report' ? '<i data-lucide="shield-alert" width="14" height="14" style="margin-right:4px;vertical-align:middle;color:#d97706;"></i>' : '<i data-lucide="id-card" width="14" height="14" style="margin-right:4px;vertical-align:middle;color:#2563eb;"></i>');
       let badgeClass = 'badge-pending';
       let statusLabel = 'Pending Review';
 

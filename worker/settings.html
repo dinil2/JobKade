@@ -2,54 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Worker Settings — JodKade</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="../js/lucide.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/worker.css">
+  <meta http-equiv="refresh" content="0; url=profile-edit.html">
+  <title>Redirecting to Profile...</title>
+  <script>
+    window.location.replace('profile-edit.html');
+  </script>
 </head>
-<body>
-  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">KP</div></div></div></nav>
-
-  <div class="dashboard-layout">
-    <div class="sidebar-overlay"></div>
-    <aside class="sidebar worker"><div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-blue">KP</div><div><div class="sidebar-user-name">Kasun Perera</div><div class="sidebar-user-role">Worker</div></div></div></div><nav class="sidebar-nav"><div class="sidebar-label">Main</div><a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a><a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a><a href="kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a><a href="my-services.html" class="sidebar-link"><i data-lucide="briefcase"></i> My Services</a><a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a><a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a><a href="subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a><div class="sidebar-label">Account</div><a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a><a href="settings.html" class="sidebar-link active"><i data-lucide="settings"></i> Settings</a></nav><div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div></aside>
-
-    <main class="dashboard-main">
-      <div class="dashboard-header"><h1>Settings</h1><p>Manage your notification preferences and account settings.</p></div>
-
-      <div class="profile-form-card" style="max-width:600px;">
-        <form id="worker-settings-form">
-          <h3>Notifications</h3>
-          <div class="settings-group">
-            <div class="settings-item"><div><p>New Job Alerts</p><span class="text-sm text-secondary">Get notified for new customer job requests</span></div><label class="toggle"><input type="checkbox" id="pref-job-alerts" checked><span class="toggle-slider"></span></label></div>
-            <div class="settings-item"><div><p>Email Notifications</p><span class="text-sm text-secondary">Receive updates via email</span></div><label class="toggle"><input type="checkbox" id="pref-email-notifs" checked><span class="toggle-slider"></span></label></div>
-            <div class="settings-item"><div><p>SMS Notifications</p><span class="text-sm text-secondary">Receive updates via SMS</span></div><label class="toggle"><input type="checkbox" id="pref-sms-notifs"><span class="toggle-slider"></span></label></div>
-          </div>
-
-          <h3 class="mt-3">Privacy</h3>
-          <div class="settings-group">
-            <div class="settings-item"><div><p>Show Phone Number</p><span class="text-sm text-secondary">Allow customers to see your phone number</span></div><label class="toggle"><input type="checkbox" id="pref-show-phone" checked><span class="toggle-slider"></span></label></div>
-            <div class="settings-item"><div><p>Show WhatsApp</p><span class="text-sm text-secondary">Allow WhatsApp contact</span></div><label class="toggle"><input type="checkbox" id="pref-show-whatsapp" checked><span class="toggle-slider"></span></label></div>
-          </div>
-
-          <h3 class="mt-3">Account Security</h3>
-          <div class="settings-group">
-            <div class="form-group"><label class="form-label">Current Password</label><input type="password" id="current-password-input" class="form-input" placeholder="Current password"></div>
-            <div class="form-group"><label class="form-label">New Password</label><input type="password" id="new-password-input" class="form-input" placeholder="New password (min 6 chars)"></div>
-            <div class="form-group"><label class="form-label">Confirm New Password</label><input type="password" id="confirm-password-input" class="form-input" placeholder="Confirm new password"></div>
-          </div>
-
-          <button type="submit" id="btn-save-settings" class="btn btn-primary"><i data-lucide="save" width="18" height="18"></i> Save Settings</button>
-        </form>
-      </div>
-    </main>
-  </div>
-
-  <script src="../js/main.js"></script>
-  <script src="../js/worker.js"></script>
+<body style="font-family:sans-serif; text-align:center; padding: 40px; color: #475569;">
+  <p>Settings have been consolidated into your profile page. Redirecting to <a href="profile-edit.html">My Profile</a>...</p>
 </body>
 </html>

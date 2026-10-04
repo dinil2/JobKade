@@ -96,8 +96,7 @@ jodkade/
 │   ├── jobs.html              # Customer Jobs Open for Applications
 │   ├── my-services.html       # Active Worker Service Listings
 │   ├── add-service.html       # Create New Service Listing Form
-│   ├── profile-edit.html      # Edit Skill Details, Rates & Location
-│   ├── settings.html          # Worker Account Settings
+│   ├── profile-edit.html      # Edit Profile, Rates, Location & Change Password
 │   └── subscription.html      # Subscription Plans & Payment Modal
 │
 └── admin/                     # Admin Portal Pages
@@ -132,7 +131,7 @@ jodkade/
 | File Name | Purpose & Features |
 | :--- | :--- |
 | `auth/login.html` | **Login Portal:** Sign in form with quick **Demo Account Buttons** (Customer, Worker, Admin) that fill credentials and auto-login with one click. |
-| `auth/register.html` | **Sign Up Portal:** Account creation form allowing users to select whether they want to register as a Customer or a Worker. |
+| `auth/register.html` | **Sign Up Portal:** Account creation form for Customers and Workers. Worker signup features a mandatory One-Time Activation Payment (Rs. 1,500), with KYC document uploads (NIC, Police Report & Selfie) completed post-registration in Identity & KYC. |
 
 ---
 
@@ -156,8 +155,7 @@ jodkade/
 | `worker/jobs.html` | **Browse Jobs:** View active job postings submitted by customers in Sri Lanka and submit quotes/proposals. |
 | `worker/my-services.html` | **My Service Listings:** Manage offered service gigs with options to edit or delete listings. |
 | `worker/add-service.html` | **Add New Service:** Form to create a new service listing with title, category, pricing, and description. |
-| `worker/profile-edit.html` | **Edit Profile:** Update skills tags, bio, hourly rate, work experience, and location. |
-| `worker/settings.html` | **Worker Settings:** Account settings, payout methods, and password change. |
+| `worker/profile-edit.html` | **My Profile & Security:** Update skills, bio, location, contact information, and change account password. |
 | `worker/subscription.html` | **Subscription Plans:** Choose between *Free Trial*, *Pro Monthly*, or *Enterprise Annual* plans with interactive dummy credit card payment modal. |
 
 ---

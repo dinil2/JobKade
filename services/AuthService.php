@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../repositories/UserRepository.php';
 require_once __DIR__ . '/../repositories/WorkerRepository.php';
 require_once __DIR__ . '/../repositories/KycRepository.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../config/JWT.php';
 
 class AuthService {
@@ -27,7 +28,7 @@ class AuthService {
         $role     = strtolower((string)($data['role'] ?? 'customer'));
         $phone    = trim(strip_tags((string)($data['phone'] ?? '')));
 
-        if (!in_array($role, ['customer', 'worker', 'admin'])) {
+        if (!in_array($role, ['customer', 'worker'])) {
             $role = 'customer';
         }
 
@@ -52,22 +53,6 @@ class AuthService {
             if (empty($nic)) {
                 throw new InvalidArgumentException("National Identity Card (NIC) number is mandatory for worker registration.");
             }
-
-            // KYC (NIC) Document is a MUST
-            $nicFile = $files['nic_document'] ?? $files['nic_file'] ?? null;
-            $hasNicUpload = ($nicFile && isset($nicFile['error']) && $nicFile['error'] === UPLOAD_ERR_OK);
-            $hasNicPath = !empty($data['nic_document']) && is_string($data['nic_document']);
-            if (!$hasNicUpload && !$hasNicPath) {
-                throw new InvalidArgumentException("National Identity Card (NIC) document upload is mandatory for worker KYC verification.");
-            }
-
-            // Police Clearance Report is a MUST
-            $policeFile = $files['police_report'] ?? $files['police_file'] ?? null;
-            $hasPoliceUpload = ($policeFile && isset($policeFile['error']) && $policeFile['error'] === UPLOAD_ERR_OK);
-            $hasPolicePath = !empty($data['police_report']) && is_string($data['police_report']);
-            if (!$hasPoliceUpload && !$hasPolicePath) {
-                throw new InvalidArgumentException("Police clearance report upload is mandatory for worker registration.");
-            }
         }
 
         if (empty($username)) {
@@ -82,53 +67,80 @@ class AuthService {
             $username .= rand(100, 999);
         }
 
-        $passwordHash = password_hash($password, PASSWORD_BCRYPT);
-        $userId = $this->userRepo->create($fullName, $username, $email, $passwordHash, $role, $phone);
+        $pdo = Database::getConnection();
+        $pdo->beginTransaction();
+        try {
+            $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+            $userId = $this->userRepo->create($fullName, $username, $email, $passwordHash, $role, $phone);
 
-        $workerProfileId = null;
-        if ($role === 'worker') {
-            $workerProfileId = $this->workerRepo->createProfile($userId, [
-                'bio'               => $data['bio'] ?? 'Skilled service professional.',
-                'service_radius_km' => (int)($data['service_radius_km'] ?? 15),
-                'latitude'          => (float)($data['latitude'] ?? 6.9271),
-                'longitude'         => (float)($data['longitude'] ?? 79.8612),
-                'address'           => $data['address'] ?? $data['location'] ?? 'Colombo',
-                'working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
-            ]);
+            $workerProfileId = null;
+            if ($role === 'worker') {
+                $workerProfileId = $this->workerRepo->createProfile($userId, [
+                    'bio'               => $data['bio'] ?? 'Skilled service professional.',
+                    'service_radius_km' => (int)($data['service_radius_km'] ?? 15),
+                    'latitude'          => (float)($data['latitude'] ?? 6.9271),
+                    'longitude'         => (float)($data['longitude'] ?? 79.8612),
+                    'address'           => $data['address'] ?? $data['location'] ?? 'Colombo',
+                    'working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
+                ]);
 
-            // Assign category by ID or name
-            $catMap = [
-                'electrical' => 1, 'plumbing' => 2, 'ac repair' => 3, 'ac-repair' => 3,
-                'painting' => 4, 'carpentry' => 5, 'masonry' => 6, 'cleaning' => 7,
-                'appliance repair' => 8, 'appliance-repair' => 8, 'other' => 9
-            ];
-            $catId = (int)($data['category_id'] ?? 0);
-            if ($catId <= 0 && !empty($data['service'])) {
-                $slug = strtolower(trim((string)$data['service']));
-                $catId = $catMap[$slug] ?? 1;
+                // Assign category by ID or name
+                $catMap = [
+                    'electrical' => 1, 'plumbing' => 2, 'ac repair' => 3, 'ac-repair' => 3,
+                    'painting' => 4, 'carpentry' => 5, 'masonry' => 6, 'cleaning' => 7,
+                    'appliance repair' => 8, 'appliance-repair' => 8, 'other' => 9
+                ];
+                $catId = (int)($data['category_id'] ?? 0);
+                if ($catId <= 0 && !empty($data['service'])) {
+                    $slug = strtolower(trim((string)$data['service']));
+                    $catId = $catMap[$slug] ?? 1;
+                }
+                if ($catId > 0) {
+                    $this->workerRepo->setWorkerCategories($workerProfileId, [$catId]);
+                }
+
+                $hasUploadedDocs = false;
+
+                // Process Optional KYC Document (NIC) if provided
+                $nicFile = $files['nic_document'] ?? $files['nic_file'] ?? null;
+                $hasNicUpload = ($nicFile && isset($nicFile['error']) && $nicFile['error'] === UPLOAD_ERR_OK);
+                $hasNicPath = !empty($data['nic_document']) && is_string($data['nic_document']) && str_starts_with(trim($data['nic_document']), 'uploads/kyc/') && !str_contains($data['nic_document'], '..');
+                if ($hasNicUpload || $hasNicPath) {
+                    $nicPath = $this->processKycUpload($nicFile, $data['nic_document'] ?? null, 'nic', $workerProfileId);
+                    $this->kycRepo->createKycRecord($workerProfileId, 'nic', "National Identity Card (NIC: {$nic})", $nicPath);
+                    $hasUploadedDocs = true;
+                }
+
+                // Process Optional Police Report if provided
+                $policeFile = $files['police_report'] ?? $files['police_file'] ?? null;
+                $hasPoliceUpload = ($policeFile && isset($policeFile['error']) && $policeFile['error'] === UPLOAD_ERR_OK);
+                $hasPolicePath = !empty($data['police_report']) && is_string($data['police_report']) && str_starts_with(trim($data['police_report']), 'uploads/kyc/') && !str_contains($data['police_report'], '..');
+                if ($hasPoliceUpload || $hasPolicePath) {
+                    $policePath = $this->processKycUpload($policeFile, $data['police_report'] ?? null, 'police', $workerProfileId);
+                    $this->kycRepo->createKycRecord($workerProfileId, 'police_report', "Police Clearance Report", $policePath);
+                    $hasUploadedDocs = true;
+                }
+
+                // Process Optional Qualification / Certificate if provided
+                $qualFile = $files['qualification_document'] ?? $files['qualification_file'] ?? $files['trade_certificate'] ?? null;
+                $qualData = $data['qualification_document'] ?? $data['trade_certificate'] ?? null;
+                if (($qualFile && isset($qualFile['error']) && $qualFile['error'] === UPLOAD_ERR_OK) || !empty($qualData)) {
+                    $qualPath = $this->processKycUpload($qualFile, $qualData, 'qualification', $workerProfileId);
+                    $this->kycRepo->createKycRecord($workerProfileId, 'trade_certificate', "Worker Qualification Certificate", $qualPath);
+                    $hasUploadedDocs = true;
+                }
+
+                // Set worker verification status: 'pending' if docs uploaded now, or 'unverified' if documents to be added later
+                $initialStatus = $hasUploadedDocs ? 'pending' : 'unverified';
+                $this->workerRepo->updateVerificationStatus($workerProfileId, $initialStatus);
             }
-            if ($catId > 0) {
-                $this->workerRepo->setWorkerCategories($workerProfileId, [$catId]);
+
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
             }
-
-            // Save Mandatory KYC Document (NIC)
-            $nicPath = $this->processKycUpload($files['nic_document'] ?? $files['nic_file'] ?? null, $data['nic_document'] ?? null, 'nic', $workerProfileId);
-            $this->kycRepo->createKycRecord($workerProfileId, 'nic', "National Identity Card (NIC: {$nic})", $nicPath);
-
-            // Save Mandatory Police Report
-            $policePath = $this->processKycUpload($files['police_report'] ?? $files['police_file'] ?? null, $data['police_report'] ?? null, 'police', $workerProfileId);
-            $this->kycRepo->createKycRecord($workerProfileId, 'police_report', "Police Clearance Report", $policePath);
-
-            // Save Optional Qualification / Certificate (if provided)
-            $qualFile = $files['qualification_document'] ?? $files['qualification_file'] ?? $files['trade_certificate'] ?? null;
-            $qualData = $data['qualification_document'] ?? $data['trade_certificate'] ?? null;
-            if (($qualFile && isset($qualFile['error']) && $qualFile['error'] === UPLOAD_ERR_OK) || !empty($qualData)) {
-                $qualPath = $this->processKycUpload($qualFile, $qualData, 'qualification', $workerProfileId);
-                $this->kycRepo->createKycRecord($workerProfileId, 'trade_certificate', "Worker Qualification Certificate", $qualPath);
-            }
-
-            // Set worker verification status to 'pending'
-            $this->workerRepo->updateVerificationStatus($workerProfileId, 'pending');
+            throw $e;
         }
 
         // Issue JWT token
@@ -177,11 +189,14 @@ class AuthService {
             }
         }
 
-        if (is_string($dataValue) && !empty($dataValue)) {
-            return trim($dataValue);
+        if (is_string($dataValue)) {
+            $trimmed = trim($dataValue);
+            if (str_starts_with($trimmed, 'uploads/kyc/') && !str_contains($trimmed, '..')) {
+                return $trimmed;
+            }
         }
 
-        return 'uploads/kyc/' . $prefix . '_' . $workerId . '_' . time() . '.pdf';
+        throw new InvalidArgumentException("A valid {$prefix} file upload or approved path starting with 'uploads/kyc/' is required.");
     }
 
     public function login(string $email, string $password): array {
@@ -199,10 +214,6 @@ class AuthService {
         }
 
         $isValid = password_verify($password, $user['password_hash']);
-        if (!$isValid && $user['password_hash'] === $password) {
-            $isValid = true; // Fallback for raw seed passwords
-        }
-
         if (!$isValid) {
             throw new Exception("Invalid email or password.");
         }
@@ -293,7 +304,7 @@ class AuthService {
             throw new InvalidArgumentException("User account not found.");
         }
 
-        if (!empty($oldPassword) && !password_verify($oldPassword, $currentHash)) {
+        if (empty($oldPassword) || !password_verify($oldPassword, $currentHash)) {
             throw new InvalidArgumentException("Current password is incorrect.");
         }
 

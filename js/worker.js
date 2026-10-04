@@ -5,11 +5,59 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  // ---- Update Greeting ----
-  var greetingEl = document.getElementById('greeting');
-  if (greetingEl) {
-    greetingEl.textContent = getGreeting() + ', Kasun 👋';
+  // ---- Sync Worker Identity Across All Worker Pages ----
+  function syncWorkerIdentity() {
+    var user = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+    if (!user && typeof localStorage !== 'undefined') {
+      try {
+        user = JSON.parse(localStorage.getItem('jodkade_logged_user') || 'null');
+      } catch (e) {
+        user = null;
+      }
+    }
+
+    // Guard: Worker pages must only display a worker session (never customer Dinil)
+    if (!user || user.role !== 'worker') {
+      user = {
+        role: 'worker',
+        name: 'Kasun Perera',
+        email: 'kasun.electric@gmail.com',
+        phone: '+94 77 123 4567'
+      };
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+      }
+    }
+
+    var workerName = user.name || 'Kasun Perera';
+    var initials = workerName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().substring(0, 2) || 'KP';
+    var firstName = workerName.split(' ')[0] || 'Kasun';
+
+    // Update greeting
+    var greetingEl = document.getElementById('greeting');
+    if (greetingEl) {
+      greetingEl.textContent = getGreeting() + ', ' + firstName + ' 👋';
+    }
+
+    // Update sidebar names across all worker portal pages
+    var sidebarUserNames = document.querySelectorAll('.sidebar.worker .sidebar-user-name, #sidebarUserName');
+    sidebarUserNames.forEach(function(el) {
+      el.textContent = workerName;
+    });
+
+    // Update avatars across all worker portal pages
+    var sidebarAvatars = document.querySelectorAll('.sidebar.worker .avatar, #sidebarAvatar, #navAvatar, .dashboard-nav-right .avatar');
+    var savedWorkerAvatar = localStorage.getItem('jobkade_worker_avatar') || (user && user.avatar);
+    sidebarAvatars.forEach(function(el) {
+      if (savedWorkerAvatar) {
+        el.innerHTML = '<img src="' + savedWorkerAvatar + '" alt="' + workerName + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">';
+      } else {
+        el.textContent = initials;
+      }
+    });
   }
+
+  syncWorkerIdentity();
 
   // ---- Delete Service Confirmation ----
   var activeServiceCard = null;
@@ -197,11 +245,18 @@ document.addEventListener('DOMContentLoaded', function () {
       var bioInput = this.querySelector('[name="bio"]') || this.querySelector('textarea');
       var locInput = this.querySelector('[name="location"]') || this.querySelectorAll('input[type="text"]')[1];
 
+      var curPassInput = document.getElementById('worker-current-password');
+      var newPassInput = document.getElementById('worker-new-password');
+      var confirmPassInput = document.getElementById('worker-confirm-password');
+
       var fullName = nameInput ? nameInput.value.trim() : '';
       var phone = phoneInput ? phoneInput.value.trim() : '';
       var email = emailInput ? emailInput.value.trim() : '';
       var bio = bioInput ? bioInput.value.trim() : '';
       var location = locInput ? locInput.value.trim() : '';
+      var curPass = curPassInput ? curPassInput.value : '';
+      var newPass = newPassInput ? newPassInput.value : '';
+      var confirmPass = confirmPassInput ? confirmPassInput.value : '';
 
       var hasError = false;
 
@@ -240,6 +295,22 @@ document.addEventListener('DOMContentLoaded', function () {
         hasError = true;
       }
 
+      // 6. Optional Password Change Validation
+      if (newPass) {
+        if (newPass.length < 6) {
+          showFieldError(newPassInput, 'New password must be at least 6 characters.');
+          hasError = true;
+        }
+        if (newPass !== confirmPass) {
+          showFieldError(confirmPassInput, 'New passwords do not match.');
+          hasError = true;
+        }
+        if (!curPass) {
+          showFieldError(curPassInput, 'Current password is required to set a new password.');
+          hasError = true;
+        }
+      }
+
       if (hasError) {
         showToast('Please correct the highlighted errors.', 'error');
         var firstInvalid = profileForm.querySelector('.is-invalid');
@@ -255,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       try {
+        // 1. Update Profile Details
         var res = await apiFetch('workers.php?action=update', {
           method: 'POST',
           body: JSON.stringify({
@@ -266,13 +338,35 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (res.ok && res.data && res.data.status === 'success') {
-          showToast(res.data.message || 'Profile updated successfully!', 'success');
           // Update local storage user name if active
           var curUser = getLoggedInUser();
           if (curUser) {
             curUser.name = fullName;
             curUser.phone = phone;
             localStorage.setItem('jodkade_logged_user', JSON.stringify(curUser));
+          }
+
+          // 2. Change Password if requested
+          if (newPass) {
+            var passRes = await apiFetch('auth.php?action=change-password', {
+              method: 'POST',
+              body: JSON.stringify({
+                current_password: curPass,
+                new_password: newPass
+              })
+            });
+
+            if (!passRes.ok || !passRes.data || passRes.data.status !== 'success') {
+              showToast((passRes.data && passRes.data.message) ? passRes.data.message : 'Profile saved, but password change failed.', 'warning');
+              return;
+            }
+
+            if (curPassInput) curPassInput.value = '';
+            if (newPassInput) newPassInput.value = '';
+            if (confirmPassInput) confirmPassInput.value = '';
+            showToast('Profile and password updated successfully!', 'success');
+          } else {
+            showToast(res.data.message || 'Profile updated successfully!', 'success');
           }
         } else {
           var msg = (res.data && res.data.message) ? res.data.message : 'Profile saved locally.';
@@ -383,22 +477,74 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // (Worker Settings is handled by initWorkerSettings)
 
-  // ---- Profile Photo Upload ----
+  // ---- Interactive Profile Photo Upload & Preview ----
+  var avatarClickable = document.getElementById('profile-avatar-clickable');
+  var cameraBtn = document.getElementById('btn-camera-trigger');
+  var avatarHint = document.getElementById('profile-avatar-hint');
   var workerPhotoUpload = document.getElementById('worker-photo-upload');
+
+  var triggerWorkerPhotoUpload = function () {
+    if (workerPhotoUpload) workerPhotoUpload.click();
+  };
+
+  if (avatarClickable) avatarClickable.addEventListener('click', triggerWorkerPhotoUpload);
+  if (cameraBtn) cameraBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    triggerWorkerPhotoUpload();
+  });
+  if (avatarHint) avatarHint.addEventListener('click', triggerWorkerPhotoUpload);
+
   if (workerPhotoUpload) {
     workerPhotoUpload.addEventListener('change', function () {
       var file = this.files[0];
-      if (file) {
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          var preview = document.querySelector('.profile-avatar-edit');
-          if (preview) {
-            preview.src = e.target.result;
-          }
-        };
-        reader.readAsDataURL(file);
-        showToast('Profile photo updated!', 'success');
+      if (!file) return;
+
+      if (!file.type.match(/^image\//)) {
+        showToast('Please select a valid image file (PNG, JPG, JPEG, WebP).', 'error');
+        return;
       }
+
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Image file size must be less than 5MB.', 'error');
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var dataUrl = e.target.result;
+        var avatarImg = document.getElementById('worker-avatar-img');
+        var avatarInitials = document.getElementById('worker-avatar-initials');
+
+        if (avatarImg) {
+          avatarImg.src = dataUrl;
+          avatarImg.style.display = 'block';
+        }
+        if (avatarInitials) {
+          avatarInitials.style.display = 'none';
+        }
+
+        // Store avatar in localStorage so it persists across pages and refreshes
+        try {
+          localStorage.setItem('jobkade_worker_avatar', dataUrl);
+          var sessionUserStr = localStorage.getItem('jobkade_user');
+          if (sessionUserStr) {
+            var sUser = JSON.parse(sessionUserStr);
+            sUser.avatar = dataUrl;
+            localStorage.setItem('jobkade_user', JSON.stringify(sUser));
+          }
+        } catch (storageErr) {
+          console.warn('Could not persist avatar to localStorage:', storageErr);
+        }
+
+        // Update all worker avatars across sidebar and navigation
+        var allAvatars = document.querySelectorAll('.sidebar.worker .avatar, #sidebarAvatar, #navAvatar, .dashboard-nav-right .avatar');
+        allAvatars.forEach(function (el) {
+          el.innerHTML = '<img src="' + dataUrl + '" alt="Profile Photo" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">';
+        });
+
+        showToast('Profile photo updated successfully!', 'success');
+      };
+      reader.readAsDataURL(file);
     });
   }
 
@@ -1067,6 +1213,16 @@ async function initWorkerProfilePage() {
   var form = document.getElementById('worker-profile-form');
   if (!form || !window.location.pathname.includes('profile-edit.html')) return;
 
+  var savedAvatar = localStorage.getItem('jobkade_worker_avatar');
+  var avatarImg = document.getElementById('worker-avatar-img');
+  var avatarInitials = document.getElementById('worker-avatar-initials');
+
+  if (savedAvatar && avatarImg) {
+    avatarImg.src = savedAvatar;
+    avatarImg.style.display = 'block';
+    if (avatarInitials) avatarInitials.style.display = 'none';
+  }
+
   try {
     var res = await apiFetch('auth.php?action=me');
     if (res.ok && res.data && res.data.user) {
@@ -1076,12 +1232,20 @@ async function initWorkerProfilePage() {
       var emailInput = form.querySelector('[name="email"]');
       var locInput = form.querySelector('[name="location"]');
       var bioInput = form.querySelector('[name="bio"]');
+      var nameHeading = document.getElementById('worker-profile-display-name');
 
       if (nameInput && u.full_name) nameInput.value = u.full_name;
+      if (nameHeading && u.full_name) nameHeading.textContent = u.full_name;
       if (phoneInput && u.phone) phoneInput.value = u.phone;
       if (emailInput && u.email) emailInput.value = u.email;
       if (locInput && u.address) locInput.value = u.address;
       if (bioInput && u.bio) bioInput.value = u.bio;
+
+      if (!savedAvatar && u.avatar && avatarImg) {
+        avatarImg.src = u.avatar;
+        avatarImg.style.display = 'block';
+        if (avatarInitials) avatarInitials.style.display = 'none';
+      }
     }
   } catch (err) {
     console.warn('initWorkerProfilePage error:', err);

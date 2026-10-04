@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="500" viewBox="0 0 600 500">
+        <rect width="600" height="500" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+        <rect x="0" y="0" width="600" height="50" rx="12" fill="#047857"/>
+        <rect x="0" y="35" width="600" height="15" fill="#047857"/>
+        <text x="300" y="32" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ffffff" text-anchor="middle">SRI LANKA POLICE HEADQUARTERS — CLEARANCE DIVISION</text>
+        <text x="300" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">POLICE CLEARANCE CERTIFICATE / පොලිස් සහතිකය</text>
+        <text x="300" y="110" font-family="Arial, sans-serif" font-size="12" fill="#64748b" text-anchor="middle">Reference: POL/HQ/CLEAR/2026/88921B | Issued Date: 2026-08-15</text>
+        <line x1="40" y1="125" x2="560" y2="125" stroke="#e2e8f0" stroke-width="2"/>
+        <text x="60" y="160" font-family="Arial, sans-serif" font-size="14" fill="#334155">This is to certify that the applicant has no adverse criminal record or pending legal</text>
+        <text x="60" y="185" font-family="Arial, sans-serif" font-size="14" fill="#334155">proceedings registered under the jurisdiction of the Colombo Metropolitan Division.</text>
+        <rect x="60" y="215" width="480" height="120" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+        <text x="80" y="250" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#166534">CLEARANCE STATUS: APPROVED / NO CRIMINAL RECORD</text>
+        <text x="80" y="280" font-family="Arial, sans-serif" font-size="13" fill="#15803d">Fingerprint Verification: Matched &amp; Verified</text>
+        <text x="80" y="305" font-family="Arial, sans-serif" font-size="13" fill="#15803d">Background Investigation: Satisfactory for Commercial Skilled Work</text>
+        <circle cx="480" cy="410" r="45" fill="none" stroke="#047857" stroke-width="3" stroke-dasharray="6,4"/>
+        <text x="480" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#047857" text-anchor="middle">POLICE DEPT</text>
+        <text x="480" y="430" font-family="Arial, sans-serif" font-size="10" fill="#047857" text-anchor="middle">OFFICIAL SEAL</text>
+        <text x="60" y="430" font-family="Arial, sans-serif" font-size="12" fill="#64748b">Senior Superintendent of Police (Clearance Unit)</text>
+    </svg>

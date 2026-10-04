@@ -197,6 +197,9 @@ document.addEventListener('DOMContentLoaded', function () {
  */
 function getApiBaseUrl() {
   const origin = window.location.origin;
+  if (!origin || origin === 'null' || window.location.protocol === 'file:') {
+    return 'http://localhost:81/JobKade/api/';
+  }
   const path = window.location.pathname;
   if (path.toLowerCase().includes('/jobkade')) {
     return origin + '/JobKade/api/';
@@ -218,7 +221,7 @@ async function apiFetch(endpoint, options) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const token = localStorage.getItem('jodkade_token') || localStorage.getItem('authToken');
+  const token = localStorage.getItem('jobkade_token');
   if (token && !headers['Authorization']) {
     headers['Authorization'] = 'Bearer ' + token;
   }
@@ -236,7 +239,7 @@ async function apiFetch(endpoint, options) {
 }
 
 function getAuthToken() {
-  return localStorage.getItem('jodkade_token') || localStorage.getItem('authToken') || '';
+  return localStorage.getItem('jobkade_token') || '';
 }
 
 /**
@@ -256,8 +259,7 @@ function getLoggedInUser() {
  */
 function setLoggedInSession(token, user) {
   if (token) {
-    localStorage.setItem('jodkade_token', token);
-    localStorage.setItem('authToken', token);
+    localStorage.setItem('jobkade_token', token);
   }
   if (user) {
     var normalized = {
@@ -271,6 +273,7 @@ function setLoggedInSession(token, user) {
       loginTime: new Date().getTime()
     };
     localStorage.setItem('jodkade_logged_user', JSON.stringify(normalized));
+    localStorage.setItem('jobkade_user', JSON.stringify(normalized));
     return normalized;
   }
   return null;
@@ -282,11 +285,12 @@ function setLoggedInSession(token, user) {
 function setLoggedInUser(role, name, email) {
   var user = {
     role: role || 'customer',
-    name: name || (role === 'admin' ? 'System Administrator' : (role === 'worker' ? 'Sunil Perera' : 'Sasmitha Customer')),
+    name: name || (role === 'admin' ? 'System Administrator' : (role === 'worker' ? 'Kasun Perera' : 'Dinil Sandaruwan')),
     email: email || (role + '@jodkade.lk'),
     loginTime: new Date().getTime()
   };
   localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+  localStorage.setItem('jobkade_user', JSON.stringify(user));
   return user;
 }
 
@@ -294,9 +298,9 @@ function setLoggedInUser(role, name, email) {
  * Log out user & clear session
  */
 function logoutUser() {
-  localStorage.removeItem('jodkade_token');
-  localStorage.removeItem('authToken');
+  localStorage.removeItem('jobkade_token');
   localStorage.removeItem('jodkade_logged_user');
+  localStorage.removeItem('jobkade_user');
   showToast('Logged out successfully.', 'info');
   var isSubfolder = window.location.pathname.includes('/admin/') || window.location.pathname.includes('/customer/') || window.location.pathname.includes('/worker/') || window.location.pathname.includes('/auth/');
   setTimeout(function() {

@@ -37,6 +37,11 @@ switch ($action) {
         $controller->kycVerify();
         break;
 
+    case 'kyc/packet':
+    case 'kyc-packet':
+        $controller->kycWorkerPacket();
+        break;
+
     // User Management
     case 'users':
         $controller->users();

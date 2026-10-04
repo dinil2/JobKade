@@ -105,7 +105,41 @@
         </a>
       </div>
       <div class="dashboard-nav-right">
-        <div class="avatar avatar-sm avatar-blue" id="navAvatar">WK</div>
+        <div class="notification-wrapper">
+          <button class="notification-bell" aria-label="Notifications" title="Notifications">
+            <i data-lucide="bell" width="22" height="22"></i>
+            <span class="notif-count">2</span>
+          </button>
+          <div class="notification-dropdown">
+            <div class="notification-dropdown-header">
+              <h4>Notifications</h4>
+              <a href="#" class="text-sm text-primary-color">Mark all read</a>
+            </div>
+            <div class="notification-list">
+              <div class="notification-item unread">
+                <div class="notification-item-icon green"><i data-lucide="check-circle" width="16" height="16"></i></div>
+                <div class="notification-item-content">
+                  <p>Your worker verification has been approved!</p>
+                  <span class="notif-time">1 hour ago</span>
+                </div>
+              </div>
+              <div class="notification-item unread">
+                <div class="notification-item-icon"><i data-lucide="briefcase" width="16" height="16"></i></div>
+                <div class="notification-item-content">
+                  <p>New AC repair job request in Colombo.</p>
+                  <span class="notif-time">3 hours ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a href="profile-edit.html" style="text-decoration:none;" title="My Profile">
+          <div class="avatar avatar-nav avatar-blue" id="navAvatar">KP</div>
+        </a>
+        <a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade">
+          <i data-lucide="log-out" width="18" height="18"></i>
+          <span>Logout</span>
+        </a>
       </div>
     </div>
   </nav>
@@ -115,10 +149,10 @@
     <aside class="sidebar worker">
       <div class="sidebar-header">
         <div class="sidebar-user">
-          <div class="avatar avatar-md avatar-blue" id="sidebarAvatar">WK</div>
+          <div class="avatar avatar-md avatar-blue" id="sidebarAvatar">KP</div>
           <div>
-            <div class="sidebar-user-name" id="sidebarUserName">Worker Account</div>
-            <div class="sidebar-user-role">Skilled Professional</div>
+            <div class="sidebar-user-name" id="sidebarUserName">Kasun Perera</div>
+            <div class="sidebar-user-role">Worker</div>
           </div>
         </div>
       </div>
@@ -133,7 +167,6 @@
         <a href="subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a>
         <div class="sidebar-label">Account</div>
         <a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a>
-        <a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a>
       </nav>
       <div class="sidebar-footer">
         <a href="#" id="logoutBtn" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a>
@@ -163,16 +196,39 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
         <!-- Upload Form Card -->
         <div class="profile-form-card" style="margin:0;">
-          <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+          <h3 style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
             <i data-lucide="upload-cloud" width="20" height="20" class="text-primary-color"></i>
             Submit Verification Document
           </h3>
+
+          <!-- 3 Mandatory Quick Tabs -->
+          <div class="kyc-doc-tabs" id="kycDocTabs" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+            <button type="button" class="doc-tab-btn active" data-type="selfie" style="padding:10px 6px;border-radius:var(--radius-md);border:1.5px solid var(--primary);background:rgba(89,150,255,0.08);color:var(--primary);font-size:0.78rem;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all 0.2s;">
+              <i data-lucide="camera" width="18" height="18"></i>
+              <span>1. Live Selfie</span>
+            </button>
+            <button type="button" class="doc-tab-btn" data-type="nic" style="padding:10px 6px;border-radius:var(--radius-md);border:1.5px solid #e2e8f0;background:white;color:#475569;font-size:0.78rem;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all 0.2s;">
+              <i data-lucide="id-card" width="18" height="18"></i>
+              <span>2. National ID</span>
+            </button>
+            <button type="button" class="doc-tab-btn" data-type="police_report" style="padding:10px 6px;border-radius:var(--radius-md);border:1.5px solid #e2e8f0;background:white;color:#475569;font-size:0.78rem;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all 0.2s;">
+              <i data-lucide="shield-alert" width="18" height="18"></i>
+              <span>3. Police Report</span>
+            </button>
+          </div>
+
+          <!-- Dynamic Guidance Tip Box -->
+          <div id="docTipBox" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--radius-md);padding:10px 14px;margin-bottom:16px;font-size:0.8rem;color:#1e40af;display:flex;align-items:flex-start;gap:8px;">
+            <i data-lucide="info" width="16" height="16" style="flex-shrink:0;margin-top:2px;"></i>
+            <span id="docTipText"><strong>Selfie Requirement:</strong> Hold your National Identity Card (NIC) clearly next to your face in a well-lit room so administrators can match your facial identity.</span>
+          </div>
 
           <form id="kycUploadForm">
             <div class="form-group">
               <label class="form-label" for="docType">Document Type <span>*</span></label>
               <select id="docType" name="document_type" class="form-select" required>
-                <option value="nic" selected>National Identity Card (NIC) — Mandatory (KYC)</option>
+                <option value="selfie" selected>Live Verification Selfie (Holding ID) — Mandatory</option>
+                <option value="nic">National Identity Card (NIC) — Mandatory (KYC)</option>
                 <option value="police_report">Police Clearance Report — Mandatory</option>
                 <option value="trade_certificate">Trade Certification / NVQ Diploma — Optional</option>
                 <option value="driving_license">Driving License — Alternative ID</option>
@@ -181,16 +237,16 @@
 
             <div class="form-group">
               <label class="form-label" for="docName">Document Title or Number <span>*</span></label>
-              <input type="text" id="docName" name="document_name" class="form-input" placeholder="e.g. NIC 199012345678, Police Clearance #8821, or NVQ-L4" required>
+              <input type="text" id="docName" name="document_name" class="form-input" value="Live Selfie holding NIC" placeholder="e.g. Live Selfie with NIC, NIC 199012345678, or Police Certificate #8821" required>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Document File (Max 5MB) <span>*</span></label>
+              <label class="form-label" id="fileUploadLabel">Upload Document File (Max 5MB) <span>*</span></label>
               <div class="file-dropzone" id="dropzone">
-                <i data-lucide="file-up" width="32" height="32" style="color:#64748b;margin-bottom:8px;"></i>
-                <p style="margin:0;font-weight:600;color:#1e293b;">Click to upload or drag & drop</p>
-                <span style="font-size:0.8rem;color:#64748b;">Supports PDF, PNG, JPG or JPEG (Max 5MB)</span>
-                <input type="file" id="kycFile" name="kyc_file" accept=".pdf,.png,.jpg,.jpeg" style="display:none;" required>
+                <i data-lucide="camera" id="dropzoneIcon" width="32" height="32" style="color:var(--primary);margin-bottom:8px;"></i>
+                <p id="dropzoneMainText" style="margin:0;font-weight:600;color:#1e293b;">Click to upload Selfie or drag & drop</p>
+                <span id="dropzoneSubText" style="font-size:0.8rem;color:#64748b;">Supports PNG, JPG or JPEG (Max 5MB)</span>
+                <input type="file" id="kycFile" name="kyc_file" accept=".png,.jpg,.jpeg,.pdf" style="display:none;" required>
               </div>
 
               <!-- Live File Preview -->
@@ -198,7 +254,7 @@
                 <img id="previewImage" class="preview-thumbnail" src="" alt="Preview" style="display:none;">
                 <div id="previewDocIcon" style="display:none;"><i data-lucide="file-text" width="36" height="36" style="color:var(--primary);"></i></div>
                 <div style="flex:1;overflow:hidden;">
-                  <div id="previewFileName" style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">file.pdf</div>
+                  <div id="previewFileName" style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">file.jpg</div>
                   <div id="previewFileSize" style="font-size:0.75rem;color:#64748b;">1.2 MB</div>
                 </div>
                 <button type="button" id="removeFileBtn" class="btn btn-sm btn-outline" style="padding:4px 8px;font-size:0.75rem;border-color:#e2e8f0;">
@@ -216,16 +272,16 @@
         <!-- Verification Guidance Card -->
         <div class="card" style="background:#f8fafc;border:1px solid #e2e8f0;padding:24px;border-radius:var(--radius-lg);">
           <h4 style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-            <i data-lucide="info" width="18" height="18" class="text-primary-color"></i>
-            Verification Guidelines & Rules
+            <i data-lucide="shield-check" width="18" height="18" class="text-primary-color"></i>
+            Verification Guidelines & Review Criteria
           </h4>
-          <ul style="padding-left:20px;font-size:0.85rem;color:#475569;line-height:1.7;">
-            <li><strong>Mandatory Documents (Must):</strong> Both <strong>National Identity Card (NIC)</strong> and <strong>Police Clearance Report</strong> are required for account verification.</li>
-            <li><strong>Optional Documents:</strong> Trade certifications, NVQ diplomas, and apprenticeship certificates are optional and boost your worker profile credibility.</li>
-            <li><strong>Clear & Legible:</strong> Ensure all numbers, full legal name, and expiration dates are clearly readable.</li>
-            <li><strong>Supported Formats:</strong> PDF documents, PNG, and JPG/JPEG image formats up to 5MB.</li>
-            <li><strong>Review Timeframe:</strong> Administrators review submissions within 12 to 24 business hours.</li>
-            <li><strong>Verified Badge Benefits:</strong> Verified workers receive up to <strong>3.5x more customer messages & jobs</strong> and priority listing on the map.</li>
+          <p style="font-size:0.85rem;color:#64748b;margin-bottom:14px;">Administrators cross-check your 3 core records before awarding your verified professional badge:</p>
+          <ul style="padding-left:20px;font-size:0.85rem;color:#475569;line-height:1.8;">
+            <li><strong>1. Live Verification Selfie (Mandatory):</strong> Clear photo holding your NIC next to your face. Administrators check that your facial features match the ID photograph.</li>
+            <li><strong>2. National Identity Card (NIC) (Mandatory):</strong> Front and back scan or photo of your official government NIC. Full legal name and NIC number must match.</li>
+            <li><strong>3. Police Clearance Report (Mandatory):</strong> Valid certificate issued by the Sri Lanka Police confirming a clear background for client trust.</li>
+            <li><strong>4. Trade Certifications (Optional):</strong> NVQ Diplomas, technical apprenticeship certificates, or vendor badges to boost ranking.</li>
+            <li><strong>Fast Approvals:</strong> Administrators review all 3 documents within 12 to 24 business hours.</li>
           </ul>
         </div>
       </div>

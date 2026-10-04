@@ -144,8 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <a href="worker/jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a>
           <a href="worker/subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a>
           <div class="sidebar-label">Account</div>
-          <a href="messages.html" class="sidebar-link active"><i data-lucide="message-square"></i> Messages</a>
-          <a href="worker/settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a>`;
+          <a href="messages.html" class="sidebar-link active"><i data-lucide="message-square"></i> Messages</a>`;
       } else if (role === 'admin') {
         navEl.innerHTML = `
           <div class="sidebar-label">Management</div>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380">
+        <rect width="600" height="380" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="3"/>
+        <rect x="0" y="0" width="600" height="60" rx="16" fill="#1e3a8a"/>
+        <rect x="0" y="40" width="600" height="20" fill="#1e3a8a"/>
+        <text x="300" y="38" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff" text-anchor="middle">DEMOCRATIC SOCIALIST REPUBLIC OF SRI LANKA</text>
+        <text x="300" y="85" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">NATIONAL IDENTITY CARD / ජාතික හැඳුනුම්පත</text>
+        <rect x="40" y="110" width="130" height="160" rx="8" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+        <circle cx="105" cy="165" r="35" fill="#64748b"/>
+        <path d="M60 250 Q105 210 150 250" fill="#64748b"/>
+        <text x="200" y="135" font-family="Arial, sans-serif" font-size="14" fill="#64748b">Identity No / හැඳුනුම් අංකය:</text>
+        <text x="200" y="160" font-family="Courier New, monospace" font-size="18" font-weight="bold" fill="#0f172a">198523401928 V</text>
+        <text x="200" y="195" font-family="Arial, sans-serif" font-size="14" fill="#64748b">Full Name / සම්පූර්ණ නම:</text>
+        <text x="200" y="220" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#0f172a">REGISTERED CITIZEN / SKILLED PROFESSIONAL</text>
+        <text x="200" y="255" font-family="Arial, sans-serif" font-size="14" fill="#64748b">Date of Birth: 1985-08-22 | Sex: M</text>
+        <rect x="40" y="300" width="520" height="50" rx="6" fill="#f1f5f9" stroke="#e2e8f0"/>
+        <text x="55" y="330" font-family="Courier New, monospace" font-size="13" fill="#334155">&lt;&lt;IDLKA1985234019284&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;VERIFIED&lt;JOBKADE&lt;&lt;</text>
+    </svg>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Profile — JodKade</title>
+  <title>My Profile — JobKade</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="../js/lucide.min.js"></script>
@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../css/customer.css">
 </head>
 <body>
-  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Jod<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-blue">D</div></div></div></nav>
+  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="notification-wrapper"><button class="notification-bell" aria-label="Notifications" title="Notifications"><i data-lucide="bell" width="22" height="22"></i><span class="notif-count">3</span></button><div class="notification-dropdown"><div class="notification-dropdown-header"><h4>Notifications</h4><a href="#" class="text-sm text-primary-color">Mark all read</a></div><div class="notification-list"><div class="notification-item unread"><div class="notification-item-icon green"><i data-lucide="check-circle" width="16" height="16"></i></div><div class="notification-item-content"><p>Your job request was posted successfully.</p><span class="notif-time">2 minutes ago</span></div></div><div class="notification-item unread"><div class="notification-item-icon"><i data-lucide="users" width="16" height="16"></i></div><div class="notification-item-content"><p>New worker matches your plumbing request.</p><span class="notif-time">1 hour ago</span></div></div></div></div></div><a href="profile.html" style="text-decoration:none;" title="My Profile"><div class="avatar avatar-nav avatar-blue">D</div></a><a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade"><i data-lucide="log-out" width="18" height="18"></i><span>Logout</span></a></div></div></nav>
 
   <div class="dashboard-layout">
     <div class="sidebar-overlay"></div>
@@ -27,12 +27,26 @@
 
       <div class="profile-form-card" style="max-width:640px;">
         <div class="profile-form-header">
-          <div class="avatar-upload" style="position:relative;">
-            <div class="avatar avatar-xl avatar-blue" id="customer-avatar-initials">D</div>
+          <div class="avatar-wrapper-relative">
+            <div class="avatar-upload-container" id="customer-avatar-clickable" title="Click on profile image to upload new photo">
+              <img id="customer-avatar-img" class="avatar-img-preview" src="" alt="Customer Photo" style="display:none;">
+              <div class="avatar-initials-fallback avatar-blue" id="customer-avatar-initials">D</div>
+              <div class="avatar-hover-scrim">
+                <i data-lucide="camera" width="24" height="24"></i>
+                <span style="font-size:0.7rem; font-weight:700; margin-top:4px; letter-spacing:0.5px; text-transform:uppercase;">Change</span>
+              </div>
+            </div>
+            <button type="button" id="btn-customer-camera-trigger" class="avatar-camera-btn" aria-label="Upload Photo" title="Click to upload profile photo">
+              <i data-lucide="camera" width="16" height="16"></i>
+            </button>
+            <input type="file" id="customer-photo-upload" accept="image/png, image/jpeg, image/jpg, image/webp" style="display:none;">
           </div>
           <div>
             <h3 id="customer-profile-name-heading">Dinil Sandaruwan</h3>
             <p class="text-sm text-secondary" id="customer-profile-email-heading">dinil@email.com</p>
+            <span style="font-size:0.78rem; color:var(--text-secondary); cursor:pointer; margin-top:4px; display:inline-block;" id="customer-avatar-hint">
+              <i data-lucide="upload" width="12" height="12" style="vertical-align:middle; margin-right:3px;"></i> Click photo to change
+            </span>
           </div>
         </div>
 

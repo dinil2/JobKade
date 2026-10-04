@@ -107,4 +107,60 @@ class AdminService {
             'admin_notes'   => $notes
         ];
     }
+
+    /**
+     * Verify all KYC documents for a worker at once (NIC, Police Report, Selfie packet).
+     */
+    public function verifyWorkerPacket(int $workerId, string $status, ?string $notes, int $adminId): array {
+        if ($workerId <= 0) {
+            throw new InvalidArgumentException("Invalid worker ID provided.");
+        }
+        $status = strtolower(trim($status));
+        if (!in_array($status, ['approved', 'rejected'], true)) {
+            throw new InvalidArgumentException("Status must be either 'approved' or 'rejected'.");
+        }
+
+        $docs = $this->kycRepo->getDocumentsByWorkerId($workerId);
+        if (empty($docs)) {
+            throw new InvalidArgumentException("No KYC documents found for worker ID #{$workerId}.");
+        }
+
+        $notes = !empty($notes) ? trim(strip_tags((string)$notes)) : null;
+        if ($status === 'rejected' && empty($notes)) {
+            $notes = "Worker verification could not be approved. Please review documents and re-submit.";
+        }
+
+        foreach ($docs as $doc) {
+            $docId = (int)($doc['kyc_id'] ?? $doc['id']);
+            $this->kycRepo->updateKycStatus($docId, $status, $notes, $adminId);
+        }
+
+        $workerStatus = ($status === 'approved') ? 'verified' : 'rejected';
+        $this->workerRepo->updateVerificationStatus($workerId, $workerStatus);
+
+        $profile = $this->workerRepo->getProfileById($workerId);
+        if ($profile && !empty($profile['user_id'])) {
+            $workerUserId = (int)$profile['user_id'];
+            $notifTitle = ($status === 'approved') ? 'Identity Verification Approved 🎉' : 'Identity Verification Update ⚠️';
+            $notifMsg = ($status === 'approved')
+                ? 'Congratulations! Your National ID, Police Report, and Live Selfie have all been verified and approved.'
+                : 'Your verification packet was reviewed and rejected. Reason: ' . $notes;
+
+            try {
+                $nStmt = $this->db->prepare("
+                    INSERT INTO notifications (user_id, title, message, type, is_read)
+                    VALUES (:uid, :title, :msg, 'kyc', 0)
+                ");
+                $nStmt->execute([':uid' => $workerUserId, ':title' => $notifTitle, ':msg' => $notifMsg]);
+            } catch (Exception $e) {}
+        }
+
+        return [
+            'status'        => 'success',
+            'message'       => "Worker #{$workerId} verification packet has been successfully {$status}.",
+            'worker_id'     => $workerId,
+            'worker_status' => $workerStatus,
+            'admin_notes'   => $notes
+        ];
+    }
 }

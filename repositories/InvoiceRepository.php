@@ -52,6 +52,8 @@ class InvoiceRepository {
         $stmt = $this->db->prepare("
             SELECT 
                 ji.*,
+                ji.job_amount AS amount,
+                ji.payment_status AS status,
                 jr.title AS job_title,
                 jr.address AS job_address,
                 u_worker.full_name AS worker_name,
@@ -78,7 +80,11 @@ class InvoiceRepository {
      */
     public function getInvoiceByJobId(int $jobId): ?array {
         $stmt = $this->db->prepare("
-            SELECT ji.*, jr.title AS job_title
+            SELECT 
+                ji.*,
+                ji.job_amount AS amount,
+                ji.payment_status AS status,
+                jr.title AS job_title
             FROM job_invoices ji
             JOIN job_requests jr ON ji.job_id = jr.id
             WHERE ji.job_id = :job_id
@@ -97,6 +103,8 @@ class InvoiceRepository {
         $stmt = $this->db->prepare("
             SELECT 
                 ji.*,
+                ji.job_amount AS amount,
+                ji.payment_status AS status,
                 jr.title AS job_title,
                 u.full_name AS customer_name,
                 u.phone AS customer_phone
@@ -117,6 +125,8 @@ class InvoiceRepository {
         $stmt = $this->db->prepare("
             SELECT 
                 ji.*,
+                ji.job_amount AS amount,
+                ji.payment_status AS status,
                 jr.title AS job_title,
                 u.full_name AS worker_name,
                 u.phone AS worker_phone
@@ -132,7 +142,7 @@ class InvoiceRepository {
     }
 
     /**
-     * Mark an invoice as paid.
+     * Mark an invoice as paid conditionally if not already paid.
      */
     public function markAsPaid(int $invoiceId, string $paymentMethod): bool {
         $stmt = $this->db->prepare("
@@ -141,12 +151,13 @@ class InvoiceRepository {
                 payment_status = 'paid',
                 payment_method = :method,
                 paid_at = NOW()
-            WHERE id = :id
+            WHERE id = :id AND payment_status != 'paid'
         ");
-        return $stmt->execute([
+        $stmt->execute([
             ":method" => $paymentMethod,
             ":id"     => $invoiceId
         ]);
+        return $stmt->rowCount() > 0;
     }
 }
 

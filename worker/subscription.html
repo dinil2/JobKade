@@ -22,7 +22,41 @@
         </a>
       </div>
       <div class="dashboard-nav-right">
-        <div class="avatar avatar-sm avatar-blue" id="navbar-user-avatar">W</div>
+        <div class="notification-wrapper">
+          <button class="notification-bell" aria-label="Notifications" title="Notifications">
+            <i data-lucide="bell" width="22" height="22"></i>
+            <span class="notif-count">2</span>
+          </button>
+          <div class="notification-dropdown">
+            <div class="notification-dropdown-header">
+              <h4>Notifications</h4>
+              <a href="#" class="text-sm text-primary-color">Mark all read</a>
+            </div>
+            <div class="notification-list">
+              <div class="notification-item unread">
+                <div class="notification-item-icon green"><i data-lucide="check-circle" width="16" height="16"></i></div>
+                <div class="notification-item-content">
+                  <p>Your worker verification has been approved!</p>
+                  <span class="notif-time">1 hour ago</span>
+                </div>
+              </div>
+              <div class="notification-item unread">
+                <div class="notification-item-icon"><i data-lucide="briefcase" width="16" height="16"></i></div>
+                <div class="notification-item-content">
+                  <p>New AC repair job request in Colombo.</p>
+                  <span class="notif-time">3 hours ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a href="profile-edit.html" style="text-decoration:none;" title="My Profile">
+          <div class="avatar avatar-nav avatar-blue" id="navbar-user-avatar">KP</div>
+        </a>
+        <a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade">
+          <i data-lucide="log-out" width="18" height="18"></i>
+          <span>Logout</span>
+        </a>
       </div>
     </div>
   </nav>
@@ -32,10 +66,10 @@
     <aside class="sidebar worker">
       <div class="sidebar-header">
         <div class="sidebar-user">
-          <div class="avatar avatar-md avatar-blue">W</div>
+          <div class="avatar avatar-md avatar-blue" id="sidebarAvatar">KP</div>
           <div>
-            <div class="sidebar-user-name">Worker Account</div>
-            <div class="sidebar-user-role">Skilled Professional</div>
+            <div class="sidebar-user-name" id="sidebarUserName">Kasun Perera</div>
+            <div class="sidebar-user-role">Worker</div>
           </div>
         </div>
       </div>
@@ -50,7 +84,6 @@
         <a href="subscription.html" class="sidebar-link active"><i data-lucide="credit-card"></i> Subscriptions</a>
         <div class="sidebar-label">Account</div>
         <a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a>
-        <a href="settings.html" class="sidebar-link"><i data-lucide="settings"></i> Settings</a>
       </nav>
       <div class="sidebar-footer">
         <a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a>
