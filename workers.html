@@ -75,46 +75,53 @@
         <!-- Filters Sidebar -->
         <aside class="filter-sidebar">
           <div class="filter-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
               <h3 style="font-size:1.125rem;margin:0;">Filters</h3>
-              <button id="reset-filters-btn" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:4px 8px;">Reset All</button>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button id="reset-filters-btn" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:4px 8px;">Reset All</button>
+                <button type="button" class="filter-toggle-mobile" id="filter-toggle-mobile" aria-label="Toggle Filter Panel">
+                  <span>Filter Options</span> <i data-lucide="chevron-down" width="14" height="14"></i>
+                </button>
+              </div>
             </div>
 
-            <!-- Category Filter -->
-            <div class="filter-group">
-              <h4>Category</h4>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="electrical"> Electrical</label>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="plumbing"> Plumbing</label>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="ac-repair"> AC Repair</label>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="carpentry"> Carpentry</label>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="painting"> Painting</label>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="cleaning"> Cleaning</label>
-              <label class="filter-option"><input type="checkbox" class="cat-filter" value="masonry"> Masonry & Tiling</label>
-            </div>
+            <div class="filter-card-body collapsed-mobile" id="filter-card-body">
+              <!-- Category Filter -->
+              <div class="filter-group">
+                <h4>Category</h4>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="electrical"> Electrical</label>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="plumbing"> Plumbing</label>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="ac-repair"> AC Repair</label>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="carpentry"> Carpentry</label>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="painting"> Painting</label>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="cleaning"> Cleaning</label>
+                <label class="filter-option"><input type="checkbox" class="cat-filter" value="masonry"> Masonry & Tiling</label>
+              </div>
 
-            <!-- Location Filter -->
-            <div class="filter-group">
-              <h4>Location</h4>
-              <label class="filter-option"><input type="checkbox" class="loc-filter" value="colombo"> Colombo</label>
-              <label class="filter-option"><input type="checkbox" class="loc-filter" value="negombo"> Negombo</label>
-              <label class="filter-option"><input type="checkbox" class="loc-filter" value="kandy"> Kandy</label>
-              <label class="filter-option"><input type="checkbox" class="loc-filter" value="dehiwala"> Dehiwala</label>
-              <label class="filter-option"><input type="checkbox" class="loc-filter" value="mount-lavinia"> Mount Lavinia</label>
-            </div>
+              <!-- Location Filter -->
+              <div class="filter-group">
+                <h4>Location</h4>
+                <label class="filter-option"><input type="checkbox" class="loc-filter" value="colombo"> Colombo</label>
+                <label class="filter-option"><input type="checkbox" class="loc-filter" value="negombo"> Negombo</label>
+                <label class="filter-option"><input type="checkbox" class="loc-filter" value="kandy"> Kandy</label>
+                <label class="filter-option"><input type="checkbox" class="loc-filter" value="dehiwala"> Dehiwala</label>
+                <label class="filter-option"><input type="checkbox" class="loc-filter" value="mount-lavinia"> Mount Lavinia</label>
+              </div>
 
-            <!-- Verification Filter -->
-            <div class="filter-group">
-              <h4>Verification</h4>
-              <label class="filter-option"><input type="checkbox" id="filter-verified"> Verified only</label>
-            </div>
+              <!-- Verification Filter -->
+              <div class="filter-group">
+                <h4>Verification</h4>
+                <label class="filter-option"><input type="checkbox" id="filter-verified"> Verified only</label>
+              </div>
 
-            <!-- Availability Filter -->
-            <div class="filter-group">
-              <h4>Availability</h4>
-              <label class="filter-option"><input type="checkbox" id="filter-available"> Available now only</label>
-            </div>
+              <!-- Availability Filter -->
+              <div class="filter-group">
+                <h4>Availability</h4>
+                <label class="filter-option"><input type="checkbox" id="filter-available"> Available now only</label>
+              </div>
 
-            <button id="apply-filters-btn" class="btn btn-primary w-full btn-sm mt-2">Apply Filters</button>
+              <button id="apply-filters-btn" class="btn btn-primary w-full btn-sm mt-2">Apply Filters</button>
+            </div>
           </div>
         </aside>
 
@@ -400,7 +407,30 @@
 
       if (serviceInput) serviceInput.addEventListener('input', function () { filterWorkers(); });
       if (locationInput) locationInput.addEventListener('input', function () { filterWorkers(); });
-      if (applyBtn) applyBtn.addEventListener('click', function () { filterWorkers(); });
+      var filterToggleMobile = document.getElementById('filter-toggle-mobile');
+      var filterCardBody = document.getElementById('filter-card-body');
+      if (filterToggleMobile && filterCardBody) {
+        filterToggleMobile.addEventListener('click', function () {
+          var isCollapsed = filterCardBody.classList.toggle('collapsed-mobile');
+          filterToggleMobile.innerHTML = isCollapsed 
+            ? '<span>Filter Options</span> <i data-lucide="chevron-down" width="14" height="14"></i>'
+            : '<span>Hide Filters</span> <i data-lucide="chevron-up" width="14" height="14"></i>';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+      }
+
+      if (applyBtn) {
+        applyBtn.addEventListener('click', function () {
+          if (window.innerWidth <= 768 && filterCardBody) {
+            filterCardBody.classList.add('collapsed-mobile');
+            if (filterToggleMobile) {
+              filterToggleMobile.innerHTML = '<span>Filter Options</span> <i data-lucide="chevron-down" width="14" height="14"></i>';
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+          }
+          filterWorkers();
+        });
+      }
       if (searchBtnHeader) searchBtnHeader.addEventListener('click', function () { filterWorkers(); });
 
       // Reset All Filters
@@ -440,75 +470,6 @@
           cards.forEach(function (card) { grid.appendChild(card); });
         });
       }
-
-      // Curated verified workers fallback for offline or file:// previews
-      var fallbackWorkersList = [
-        {
-          id: 1,
-          user_id: 3,
-          full_name: 'Sunil Perera (Electrician)',
-          categories: [{ id: 1, name: 'Electrician', slug: 'electrical' }],
-          rating_avg: '4.95',
-          reviews_count: 24,
-          phone: '0751122334',
-          address: 'Colombo 03 (Kollupitiya)',
-          is_verified: 1,
-          verify_status: 'verified',
-          bio: 'Certified Master Electrician with 12+ years experience in commercial & domestic wiring, fault diagnosis, circuit breaker panels, lighting automation, and solar inverter installations.'
-        },
-        {
-          id: 2,
-          user_id: 4,
-          full_name: 'Kamal Silva (Plumber)',
-          categories: [{ id: 2, name: 'Plumber', slug: 'plumbing' }],
-          rating_avg: '4.85',
-          reviews_count: 19,
-          phone: '0764433221',
-          address: 'Bambalapitiya, Colombo 04',
-          is_verified: 1,
-          verify_status: 'verified',
-          bio: 'Licensed Master Plumber specialized in leak detection, bathroom sanitary plumbing, water pumps, overhead water tanks, pipe welding, and high-pressure drainage systems.'
-        },
-        {
-          id: 3,
-          user_id: 5,
-          full_name: 'Nimal Fernando (AC Tech)',
-          categories: [{ id: 3, name: 'AC Technician', slug: 'ac-repair' }],
-          rating_avg: '4.92',
-          reviews_count: 28,
-          phone: '0789988776',
-          address: 'Colombo 07 (Cinnamon Gardens)',
-          is_verified: 1,
-          verify_status: 'verified',
-          bio: 'HVAC & Inverter Air Conditioner specialist. Deep chemical wash, inverter PCB repairs, refrigerant gas charging (R32 / R410A), and commercial chiller maintenance.'
-        },
-        {
-          id: 4,
-          user_id: 6,
-          full_name: 'Tharindu Jayasinghe (Carpenter)',
-          categories: [{ id: 5, name: 'Carpenter', slug: 'carpentry' }],
-          rating_avg: '4.88',
-          reviews_count: 16,
-          phone: '0712345678',
-          address: 'Nugegoda & Colombo',
-          is_verified: 1,
-          verify_status: 'verified',
-          bio: 'Professional wood craftsman and carpenter with 14 years experience. Specializing in modern pantry cupboards, custom teak and mahogany furniture repairs, door lock fitting, and timber roof frame construction.'
-        },
-        {
-          id: 5,
-          user_id: 7,
-          full_name: 'Ruwan Samarasinghe (Painter)',
-          categories: [{ id: 4, name: 'Painter', slug: 'painting' }],
-          rating_avg: '4.80',
-          reviews_count: 15,
-          phone: '0779988112',
-          address: 'Dehiwala - Mount Lavinia',
-          is_verified: 1,
-          verify_status: 'verified',
-          bio: 'Professional interior and exterior painting contractor. Expert in weather-shield coatings, smooth wall putty application, epoxy floor finishing, and wood varnishing.'
-        }
-      ];
 
       function renderWorkersArray(workers) {
         var grid = document.getElementById('workers-grid');
@@ -601,7 +562,7 @@
         filterWorkers(true);
       }
 
-      // Live Database Worker Integration with graceful fallback
+      // Live Database Worker Integration (Pure Database-Driven)
       async function loadApiWorkers() {
         var grid = document.getElementById('workers-grid');
         if (!grid) return;
@@ -612,18 +573,28 @@
               // API returns success with non-empty workers -> render API workers
               renderWorkersArray(res.data.workers);
             } else {
-              // API returns success with EMPTY array -> render proper empty state, no fallback list
+              // API returns success with EMPTY array -> render proper empty state, no fake data
               renderWorkersArray([]);
             }
           } else {
-            // API call fails (res.ok false, bad status) -> keep rendering fallbackWorkersList
-            console.info('Live API workers call failed or returned error, using verified fallback list.');
-            renderWorkersArray(fallbackWorkersList);
+            // API call failed -> show error state (fallback list was removed; no fake data)
+            console.warn('Live API workers call failed or returned error.');
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px 16px; color: var(--danger);">' +
+              '<i data-lucide="alert-circle" style="width: 36px; height: 36px; margin: 0 auto 10px; display:block;"></i>' +
+              '<p style="font-weight:600;">Failed to load workers from database.</p>' +
+              '<p style="font-size:0.875rem; color: var(--text-secondary);">' + ((res.data && res.data.message) ? res.data.message : 'Please check WampServer MySQL connection.') + '</p>' +
+              '</div>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
           }
         } catch (err) {
-          // Thrown exception -> keep rendering fallbackWorkersList as offline preview
+          // Thrown exception -> show connection error state
           console.warn('loadApiWorkers error:', err);
-          renderWorkersArray(fallbackWorkersList);
+          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px 16px; color: var(--danger);">' +
+            '<i data-lucide="alert-triangle" style="width: 36px; height: 36px; margin: 0 auto 10px; display:block;"></i>' +
+            '<p style="font-weight:600;">Unable to connect to database API.</p>' +
+            '<p style="font-size:0.875rem; color:var(--text-secondary);">Ensure WampServer MySQL is running.</p>' +
+            '</div>';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
         }
       }
 
