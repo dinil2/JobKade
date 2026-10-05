@@ -33,7 +33,14 @@
           <div class="form-group"><label class="form-label">Service Location</label><input type="text" id="service-location-input" class="form-input" placeholder="e.g. Colombo, Dehiwala, Mount Lavinia"></div>
           <div class="form-group">
             <label class="form-label">Service Images</label>
-            <label class="file-upload"><i data-lucide="image" width="36" height="36"></i><p>Upload images of your work</p><span class="file-types">JPG, PNG (Max 5 images)</span><input type="file" id="service-images" accept=".jpg,.jpeg,.png" multiple></label>
+            <label class="file-upload">
+              <div class="file-upload-icon-circle">
+                <i data-lucide="image" width="24" height="24"></i>
+              </div>
+              <p class="file-upload-title">Click to upload photos of your work</p>
+              <span class="file-types">JPG or PNG (Up to 5 images &bull; max 5MB each)</span>
+              <input type="file" id="service-images" accept=".jpg,.jpeg,.png" multiple>
+            </label>
             <div id="service-preview-grid" class="image-preview-grid"></div>
           </div>
           <div class="form-group">
