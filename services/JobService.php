@@ -64,6 +64,10 @@ class JobService {
         return $this->jobRepo->getOpenJobs($categoryId);
     }
 
+    public function getWorkerJobs(int $workerId): array {
+        return $this->jobRepo->getWorkerJobs($workerId);
+    }
+
     public function getCustomerJobs(int $customerId): array {
         return $this->jobRepo->getCustomerJobs($customerId);
     }
