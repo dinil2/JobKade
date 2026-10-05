@@ -60,6 +60,28 @@ class JobRepository {
         return $stmt->fetchAll();
     }
 
+    /**
+     * All job applications made by one worker, with each job's current status.
+     * Used for the worker dashboard's Active / Completed job counts.
+     */
+    public function getWorkerJobs(int $workerId): array {
+        $stmt = $this->db->prepare("
+            SELECT ja.id AS application_id,
+                   ja.status AS application_status,
+                   ja.quote_amount,
+                   ja.created_at AS applied_at,
+                   jr.id AS job_id,
+                   jr.title AS job_title,
+                   jr.status AS job_status
+            FROM job_applications ja
+            JOIN job_requests jr ON jr.id = ja.job_id
+            WHERE ja.worker_id = :worker_id
+            ORDER BY ja.created_at DESC
+        ");
+        $stmt->execute([':worker_id' => $workerId]);
+        return $stmt->fetchAll();
+    }
+
     public function getById(int $jobId): ?array {
         $stmt = $this->db->prepare("
             SELECT jr.*, c.name AS category_name, c.icon AS category_icon, u.full_name AS customer_name, u.phone AS customer_phone, u.email AS customer_email

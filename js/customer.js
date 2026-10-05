@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', function () {
     av.textContent = initials;
   });
 
+  // ---- Dashboard: load real stats from API ----
+  loadCustomerDashboardStats();
+
   // ---- Job Post Form with Image Preview & Validation ----
   var jobImageUpload = document.getElementById('job-images');
   var imagePreviewGrid = document.getElementById('image-preview-grid');
@@ -954,4 +957,26 @@ async function initCustomerProfile() {
       }
     }
   });
+}
+
+// ---- Customer Dashboard: real stats from the API (replaces hardcoded placeholders) ----
+async function loadCustomerDashboardStats() {
+  if (!window.location.pathname.includes('customer/dashboard.html')) return;
+  var activeEl = document.getElementById('stat-active-requests');
+  var completedEl = document.getElementById('stat-completed-jobs');
+  if (!activeEl && !completedEl) return;
+  try {
+    var res = await apiFetch('jobs.php?action=customer');
+    var jobs = (res.ok && res.data && res.data.status === 'success' && Array.isArray(res.data.jobs)) ? res.data.jobs : [];
+    var active = 0, completed = 0;
+    jobs.forEach(function (j) {
+      var st = (j.status || 'open').toLowerCase();
+      if (st === 'completed') completed++;
+      else if (st !== 'cancelled') active++;
+    });
+    if (activeEl) activeEl.textContent = active;
+    if (completedEl) completedEl.textContent = completed;
+  } catch (err) {
+    console.warn('Customer dashboard stats failed:', err);
+  }
 }

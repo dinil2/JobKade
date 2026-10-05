@@ -16,6 +16,9 @@ switch ($action) {
     case 'customer':
         $controller->customerJobs();
         break;
+    case 'worker':
+        $controller->workerJobs();
+        break;
     case 'details':
         $id = (int)($_GET['id'] ?? 0);
         $controller->details($id);

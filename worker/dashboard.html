@@ -38,29 +38,29 @@
 
       <!-- Verification Status -->
       <a href="kyc.html" style="text-decoration:none;color:inherit;display:block;">
-        <div class="verification-card verified" style="cursor:pointer;">
+        <div id="verification-card" class="verification-card" style="cursor:pointer;">
           <i data-lucide="shield-check" width="24" height="24"></i>
-          <div><p>✓ Verified Worker &mdash; Manage KYC</p><span class="verify-desc">Click here to view submitted documents or update your verification credentials.</span></div>
+          <div><p id="verification-card-text">Checking verification status&hellip;</p><span class="verify-desc">Click here to view submitted documents or update your verification credentials.</span></div>
         </div>
       </a>
 
       <!-- Profile Completion -->
       <div class="profile-completion">
-        <div class="profile-completion-info"><p>Profile 85% complete</p><div class="progress-bar"><div class="progress-fill" style="width:85%;"></div></div></div>
-        <span class="profile-completion-percent">85%</span>
+        <div class="profile-completion-info"><p id="profile-completion-label">Profile 0% complete</p><div class="progress-bar"><div id="profile-completion-bar" class="progress-fill" style="width:0%;"></div></div></div>
+        <span id="profile-completion-percent" class="profile-completion-percent">0%</span>
       </div>
 
       <!-- Stats -->
       <div class="worker-stats-row">
-        <div class="stat-card"><div class="stat-card-icon blue"><i data-lucide="briefcase" width="24" height="24"></i></div><div class="stat-card-info"><h3>8</h3><p>Available Jobs</p></div></div>
-        <div class="stat-card"><div class="stat-card-icon orange"><i data-lucide="clock" width="24" height="24"></i></div><div class="stat-card-info"><h3>2</h3><p>Active Jobs</p></div></div>
-        <div class="stat-card"><div class="stat-card-icon green"><i data-lucide="check-circle" width="24" height="24"></i></div><div class="stat-card-info"><h3>156</h3><p>Completed Jobs</p></div></div>
-        <div class="stat-card"><div class="stat-card-icon blue"><i data-lucide="eye" width="24" height="24"></i></div><div class="stat-card-info"><h3>342</h3><p>Profile Views</p></div></div>
+        <div class="stat-card"><div class="stat-card-icon blue"><i data-lucide="briefcase" width="24" height="24"></i></div><div class="stat-card-info"><h3 id="stat-available-jobs">0</h3><p>Available Jobs</p></div></div>
+        <div class="stat-card"><div class="stat-card-icon orange"><i data-lucide="clock" width="24" height="24"></i></div><div class="stat-card-info"><h3 id="stat-active-jobs">0</h3><p>Active Jobs</p></div></div>
+        <div class="stat-card"><div class="stat-card-icon green"><i data-lucide="check-circle" width="24" height="24"></i></div><div class="stat-card-info"><h3 id="stat-completed-jobs">0</h3><p>Completed Jobs</p></div></div>
+        
       </div>
 
       <!-- Subscription Banner -->
-      <div class="subscription-banner">
-        <div><h4>📋 Active Subscription: Monthly Plan</h4><p>Valid until September 14, 2026</p></div>
+      <div id="subscription-banner" class="subscription-banner" style="display:none;">
+        <div><h4 id="subscription-banner-title">📋 Job Access Active</h4><p id="subscription-banner-sub">You can view customer contact details on job requests.</p></div>
         <a href="subscription.html" class="btn btn-outline btn-sm">Manage Plan</a>
       </div>
 

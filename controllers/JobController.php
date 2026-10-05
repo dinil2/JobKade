@@ -79,6 +79,19 @@ class JobController {
         sendJsonResponse(200, ['status' => 'success', 'jobs' => $jobs]);
     }
 
+    public function workerJobs(): void {
+        $user = JWT::getAuthUser();
+        if (!$user || ($user['role'] ?? '') !== 'worker') {
+            sendJsonResponse(403, ['status' => 'error', 'message' => 'Worker authorization required.']);
+        }
+        $workerId = (int)($user['worker_id'] ?? 0);
+        if ($workerId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Worker profile not found.']);
+        }
+        $jobs = $this->jobService->getWorkerJobs($workerId);
+        sendJsonResponse(200, ['status' => 'success', 'jobs' => $jobs]);
+    }
+
     public function details(int $jobId): void {
         $user = JWT::getAuthUser();
         if ($user && ($user['role'] ?? '') === 'worker') {
