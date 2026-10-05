@@ -14,16 +14,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     user = null;
   }
 
-  // Ensure Admin profile in session so navigation never gets interrupted
-  if (!user || (user.role || '').toLowerCase() !== 'admin') {
-    user = {
-      id: 1,
-      role: 'admin',
-      name: 'System Administrator',
-      email: 'admin@jobkade.lk',
-      username: 'admin'
-    };
-    localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+  // Verify authentic Admin authentication from database session
+  if (!token || !user || (user.role || '').toLowerCase() !== 'admin') {
+    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('admin/kyc.html');
+    return;
   }
 
   // Admin user info in header and sidebar
@@ -32,27 +26,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (adminUserName) adminUserName.textContent = user.name || 'System Administrator';
   if (adminNavAvatar) {
     adminNavAvatar.textContent = (user.name || 'Admin').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-  }
-
-  // Auto-acquire admin token if missing or invalid
-  if (!token) {
-    try {
-      const authRes = await fetch('../api/auth.php?action=login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'admin@jobkade.lk', password: 'admin@123' })
-      });
-      const authData = await authRes.json();
-      if (authRes.ok && authData.status === 'success' && authData.token) {
-        token = authData.token;
-        localStorage.setItem('jobkade_token', token);
-        if (authData.user) {
-          localStorage.setItem('jodkade_logged_user', JSON.stringify(authData.user));
-        }
-      }
-    } catch (err) {
-      console.warn('Admin token background fetch warning:', err);
-    }
   }
 
   // Logout handler
