@@ -9,15 +9,10 @@ document.addEventListener('DOMContentLoaded', function () {
     user = null;
   }
 
-  // Guard: Worker KYC page must only display worker identity (Kasun Perera, never customer Dinil)
-  if (!user || user.role !== 'worker') {
-    user = {
-      role: 'worker',
-      name: 'Kasun Perera',
-      email: 'kasun.electric@gmail.com',
-      phone: '+94 77 123 4567'
-    };
-    localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+  // Guard: Worker KYC page requires authenticated worker session
+  if (!token || !user || (user.role || '').toLowerCase() !== 'worker') {
+    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('worker/kyc.html');
+    return;
   }
 
   // Populate user profile info in navbar/sidebar
