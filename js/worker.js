@@ -770,12 +770,46 @@ async function loadOpenJobsForWorker() {
   var grid = document.getElementById('worker-jobs-container');
   if (!grid || !window.location.pathname.includes('jobs.html')) return;
 
+  var verifyBanner = document.getElementById('job-verification-banner');
+  var accessBanner = document.getElementById('job-access-banner');
+
   try {
     var res = await apiFetch('jobs.php?action=list');
+
+    // Handle 403 Unverified Worker gracefully
+    if (res.status === 403 || (!res.ok && res.status === 403)) {
+      if (accessBanner) accessBanner.style.display = 'none';
+      var message = (res.data && res.data.message)
+        ? res.data.message
+        : 'Your account is pending admin verification. You will be able to view customer job requests once your documents are verified.';
+
+      if (verifyBanner) {
+        verifyBanner.style.display = 'flex';
+        var msgEl = document.getElementById('job-verification-msg');
+        if (msgEl) msgEl.textContent = message;
+      }
+
+      grid.innerHTML = '<div class="empty-state" style="text-align:center; padding: 48px 20px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">' +
+        '<div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">' +
+          '<i data-lucide="shield-alert" style="width: 28px; height: 28px;"></i>' +
+        '</div>' +
+        '<h3 style="margin-bottom: 8px; color: var(--text-primary); font-size: 1.2rem;">Account Verification Required</h3>' +
+        '<p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 20px; font-size: 0.92rem; line-height: 1.5;">' +
+          message +
+        '</p>' +
+        '<a href="kyc.html" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px;">' +
+          '<i data-lucide="shield-check" width="16" height="16"></i> Go to Identity & KYC' +
+        '</a>' +
+      '</div>';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      return;
+    }
+
+    if (verifyBanner) verifyBanner.style.display = 'none';
+
     if (res.ok && res.data && res.data.status === 'success' && res.data.jobs && res.data.jobs.length > 0) {
       if (res.data.has_job_access) {
-        var banner = document.getElementById('job-access-banner');
-        if (banner) banner.style.display = 'none';
+        if (accessBanner) accessBanner.style.display = 'none';
       }
 
       var apiJobsHtml = res.data.jobs.map(function(j) {

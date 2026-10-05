@@ -120,6 +120,21 @@ class WorkerRepository {
         ]);
     }
 
+    public function isVerified(int $workerId): bool {
+        $stmt = $this->db->prepare("
+            SELECT verify_status, is_verified 
+            FROM worker_profiles 
+            WHERE id = :wid OR user_id = :uid 
+            LIMIT 1
+        ");
+        $stmt->execute([':wid' => $workerId, ':uid' => $workerId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return false;
+        }
+        return ($row['verify_status'] === 'verified' || (int)$row['is_verified'] === 1);
+    }
+
     public function getWorkerCategories(int $workerId): array {
         $stmt = $this->db->prepare("
             SELECT c.id, c.name, c.slug, c.icon

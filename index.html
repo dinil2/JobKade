@@ -78,17 +78,17 @@
           </a>
         </div>
 
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="stat-num">500+</div>
+        <div class="hero-stats" id="hero-stats-row">
+          <div class="hero-stat" id="hero-stat-workers">
+            <div class="stat-num" id="stat-workers-count">0</div>
             <div class="stat-label">Verified Workers</div>
           </div>
-          <div class="hero-stat">
-            <div class="stat-num">1,200+</div>
+          <div class="hero-stat" id="hero-stat-jobs">
+            <div class="stat-num" id="stat-jobs-count">0</div>
             <div class="stat-label">Jobs Completed</div>
           </div>
-          <div class="hero-stat">
-            <div class="stat-num">4.8</div>
+          <div class="hero-stat" id="hero-stat-rating">
+            <div class="stat-num" id="stat-avg-rating">0.0</div>
             <div class="stat-label">Average Rating</div>
           </div>
         </div>
@@ -505,49 +505,109 @@
         }
       }
 
-      // 2. Fetch Live Workers for Featured Grid
+      // 2. Fetch Live Stats & Featured Workers
       try {
-        const res = await apiFetch('workers.php?action=search');
-        if (res.ok && res.data && res.data.status === 'success' && res.data.workers && res.data.workers.length > 0) {
+        const statsRow = document.getElementById('hero-stats-row');
+        const workersStatEl = document.getElementById('stat-workers-count');
+        const jobsStatEl = document.getElementById('stat-jobs-count');
+        const ratingBox = document.getElementById('hero-stat-rating');
+        const ratingStatEl = document.getElementById('stat-avg-rating');
+
+        const [workersRes, jobsRes] = await Promise.all([
+          apiFetch('workers.php?action=search'),
+          apiFetch('jobs.php?action=list')
+        ]);
+
+        // If either API call fails, hide the stats row instead of showing fake numbers
+        if (!workersRes.ok || !jobsRes.ok || !workersRes.data || !jobsRes.data ||
+            workersRes.data.status !== 'success' || jobsRes.data.status !== 'success') {
+          if (statsRow) statsRow.style.display = 'none';
+        } else {
+          const workers = Array.isArray(workersRes.data.workers) ? workersRes.data.workers : [];
+          const jobs = Array.isArray(jobsRes.data.jobs) ? jobsRes.data.jobs : [];
+
+          // Workers stat: length of returned workers array
+          if (workersStatEl) {
+            workersStatEl.textContent = workers.length > 0 ? (workers.length + '+') : '0';
+          }
+
+          // Jobs stat: length of returned jobs array
+          if (jobsStatEl) {
+            jobsStatEl.textContent = jobs.length > 0 ? (jobs.length + '+') : '0';
+          }
+
+          // Rating stat: compute real average from workers' rating_avg, otherwise drop it
+          let ratingSum = 0;
+          let ratedCount = 0;
+          workers.forEach(function (w) {
+            const r = parseFloat(w.rating_avg);
+            if (!isNaN(r) && r > 0) {
+              ratingSum += r;
+              ratedCount++;
+            }
+          });
+
+          if (ratedCount > 0 && ratingStatEl) {
+            ratingStatEl.textContent = (ratingSum / ratedCount).toFixed(1);
+            if (ratingBox) ratingBox.style.display = '';
+          } else {
+            // Drop rating stat if no ratings
+            if (ratingBox) ratingBox.style.display = 'none';
+          }
+
+          if (statsRow) statsRow.style.display = 'flex';
+
+          // Live Featured Grid Workers
           const grid = document.querySelector('.featured-grid');
           if (grid) {
-            const apiHtml = res.data.workers.slice(0, 3).map(function (w) {
-              const catName = (w.categories && w.categories[0]) ? w.categories[0].name : 'Service Professional';
-              const rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
-              const phoneClean = (w.phone || '0771234567').replace(/\D/g, '');
-              const waNumber = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
+            if (workers.length > 0) {
+              const apiHtml = workers.slice(0, 3).map(function (w) {
+                const catName = (w.categories && w.categories[0]) ? w.categories[0].name : 'Service Professional';
+                const rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
+                const phoneClean = (w.phone || '0771234567').replace(/\D/g, '');
+                const waNumber = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
 
-              return '<div class="worker-card">' +
-                '<img src="assets/images/hero-worker.png" alt="' + w.full_name + '" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.src=\'assets/images/worker-kasun.png\'">' +
-                '<div class="worker-card-body">' +
-                  '<div class="worker-card-header">' +
-                    '<div>' +
-                      '<div class="worker-card-name">' + w.full_name + '</div>' +
-                      '<div class="worker-card-profession">' + catName + '</div>' +
+                return '<div class="worker-card">' +
+                  '<img src="assets/images/hero-worker.png" alt="' + w.full_name + '" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.src=\'assets/images/worker-kasun.png\'">' +
+                  '<div class="worker-card-body">' +
+                    '<div class="worker-card-header">' +
+                      '<div>' +
+                        '<div class="worker-card-name">' + w.full_name + '</div>' +
+                        '<div class="worker-card-profession">' + catName + '</div>' +
+                      '</div>' +
+                      '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' +
                     '</div>' +
-                    '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' +
+                    '<div class="worker-card-meta">' +
+                      '<span><i data-lucide="map-pin"></i> ' + (w.address || 'Colombo') + '</span>' +
+                      '<span><i data-lucide="star"></i> ' + rating + '</span>' +
+                    '</div>' +
+                    '<p class="worker-card-desc">' + (w.bio || 'Verified skilled service professional.') + '</p>' +
+                    '<div class="worker-card-footer">' +
+                      '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
+                      '<a href="messages.html?user_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>' +
+                      '<a href="tel:' + (w.phone || '') + '" class="btn btn-call btn-sm btn-icon-sm" title="Call"><i data-lucide="phone" width="16" height="16"></i></a>' +
+                      '<a href="https://wa.me/' + waNumber + '" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="WhatsApp"><i data-lucide="message-circle" width="16" height="16"></i></a>' +
+                    '</div>' +
                   '</div>' +
-                  '<div class="worker-card-meta">' +
-                    '<span><i data-lucide="map-pin"></i> ' + (w.address || 'Colombo') + '</span>' +
-                    '<span><i data-lucide="star"></i> ' + rating + '</span>' +
-                  '</div>' +
-                  '<p class="worker-card-desc">' + (w.bio || 'Verified skilled service professional.') + '</p>' +
-                  '<div class="worker-card-footer">' +
-                    '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
-                    '<a href="messages.html?user_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>' +
-                    '<a href="tel:' + (w.phone || '') + '" class="btn btn-call btn-sm btn-icon-sm" title="Call"><i data-lucide="phone" width="16" height="16"></i></a>' +
-                    '<a href="https://wa.me/' + waNumber + '" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="WhatsApp"><i data-lucide="message-circle" width="16" height="16"></i></a>' +
-                  '</div>' +
-                '</div>' +
-              '</div>';
-            }).join('');
+                '</div>';
+              }).join('');
 
-            grid.insertAdjacentHTML('afterbegin', apiHtml);
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+              grid.innerHTML = apiHtml;
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            } else {
+              grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: white; border: 1px solid var(--border); border-radius: 12px;">' +
+                '<i data-lucide="users" width="40" height="40" style="color: var(--text-muted); margin: 0 auto 10px; display: block;"></i>' +
+                '<h3 style="margin-bottom: 6px;">No workers found</h3>' +
+                '<p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">No verified service professionals are currently listed.</p>' +
+              '</div>';
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
           }
         }
       } catch (err) {
-        console.warn('index featured workers error:', err);
+        console.warn('index live stats and workers error:', err);
+        const statsRow = document.getElementById('hero-stats-row');
+        if (statsRow) statsRow.style.display = 'none';
       }
     });
   </script>

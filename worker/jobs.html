@@ -24,6 +24,24 @@
     <main class="dashboard-main">
       <div class="dashboard-header"><h1>Customer Job Requests</h1><p>Browse and respond to job requests from customers in your area.</p></div>
 
+      <!-- Verification Pending Notice Banner -->
+      <div id="job-verification-banner" class="info-notice mb-3" style="display: none; background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.06)); border: 1px solid rgba(245, 158, 11, 0.35); padding: 16px 20px; border-radius: var(--radius-md); align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(245, 158, 11, 0.2); color: #d97706; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="shield-alert" width="22" height="22"></i>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 0.95rem; color: #92400e;">Account Pending Verification</strong>
+            <span id="job-verification-msg" style="font-size: 0.85rem; color: #78350f;">Your account is pending admin verification. You will be able to view customer job requests once your documents are verified.</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <a href="kyc.html" class="btn btn-warning btn-sm" style="background: #f59e0b; color: white; border: none; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+            <i data-lucide="shield-check" width="14" height="14"></i> Identity & KYC
+          </a>
+        </div>
+      </div>
+
       <!-- Access Fee Notice / Gate Banner -->
       <div id="job-access-banner" class="info-notice mb-3" style="background: linear-gradient(135deg, rgba(89,150,255,0.08), rgba(102,187,106,0.08)); border: 1px solid rgba(89,150,255,0.25); padding: 16px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 12px;">

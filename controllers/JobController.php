@@ -4,6 +4,8 @@
 require_once __DIR__ . '/../services/JobService.php';
 require_once __DIR__ . '/../services/InvoiceService.php';
 require_once __DIR__ . '/../services/WalletService.php';
+require_once __DIR__ . '/../repositories/WorkerRepository.php';
+require_once __DIR__ . '/../repositories/WalletRepository.php';
 require_once __DIR__ . '/../config/cors.php';
 require_once __DIR__ . '/../config/JWT.php';
 
@@ -11,11 +13,13 @@ class JobController {
     private JobService $jobService;
     private InvoiceService $invoiceService;
     private WalletService $walletService;
+    private WorkerRepository $workerRepo;
 
     public function __construct() {
         $this->jobService = new JobService();
         $this->invoiceService = new InvoiceService();
         $this->walletService = new WalletService();
+        $this->workerRepo = new WorkerRepository();
     }
 
     public function create(): void {
@@ -36,11 +40,15 @@ class JobController {
     public function listOpen(): void {
         $user = JWT::getAuthUser();
         $hasAccess = true;
-        if ($user && $user['role'] === 'worker') {
-            $workerId = (int)($user['worker_id'] ?? 0);
-            if ($workerId > 0) {
-                $hasAccess = (new WalletRepository())->hasJobAccess($workerId);
+        if ($user && ($user['role'] ?? '') === 'worker') {
+            $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : ($user['user_id'] ?? 0));
+            if ($workerId <= 0 || !$this->workerRepo->isVerified($workerId)) {
+                sendJsonResponse(403, [
+                    'status'  => 'error',
+                    'message' => 'Your worker account must be verified by an administrator before you can view customer job requests.'
+                ]);
             }
+            $hasAccess = (new WalletRepository())->hasJobAccess($workerId);
         }
 
         $catId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
@@ -72,6 +80,17 @@ class JobController {
     }
 
     public function details(int $jobId): void {
+        $user = JWT::getAuthUser();
+        if ($user && ($user['role'] ?? '') === 'worker') {
+            $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : ($user['user_id'] ?? 0));
+            if ($workerId <= 0 || !$this->workerRepo->isVerified($workerId)) {
+                sendJsonResponse(403, [
+                    'status'  => 'error',
+                    'message' => 'Your worker account must be verified by an administrator before you can view customer job requests.'
+                ]);
+            }
+        }
+
         $job = $this->jobService->getJobDetails($jobId);
         if (!$job) {
             sendJsonResponse(404, ['status' => 'error', 'message' => 'Job not found.']);
@@ -86,14 +105,22 @@ class JobController {
 
     public function apply(): void {
         $user = JWT::getAuthUser();
-        if (!$user || $user['role'] !== 'worker' || empty($user['worker_id'])) {
+        if (!$user || ($user['role'] ?? '') !== 'worker' || empty($user['worker_id'])) {
             sendJsonResponse(403, ['status' => 'error', 'message' => 'Only workers can apply for jobs.']);
+        }
+
+        $workerId = (int)$user['worker_id'];
+        if (!$this->workerRepo->isVerified($workerId)) {
+            sendJsonResponse(403, [
+                'status'  => 'error',
+                'message' => 'Only verified workers can apply for jobs.'
+            ]);
         }
 
         $data = getRequestData();
         $jobId = (int)($data['job_id'] ?? 0);
         try {
-            $res = $this->jobService->apply($jobId, (int)$user['worker_id'], $data);
+            $res = $this->jobService->apply($jobId, $workerId, $data);
             sendJsonResponse(201, $res);
         } catch (Exception $e) {
             sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);

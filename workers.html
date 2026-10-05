@@ -239,6 +239,14 @@
           var locationQuery = locationInput ? locationInput.value.trim().toLowerCase() : '';
 
           var cards = document.querySelectorAll('.worker-card');
+          if (cards.length === 0) {
+            var countEl = document.getElementById('workers-count');
+            if (countEl) countEl.textContent = '0';
+            var noResultsEl = document.getElementById('no-results-msg');
+            if (noResultsEl) noResultsEl.style.display = 'none';
+            if (gridEl) gridEl.classList.remove('is-filtering');
+            return;
+          }
           var visibleCount = 0;
           var visibleIndex = 0;
 
@@ -506,6 +514,23 @@
         var grid = document.getElementById('workers-grid');
         if (!grid) return;
 
+        // When workers array is empty, render a proper empty state
+        if (!Array.isArray(workers) || workers.length === 0) {
+          grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: white; border: 1px solid var(--border); border-radius: 12px;">' +
+            '<i data-lucide="user-x" width="48" height="48" style="color: var(--text-muted); margin: 0 auto 12px; display: block;"></i>' +
+            '<h3 style="margin-bottom: 8px;">No workers found</h3>' +
+            '<p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">Try adjusting your filters or check back later.</p>' +
+          '</div>';
+
+          var countEl = document.getElementById('workers-count');
+          if (countEl) countEl.textContent = '0';
+          var noResultsEl = document.getElementById('no-results-msg');
+          if (noResultsEl) noResultsEl.style.display = 'none';
+
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          return;
+        }
+
         var workerAvatars = [
           'assets/images/worker-kasun.png',
           'assets/images/worker-amal.png',
@@ -582,13 +607,21 @@
         if (!grid) return;
         try {
           var res = await apiFetch('workers.php?action=search');
-          if (res.ok && res.data && res.data.status === 'success' && Array.isArray(res.data.workers) && res.data.workers.length > 0) {
-            renderWorkersArray(res.data.workers);
+          if (res.ok && res.data && res.data.status === 'success' && Array.isArray(res.data.workers)) {
+            if (res.data.workers.length > 0) {
+              // API returns success with non-empty workers -> render API workers
+              renderWorkersArray(res.data.workers);
+            } else {
+              // API returns success with EMPTY array -> render proper empty state, no fallback list
+              renderWorkersArray([]);
+            }
           } else {
-            console.info('Live API workers empty or unreachable, using verified fallback list.');
+            // API call fails (res.ok false, bad status) -> keep rendering fallbackWorkersList
+            console.info('Live API workers call failed or returned error, using verified fallback list.');
             renderWorkersArray(fallbackWorkersList);
           }
         } catch (err) {
+          // Thrown exception -> keep rendering fallbackWorkersList as offline preview
           console.warn('loadApiWorkers error:', err);
           renderWorkersArray(fallbackWorkersList);
         }
