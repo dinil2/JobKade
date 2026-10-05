@@ -147,6 +147,38 @@ In accordance with recent design requirements, all user-facing traces of **"Hour
 
 ---
 
+### 3.7 Mobile-First Responsive Architecture (Native App UX)
+In response to real-world usage patterns where the vast majority of clients and technicians operate via smartphones, the entire front-end was upgraded with native app patterns:
+- **Persistent Bottom App Bar (`.mobile-bottom-nav`)**:
+  - Translucent frosted glassmorphism bar (`backdrop-filter: blur(18px)`) fixed to the bottom viewport on all devices $\le 768\text{px}$.
+  - Dynamically detects authenticated role to route tabs:
+    - **Home** (`index.html`)
+    - **Workers** (`workers.html`)
+    - **Center Action Button (`+`)**: Elevated circular action button (**"Post Job"** for customers/guests, **"Add Service"** for workers).
+    - **Chat** (`messages.html`)
+    - **Account / Dashboard** (`customer/dashboard.html` / `worker/dashboard.html` / `admin/dashboard.html` / `auth/login.html`).
+  - **Graceful Auto-Hide:** When a user opens the slide-out navigation menu or dashboard sidebar drawer, the bottom navigation bar smoothly slides down off-screen (`transform: translateY(100%)`).
+- **Hero Category Quick Chips**:
+  - Horizontally touch-scrollable chip slider directly below the search bar (⚡ Electrician, 💧 Plumber, ❄️ AC Repair, 🔨 Carpentry, 🎨 Painting) allowing 1-tap filtering without using the keyboard.
+- **Zero-Overflow Mobile Hero Layout**:
+  - Single-column centered container with responsive typography (`1.85rem` h1), eliminated desktop floating graphics on mobile, and global `overflow-x: hidden` to prevent horizontal page clipping.
+  - Compact 3-column statistics badge row (**500+ Verified Workers | 1,200+ Jobs Completed | 4.8 Rating**).
+- **Worker Cards Touch Actions**:
+  - Replaced stacked full-width button rows with an ergonomic split layout: full-width "View Profile" button paired side-by-side with 42×42px square direct contact icon buttons (**Chat**, **Call**, and **WhatsApp**).
+- **Mobile Collapsible Filters**:
+  - Added an interactive `[ Filter Options ▾ ]` accordion header on `workers.html`, allowing mobile users to see worker results immediately without scrolling past 400px of filter checkboxes.
+- **Dashboard & Form Touch Optimization**:
+  - Customer and Worker dashboards render a compact 3-column horizontal statistics row.
+  - Form inputs enforced at `font-size: 16px !important;` to eliminate iOS Safari's disruptive auto-zooming.
+  - Login & Register card layouts made fluid with no nested scrollbars and hidden desktop illustrations on mobile screens.
+
+---
+
+### 3.8 Authentication & Post-Login Redirection Flow
+- Updated authentication routing: upon successful login, users are routed by default to `index.html` (the marketplace discovery homepage) with the global navbar and mobile app bar immediately updating to reflect active user credentials and role badges. If a user arrived via a protected action (e.g. posting a job or opening a chat), the `?redirect=` parameter is honored and resumes the user's flow.
+
+---
+
 ## 4. Test Accounts & Verification Matrix
 
 The database is seeded with verified test accounts across all roles:
@@ -262,3 +294,8 @@ C:\wamp64\bin\php\php8.2.29\php.exe test_messages_flow.php
 4. **In-App Messaging System:** Dynamic 3.5s polling with `AbortController`, zero mocks, auto-markAsRead, and responsive scroll anchoring.
 5. **Direct Worker Messaging Navigation:** Worker cards and profiles route directly to `messages.html?recipient_id={worker_user_id}` with authenticated session resumption.
 6. **Automated Integration Test Suites:** 100% pass rate on unit & integration test suites.
+7. **Mobile-First Native App Experience:** Persistent glassmorphism bottom app bar with auto-hide drawer integration, active route highlighting, and touch ergonomics.
+8. **Homepage Mobile Hero & Quick Chips:** Zero-overflow single-column centered hero with horizontal touch-scrollable category chips (⚡ Electrician, 💧 Plumber, ❄️ AC, 🔨 Carpentry, 🎨 Painting).
+9. **Workers Directory Mobile Ergonomics:** Collapsible filter accordion (`[ Filter Options ▾ ]`), and worker card action buttons aligned as "View Profile" + 42×42px square direct contact icon buttons (Chat, Call, WhatsApp).
+10. **Authentication & Redirection Flow:** Default post-login destination updated to `index.html` with real-time navbar & mobile app bar credential updates and protected return routing.
+

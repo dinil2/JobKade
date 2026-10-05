@@ -15,48 +15,33 @@ document.addEventListener('DOMContentLoaded', function () {
     user = null;
   }
 
-  // Ensure Customer identity in session if on customer pages
+  // Ensure authentic Customer authentication from database session
   if (window.location.pathname.includes('/customer/')) {
-    if (!user || (user.role || '').toLowerCase() !== 'customer') {
-      user = {
-        id: 2,
-        role: 'customer',
-        name: 'Dinil Sandaruwan',
-        email: 'customer@gmail.com',
-        username: 'customer'
-      };
-      if (typeof setLoggedInSession === 'function') {
-        setLoggedInSession(token, user);
-      } else {
-        localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
-        localStorage.setItem('jobkade_user', JSON.stringify(user));
-      }
-    }
-
-    // Auto-acquire customer token in background if absent
-    if (!token) {
-      apiFetch('auth.php?action=login', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'customer@gmail.com', password: 'customer@123' })
-      }).then(function (res) {
-        if (res.ok && res.data && res.data.token) {
-          localStorage.setItem('jobkade_token', res.data.token);
-          if (res.data.user) {
-            localStorage.setItem('jodkade_logged_user', JSON.stringify(res.data.user));
-            localStorage.setItem('jobkade_user', JSON.stringify(res.data.user));
-          }
-        }
-      }).catch(function (err) {
-        console.warn('Customer token sync warning:', err);
-      });
+    if (!token || !user || (user.role || '').toLowerCase() !== 'customer') {
+      window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('customer/dashboard.html');
+      return;
     }
   }
 
-  // ---- Update Greeting ----
+  // ---- Update Greeting and User Profile in UI ----
+  var customerName = (user && (user.name || user.full_name)) ? (user.name || user.full_name) : 'Customer';
+  var firstName = customerName.split(' ')[0] || 'Customer';
+  var initials = customerName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().substring(0, 2) || 'C';
+
   var greetingEl = document.getElementById('greeting');
   if (greetingEl) {
-    greetingEl.textContent = getGreeting() + ', Dinil 👋';
+    greetingEl.textContent = getGreeting() + ', ' + firstName + ' 👋';
   }
+
+  var sidebarNameEl = document.querySelector('.sidebar.customer .sidebar-user-name');
+  if (sidebarNameEl) {
+    sidebarNameEl.textContent = customerName;
+  }
+
+  var sidebarAvatars = document.querySelectorAll('.sidebar.customer .avatar, .avatar-nav');
+  sidebarAvatars.forEach(function (av) {
+    av.textContent = initials;
+  });
 
   // ---- Job Post Form with Image Preview & Validation ----
   var jobImageUpload = document.getElementById('job-images');

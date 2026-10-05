@@ -97,15 +97,17 @@ document.addEventListener('DOMContentLoaded', function () {
             var redirectUrl = urlParams.get('redirect');
             var role = (user.role || 'customer').toLowerCase();
 
-            // Only allow redirect if it matches the authenticated user's role
+            // Only allow redirect if it matches the authenticated user's role and is NOT a dashboard
             var isSafeRedirect = false;
             if (redirectUrl) {
               redirectUrl = decodeURIComponent(redirectUrl).trim();
               if (!redirectUrl.startsWith('http') && !redirectUrl.startsWith('//') && !redirectUrl.match(/^[a-zA-Z]:/)) {
-                if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
-                if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
-                if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
-                if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
+                if (!redirectUrl.includes('dashboard.html')) {
+                  if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
+                  if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
+                  if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
+                  if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
+                }
               }
             }
 
@@ -115,14 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
               return;
             }
 
-            // Route to correct portal dashboard based on role
-            if (role === 'admin') {
-              window.location.href = prefix + 'admin/dashboard.html';
-            } else if (role === 'worker') {
-              window.location.href = prefix + 'worker/dashboard.html';
-            } else {
-              window.location.href = prefix + 'customer/dashboard.html';
-            }
+            // Redirect to index.html instead of dashboard
+            window.location.href = prefix + 'index.html';
           }, 600);
         } else {
           var errMsg = (res.data && res.data.message) ? res.data.message : 'Invalid login credentials.';
@@ -138,65 +134,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-
-  // ---- Demo Credentials Click & Auto-Login ----
-  const demoButtons = document.querySelectorAll('[data-demo]');
-  demoButtons.forEach(function (btn) {
-    btn.addEventListener('click', async function () {
-      var role = this.getAttribute('data-demo');
-      
-      // Default live seeded accounts in MySQL
-      var credentials = {
-        admin: { email: 'admin@jobkade.lk', pass: 'admin@123' },
-        worker: { email: 'sunil.electric@gmail.com', pass: 'worker@123' },
-        customer: { email: 'customer@gmail.com', pass: 'customer@123' }
-      };
-
-      var cred = credentials[role] || { email: this.getAttribute('data-email'), pass: this.getAttribute('data-password') };
-
-      var emailInput = document.querySelector('[name="email"]');
-      var passwordInput = document.querySelector('[name="password"]');
-
-      if (emailInput && passwordInput) {
-        emailInput.value = cred.email;
-        passwordInput.value = cred.pass;
-      }
-
-      showToast('Authenticating as ' + role.toUpperCase() + '...', 'info');
-
-      try {
-        const res = await apiFetch('auth.php?action=login', {
-          method: 'POST',
-          body: JSON.stringify({ email: cred.email, password: cred.pass })
-        });
-
-        if (res.ok && res.data && res.data.status === 'success') {
-          var user = res.data.user;
-          var token = res.data.token;
-          setLoggedInSession(token, user);
-          showToast('Logged in as ' + role.toUpperCase() + '! Redirecting...', 'success');
-
-          var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
-          setTimeout(function () {
-            if (role === 'admin') window.location.href = prefix + 'admin/dashboard.html';
-            else if (role === 'worker') window.location.href = prefix + 'worker/dashboard.html';
-            else window.location.href = prefix + 'customer/dashboard.html';
-          }, 800);
-        } else {
-          // Fallback to local session if offline
-          setLoggedInUser(role, role === 'admin' ? 'System Administrator' : (role === 'worker' ? 'Kasun Perera' : 'Dinil Sandaruwan'), cred.email);
-          var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
-          setTimeout(function () {
-            if (role === 'admin') window.location.href = prefix + 'admin/dashboard.html';
-            else if (role === 'worker') window.location.href = prefix + 'worker/dashboard.html';
-            else window.location.href = prefix + 'customer/dashboard.html';
-          }, 800);
-        }
-      } catch (err) {
-        console.warn('Demo login fetch error:', err);
-      }
-    });
-  });
 
   // ---- Registration Form Submit (Real Backend API) ----
   const registerForms = document.querySelectorAll('.register-form');
@@ -347,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
                 setTimeout(function () {
-                  window.location.href = prefix + 'worker/dashboard.html';
+                  window.location.href = prefix + 'index.html';
                 }, 1000);
               } else {
                 var msg = (data && data.message) ? data.message : 'Registration failed. Please check your details.';
@@ -386,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
             setTimeout(function () {
-              window.location.href = prefix + 'worker/dashboard.html';
+              window.location.href = prefix + 'index.html';
             }, 1000);
           } else {
             var msg = (data && data.message) ? data.message : 'Registration failed. Please check your details.';
@@ -435,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
           setTimeout(function () {
-            window.location.href = prefix + 'customer/dashboard.html';
+            window.location.href = prefix + 'index.html';
           }, 1000);
         } else {
           var msg = (res.data && res.data.message) ? res.data.message : 'Registration failed. Please check your details.';

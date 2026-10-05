@@ -5,6 +5,14 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
+  // Verify authentic Admin authentication from database session
+  const token = typeof getAuthToken === 'function' ? getAuthToken() : localStorage.getItem('jobkade_token');
+  const user = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+  if (!token || !user || (user.role || '').toLowerCase() !== 'admin') {
+    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('admin/dashboard.html');
+    return;
+  }
+
   // ---- Fetch Real Stats from Backend ----
   loadAdminStats();
 

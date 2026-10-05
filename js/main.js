@@ -22,16 +22,45 @@ document.addEventListener('DOMContentLoaded', function () {
   const mobileMenu = document.querySelector('.mobile-menu');
 
   if (mobileMenuBtn && mobileMenu) {
-    mobileMenuBtn.addEventListener('click', function () {
-      mobileMenu.classList.toggle('active');
-      // Toggle hamburger icon
-      const icon = mobileMenuBtn.querySelector('i');
-      if (icon) {
-        if (mobileMenu.classList.contains('active')) {
-          icon.setAttribute('data-lucide', 'x');
-        } else {
-          icon.setAttribute('data-lucide', 'menu');
-        }
+    mobileMenuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isActive = mobileMenu.classList.toggle('active');
+      document.body.classList.toggle('mobile-menu-open', isActive);
+
+      // Robust hamburger to close icon swap
+      mobileMenuBtn.innerHTML = isActive 
+        ? '<i data-lucide="x" width="24" height="24"></i>'
+        : '<i data-lucide="menu" width="24" height="24"></i>';
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+
+    // Close mobile menu on navigation link click
+    mobileMenu.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        mobileMenu.classList.remove('active');
+        document.body.classList.remove('mobile-menu-open');
+        mobileMenuBtn.innerHTML = '<i data-lucide="menu" width="24" height="24"></i>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      });
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', function (e) {
+      if (mobileMenu.classList.contains('active') && !mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        mobileMenu.classList.remove('active');
+        document.body.classList.remove('mobile-menu-open');
+        mobileMenuBtn.innerHTML = '<i data-lucide="menu" width="24" height="24"></i>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    });
+
+    // Close on resize to desktop
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 768 && mobileMenu.classList.contains('active')) {
+        mobileMenu.classList.remove('active');
+        document.body.classList.remove('mobile-menu-open');
+        mobileMenuBtn.innerHTML = '<i data-lucide="menu" width="24" height="24"></i>';
         if (typeof lucide !== 'undefined') lucide.createIcons();
       }
     });
@@ -43,17 +72,31 @@ document.addEventListener('DOMContentLoaded', function () {
   const sidebarOverlay = document.querySelector('.sidebar-overlay');
 
   if (sidebarToggle && sidebar) {
-    sidebarToggle.addEventListener('click', function () {
-      sidebar.classList.toggle('active');
-      if (sidebarOverlay) sidebarOverlay.classList.toggle('active');
+    sidebarToggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const isActive = sidebar.classList.toggle('active');
+      if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isActive);
+      document.body.classList.toggle('sidebar-open', isActive);
     });
 
     if (sidebarOverlay) {
       sidebarOverlay.addEventListener('click', function () {
         sidebar.classList.remove('active');
         sidebarOverlay.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
       });
     }
+
+    // Auto-close sidebar on link click on mobile
+    sidebar.querySelectorAll('.sidebar-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        if (window.innerWidth <= 1024) {
+          sidebar.classList.remove('active');
+          if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+          document.body.classList.remove('sidebar-open');
+        }
+      });
+    });
   }
 
   // ---- Notification Dropdown & Clear All ----
@@ -171,6 +214,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // ---- Global Auth & Navbar State ----
   updateGlobalNavbarAuth();
 
+  // ---- Mobile App Bottom Navigation Bar ----
+  initMobileBottomNav();
+
   // ---- Bind all sidebar logout buttons ----
   document.querySelectorAll('a[href="login.html"]').forEach(function(link) {
     if (link.textContent.toLowerCase().includes('logout')) {
@@ -198,13 +244,23 @@ document.addEventListener('DOMContentLoaded', function () {
 function getApiBaseUrl() {
   const origin = window.location.origin;
   if (!origin || origin === 'null' || window.location.protocol === 'file:') {
-    return 'http://localhost:81/JobKade/api/';
+    return 'http://localhost/JobKade-main%20(1)/JobKade-main/api/';
   }
-  const path = window.location.pathname;
-  if (path.toLowerCase().includes('/jobkade')) {
-    return origin + '/JobKade/api/';
+  let path = window.location.pathname;
+  // If inside subdirectories like /admin/, /auth/, /customer/, /worker/
+  const subdirs = ['/admin/', '/auth/', '/customer/', '/worker/'];
+  for (let i = 0; i < subdirs.length; i++) {
+    const idx = path.toLowerCase().indexOf(subdirs[i]);
+    if (idx !== -1) {
+      path = path.substring(0, idx + 1);
+      break;
+    }
   }
-  return origin + '/api/';
+  // If path ends with a file (e.g. index.html), trim to directory
+  if (!path.endsWith('/')) {
+    path = path.substring(0, path.lastIndexOf('/') + 1);
+  }
+  return origin + path + 'api/';
 }
 
 /**
@@ -280,18 +336,14 @@ function setLoggedInSession(token, user) {
 }
 
 /**
- * Set logged in user state (Legacy fallback)
+ * Set logged in user state
  */
 function setLoggedInUser(role, name, email) {
-  var user = {
+  return setLoggedInSession('', {
     role: role || 'customer',
-    name: name || (role === 'admin' ? 'System Administrator' : (role === 'worker' ? 'Kasun Perera' : 'Dinil Sandaruwan')),
-    email: email || (role + '@jodkade.lk'),
-    loginTime: new Date().getTime()
-  };
-  localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
-  localStorage.setItem('jobkade_user', JSON.stringify(user));
-  return user;
+    name: name || 'User',
+    email: email || ''
+  });
 }
 
 /**
@@ -389,6 +441,105 @@ function updateGlobalNavbarAuth() {
       '<a href="' + dashboardPage + '" class="btn btn-primary w-full mb-1" style="display:flex;align-items:center;justify-content:center;gap:8px;"><i data-lucide="layout-dashboard" width="18" height="18"></i> Dashboard</a>' +
       '<button onclick="logoutUser()" class="btn btn-outline w-full" style="color:var(--error);border-color:var(--error);display:flex;align-items:center;justify-content:center;gap:8px;"><i data-lucide="log-out" width="18" height="18"></i> Logout</button>';
   }
+
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+/**
+ * Initialize Native App Style Mobile Bottom Navigation Bar
+ */
+function initMobileBottomNav() {
+  var path = window.location.pathname.toLowerCase();
+
+  // Exclude auth pages (login, register, forgot-password)
+  if (path.includes('/auth/') || document.body.classList.contains('is-auth-page')) {
+    return;
+  }
+
+  // Check folder depth for relative links
+  var isSubfolder = path.includes('/admin/') || path.includes('/customer/') || path.includes('/worker/');
+  var rel = isSubfolder ? '../' : '';
+
+  var user = getLoggedInUser();
+  var role = user ? (user.role || 'customer').toLowerCase() : null;
+
+  // Active state detection
+  var isHomeActive = path.endsWith('/index.html') || path.endsWith('/') || (!isSubfolder && !path.includes('.html'));
+  var isWorkersActive = path.includes('workers.html') || path.includes('worker-profile.html') || path.includes('services.html');
+  var isActionActive = path.includes('post-job.html') || path.includes('add-service.html');
+  var isMessagesActive = path.includes('messages.html');
+  var isAccountActive = !isActionActive && (
+    path.includes('dashboard.html') || 
+    path.includes('profile.html') || 
+    path.includes('profile-edit.html') || 
+    path.includes('jobs.html') || 
+    path.includes('saved-workers.html') || 
+    path.includes('wallet.html') || 
+    path.includes('subscription.html') || 
+    path.includes('kyc.html') || 
+    path.includes('settings.html') ||
+    path.includes('login.html')
+  );
+
+  var homeUrl = rel + 'index.html';
+  var workersUrl = rel + 'workers.html';
+  var actionUrl = role === 'worker' ? (rel + 'worker/add-service.html') : (rel + 'customer/post-job.html');
+  var actionLabel = role === 'worker' ? 'Add Service' : 'Post Job';
+  var messagesUrl = rel + 'messages.html';
+
+  var accountUrl = rel + 'auth/login.html';
+  var accountLabel = 'Login';
+  var accountIcon = 'user';
+
+  if (user) {
+    if (role === 'worker') {
+      accountUrl = rel + 'worker/dashboard.html';
+      accountLabel = 'Dashboard';
+      accountIcon = 'layout-dashboard';
+    } else if (role === 'admin') {
+      accountUrl = rel + 'admin/dashboard.html';
+      accountLabel = 'Admin';
+      accountIcon = 'shield';
+    } else {
+      accountUrl = rel + 'customer/dashboard.html';
+      accountLabel = 'Account';
+      accountIcon = 'user';
+    }
+  }
+
+  var existingNav = document.querySelector('.mobile-bottom-nav');
+  if (!existingNav) {
+    existingNav = document.createElement('nav');
+    existingNav.className = 'mobile-bottom-nav';
+    existingNav.setAttribute('aria-label', 'Mobile App Navigation');
+    document.body.appendChild(existingNav);
+  }
+
+  existingNav.innerHTML =
+    '<a href="' + homeUrl + '" class="mobile-nav-item ' + (isHomeActive ? 'active' : '') + '">' +
+      '<i data-lucide="home"></i>' +
+      '<span>Home</span>' +
+    '</a>' +
+    '<a href="' + workersUrl + '" class="mobile-nav-item ' + (isWorkersActive ? 'active' : '') + '">' +
+      '<i data-lucide="search"></i>' +
+      '<span>Workers</span>' +
+    '</a>' +
+    '<a href="' + actionUrl + '" class="mobile-nav-item mobile-nav-action ' + (isActionActive ? 'active' : '') + '">' +
+      '<div class="action-circle">' +
+        '<i data-lucide="plus"></i>' +
+      '</div>' +
+      '<span>' + actionLabel + '</span>' +
+    '</a>' +
+    '<a href="' + messagesUrl + '" class="mobile-nav-item ' + (isMessagesActive ? 'active' : '') + '">' +
+      '<i data-lucide="message-square"></i>' +
+      '<span>Chat</span>' +
+    '</a>' +
+    '<a href="' + accountUrl + '" class="mobile-nav-item ' + (isAccountActive ? 'active' : '') + '">' +
+      '<i data-lucide="' + accountIcon + '"></i>' +
+      '<span>' + accountLabel + '</span>' +
+    '</a>';
 
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
