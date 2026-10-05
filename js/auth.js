@@ -97,17 +97,15 @@ document.addEventListener('DOMContentLoaded', function () {
             var redirectUrl = urlParams.get('redirect');
             var role = (user.role || 'customer').toLowerCase();
 
-            // Only allow redirect if it matches the authenticated user's role and is NOT a dashboard
+            // Only allow redirect if it matches the authenticated user's role
             var isSafeRedirect = false;
             if (redirectUrl) {
               redirectUrl = decodeURIComponent(redirectUrl).trim();
               if (!redirectUrl.startsWith('http') && !redirectUrl.startsWith('//') && !redirectUrl.match(/^[a-zA-Z]:/)) {
-                if (!redirectUrl.includes('dashboard.html')) {
-                  if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
-                  if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
-                  if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
-                  if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
-                }
+                if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
+                if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
+                if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
+                if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
               }
             }
 
