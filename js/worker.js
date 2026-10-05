@@ -53,6 +53,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   syncWorkerIdentity();
 
+  // ---- Dashboard: load real stats from API ----
+  loadWorkerDashboardStats();
+
   // ---- Delete Service Confirmation ----
   var activeServiceCard = null;
   var activeServiceId = null;
@@ -1280,3 +1283,89 @@ async function initWorkerProfilePage() {
   }
 }
 
+// ---- Worker Dashboard: real stats from the API (replaces hardcoded placeholders) ----
+async function loadWorkerDashboardStats() {
+  if (!window.location.pathname.includes('worker/dashboard.html')) return;
+
+  // 1. Available jobs + real job-access state (drives the subscription banner)
+  try {
+    var res = await apiFetch('jobs.php?action=list');
+    var availEl = document.getElementById('stat-available-jobs');
+    if (res.ok && res.data && res.data.status === 'success' && Array.isArray(res.data.jobs)) {
+      if (availEl) availEl.textContent = res.data.jobs.length;
+    } else if (availEl) {
+      availEl.textContent = '0';
+    }
+    var banner = document.getElementById('subscription-banner');
+    if (banner) {
+      banner.style.display = (res.ok && res.data && res.data.has_job_access) ? '' : 'none';
+    }
+  } catch (err) {
+    console.warn('Worker dashboard available-jobs failed:', err);
+  }
+
+  // 2. My active / completed jobs (from my own applications)
+  var kycInfo = null;
+  try {
+    var res2 = await apiFetch('jobs.php?action=worker');
+    var active = 0, completed = 0;
+    if (res2.ok && res2.data && res2.data.status === 'success' && Array.isArray(res2.data.jobs)) {
+      res2.data.jobs.forEach(function (j) {
+        var jobStatus = (j.job_status || '').toLowerCase();
+        var appStatus = (j.application_status || '').toLowerCase();
+        if (appStatus === 'accepted' && jobStatus === 'completed') completed++;
+        else if (appStatus === 'accepted' && (jobStatus === 'open' || jobStatus === 'in_progress')) active++;
+      });
+    }
+    var activeEl = document.getElementById('stat-active-jobs');
+    var completedEl = document.getElementById('stat-completed-jobs');
+    if (activeEl) activeEl.textContent = active;
+    if (completedEl) completedEl.textContent = completed;
+  } catch (err) {
+    console.warn('Worker dashboard my-jobs failed:', err);
+  }
+
+  // 3. Verification card reflects the real KYC status (new users must NOT see "Verified")
+  try {
+    var kycRes = await apiFetch('kyc.php?action=status');
+    if (kycRes.ok && kycRes.data && kycRes.data.status === 'success' && kycRes.data.data) {
+      kycInfo = kycRes.data.data;
+      var card = document.getElementById('verification-card');
+      var cardText = document.getElementById('verification-card-text');
+      var verified = !!kycInfo.is_verified;
+      var verifyStatus = (kycInfo.verify_status || 'unverified').toLowerCase();
+      if (cardText) {
+        cardText.textContent = verified
+          ? '\u2713 Verified Worker \u2014 Manage KYC'
+          : ((kycInfo.status_label || 'Not Submitted') + ' \u2014 Manage KYC');
+      }
+      if (card) {
+        card.classList.toggle('verified', verified);
+        card.classList.toggle('pending', !verified && verifyStatus === 'pending');
+      }
+    }
+  } catch (err) {
+    console.warn('Worker dashboard KYC status failed:', err);
+  }
+
+  // 4. Profile completion computed from real data (was hardcoded 85%)
+  try {
+    var done = 0, total = 5;
+    var u = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+    if (u && (u.name || u.full_name)) done++;
+    if (u && u.phone) done++;
+    if (u && u.email) done++;
+    if (kycInfo && (kycInfo.verify_status || 'unverified').toLowerCase() !== 'unverified') done++;
+    var svcRes = await apiFetch('workers.php?action=my-services').catch(function () { return null; });
+    if (svcRes && svcRes.ok && svcRes.data && Array.isArray(svcRes.data.services) && svcRes.data.services.length > 0) done++;
+    var pct = Math.round((done / total) * 100);
+    var label = document.getElementById('profile-completion-label');
+    var bar = document.getElementById('profile-completion-bar');
+    var pctEl = document.getElementById('profile-completion-percent');
+    if (label) label.textContent = 'Profile ' + pct + '% complete';
+    if (bar) bar.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+  } catch (err) {
+    console.warn('Worker dashboard profile completion failed:', err);
+  }
+}
