@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
 function getApiBaseUrl() {
   const origin = window.location.origin;
   if (!origin || origin === 'null' || window.location.protocol === 'file:') {
-    return 'http://localhost/JobKade-main%20(1)/JobKade-main/api/';
+    return 'http://localhost/JobKade/api/';
   }
   let path = window.location.pathname;
   // If inside subdirectories like /admin/, /auth/, /customer/, /worker/
