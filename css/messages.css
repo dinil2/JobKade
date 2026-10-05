@@ -2,34 +2,87 @@
    JODKADE — In-App Messaging & Chat Styles
    ========================================== */
 
+/* Fixed Viewport Zero-Scroll Layout */
+body.messages-page,
+body:has(.chat-container) {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+body.messages-page .dashboard-layout,
+body:has(.chat-container) .dashboard-layout {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-main.messages-main,
+body:has(.chat-container) .dashboard-main {
+  height: calc(100vh - var(--navbar-height)) !important;
+  max-height: calc(100vh - var(--navbar-height)) !important;
+  min-height: 0 !important;
+  padding: 14px 24px 16px 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.dashboard-header.messages-header,
+body:has(.chat-container) .dashboard-header {
+  margin-bottom: 10px !important;
+  flex-shrink: 0 !important;
+}
+
+.dashboard-header.messages-header h1,
+body:has(.chat-container) .dashboard-header h1 {
+  font-size: 1.3rem !important;
+  margin-bottom: 2px !important;
+  line-height: 1.25 !important;
+}
+
+.dashboard-header.messages-header p,
+body:has(.chat-container) .dashboard-header p {
+  font-size: 0.8125rem !important;
+  margin-bottom: 0 !important;
+  color: var(--text-secondary) !important;
+}
+
 .chat-container {
   display: flex;
-  height: calc(100vh - 150px);
-  min-height: 550px;
+  flex: 1;
+  height: 0; /* Ensures flex child sizes to remaining height without overflowing */
+  min-height: 0 !important;
+  max-height: 100% !important;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   position: relative;
+  box-sizing: border-box;
 }
 
 /* ------------------------------------------
    Conversations Sidebar (Left)
    ------------------------------------------ */
 .chat-conversations {
-  width: 340px;
-  min-width: 300px;
+  width: 320px;
+  min-width: 280px;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   background: #fbfcfd;
+  height: 100%;
+  overflow: hidden;
 }
 
 .conversations-header {
-  padding: 18px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--white);
+  flex-shrink: 0;
 }
 
 .conversations-header h2 {
@@ -214,17 +267,21 @@
   display: flex;
   flex-direction: column;
   background: var(--white);
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Chat Header */
 .chat-header {
-  padding: 14px 20px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: var(--white);
   z-index: 2;
+  flex-shrink: 0;
 }
 
 .chat-header-user {
@@ -355,17 +412,18 @@
 
 /* Chat Input Bar */
 .chat-input-bar {
-  padding: 14px 20px;
+  padding: 10px 16px;
   border-top: 1px solid var(--border);
   background: var(--white);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .chat-input-bar input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 10px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   outline: none;
@@ -381,8 +439,8 @@
 }
 
 .btn-send {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   background: var(--primary);

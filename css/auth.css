@@ -627,44 +627,123 @@
    RESPONSIVENESS
    --------------------------------------- */
 @media (max-width: 992px) {
+  .auth-page {
+    padding: 24px 16px !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
   .auth-split-container {
-    grid-template-columns: 1fr;
-    max-width: 520px;
-    border-radius: 28px;
+    grid-template-columns: 1fr !important;
+    max-width: 480px !important;
+    border-radius: 28px !important;
+    max-height: none !important;
+    min-height: auto !important;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08) !important;
   }
 
   .auth-right-panel {
-    display: none;
+    display: none !important;
   }
 
   .auth-left-panel {
-    padding: 40px 32px;
+    padding: 36px 28px !important;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
 }
 
 @media (max-width: 520px) {
   .auth-page {
-    padding: 16px;
+    padding: 16px 12px !important;
+    align-items: center !important;
+  }
+
+  .auth-split-container {
+    border-radius: 22px !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
+    max-height: none !important;
+    min-height: auto !important;
   }
 
   .auth-left-panel {
-    padding: 32px 20px;
+    padding: 28px 18px !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .auth-brand-logo {
+    margin-bottom: 16px !important;
   }
 
   .auth-title {
-    font-size: 1.85rem;
+    font-size: 1.65rem !important;
+    margin-bottom: 6px !important;
+  }
+
+  .auth-subtitle {
+    font-size: 0.875rem !important;
+    margin-bottom: 20px !important;
+    line-height: 1.45 !important;
+  }
+
+  .auth-form-group {
+    margin-bottom: 14px !important;
+  }
+
+  .auth-pill-input,
+  .auth-pill-select {
+    height: 48px !important;
+    font-size: 16px !important; /* Critical: Prevent iOS auto-zoom */
+    padding: 0 18px !important;
+  }
+
+  .btn-auth-pill {
+    height: 48px !important;
+    font-size: 0.9375rem !important;
+    margin-top: 6px !important;
   }
 
   .auth-form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
   }
 
   .register-role-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .role-select-box {
+    padding: 18px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .role-icon-circle {
+    width: 44px !important;
+    height: 44px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .role-select-box h3 {
+    font-size: 1rem !important;
+  }
+
+  .role-select-box p {
+    font-size: 0.8125rem !important;
   }
 
   .demo-chips-group {
-    flex-direction: column;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .demo-chip-btn {
+    width: 100% !important;
+    justify-content: center !important;
   }
 }
 
