@@ -16,22 +16,16 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    // Guard: Worker pages must only display a worker session (never customer Dinil)
-    if (!user || user.role !== 'worker') {
-      user = {
-        role: 'worker',
-        name: 'Kasun Perera',
-        email: 'kasun.electric@gmail.com',
-        phone: '+94 77 123 4567'
-      };
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
-      }
+    var token = typeof getAuthToken === 'function' ? getAuthToken() : localStorage.getItem('jobkade_token');
+    // Guard: Worker pages must only display an authenticated worker session from database
+    if (!token || !user || (user.role || '').toLowerCase() !== 'worker') {
+      window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('worker/dashboard.html');
+      return false;
     }
 
-    var workerName = user.name || 'Kasun Perera';
-    var initials = workerName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().substring(0, 2) || 'KP';
-    var firstName = workerName.split(' ')[0] || 'Kasun';
+    var workerName = user.name || user.full_name || 'Worker';
+    var initials = workerName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().substring(0, 2) || 'WK';
+    var firstName = workerName.split(' ')[0] || 'Worker';
 
     // Update greeting
     var greetingEl = document.getElementById('greeting');
