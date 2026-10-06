@@ -309,6 +309,24 @@ function getLoggedInUser() {
     return null;
   }
 }
+/**
+ * Shared auth guard for role-protected pages. Call at the top of a page script:
+ *   const user = requireAuth('worker');
+ *   if (!user) return;
+ * Redirects to the login page (with ?redirect= back to the current page) when
+ * there is no valid session for the given role. Returns the user object on success.
+ */
+function requireAuth(role) {
+  var token = (typeof getAuthToken === 'function') ? getAuthToken() : '';
+  var user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+  if (!token || !user || (user.role || '').toLowerCase() !== String(role).toLowerCase()) {
+    var here = window.location.pathname.split('/').slice(-2).join('/');
+    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent(here);
+    return null;
+  }
+  return user;
+}
+
 
 /**
  * Set logged in session with JWT token and user profile
