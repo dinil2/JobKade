@@ -26,9 +26,6 @@ const getCustomerUser = () => {
   }
 };
 
-const getCustomerToken = () =>
-  typeof getAuthToken === 'function' ? getAuthToken() : (localStorage.getItem('jobkade_token') || sessionStorage.getItem('jobkade_token'));
-
 async function withBtnLoading(btn, loadingHtml, action) {
   if (!btn) return action();
   const origHtml = btn.innerHTML;
@@ -59,16 +56,9 @@ function updateAvatarsAcrossUI(imgUrl, initials) {
 // DOM Ready Controller
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  const token = getCustomerToken();
-  const user = getCustomerUser();
-
-  // Authentication guard for customer portal
-  if (window.location.pathname.includes('/customer/')) {
-    if (!token || !user || (user.role || '').toLowerCase() !== 'customer') {
-      window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('customer/dashboard.html');
-      return;
-    }
-  }
+  // Shared auth guard (js/main.js): redirects to login unless a customer session exists
+  const user = (typeof requireAuth === 'function') ? requireAuth('customer') : getCustomerUser();
+  if (!user) return;
 
   // Update Greeting & Profile in Sidebar & Navbar
   const customerName = user?.name || user?.full_name || 'Customer';
