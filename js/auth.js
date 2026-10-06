@@ -4,8 +4,88 @@
    ========================================== */
 
 document.addEventListener('DOMContentLoaded', function () {
+  initRoleSelection();
+  initLoginForm();
+  initRegisterForms();
+  initUploadPreviews();
+  initPasswordToggles();
+});
 
-  // ---- Role Selection (Register page) ----
+// ==========================================
+// Reusable Utilities & Helpers
+// ==========================================
+
+function getAppUrl(path = '') {
+  const prefix = window.location.pathname.includes('/auth/') ? '../' : './';
+  return prefix + path.replace(/^\.?\//, '');
+}
+
+async function withButtonLoading(btn, loadingHtml, asyncCallback) {
+  if (!btn) return asyncCallback();
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = loadingHtml;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  try {
+    return await asyncCallback();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+}
+
+function validateFields(form, rules) {
+  clearFormErrors(form);
+  let firstInvalid = null;
+
+  for (const rule of rules) {
+    const input = form.querySelector(`[name="${rule.name}"]`);
+    const value = input ? input.value.trim() : '';
+    if (!rule.test(value, input)) {
+      showFieldError(input, rule.message);
+      if (!firstInvalid) firstInvalid = input;
+    }
+  }
+
+  if (firstInvalid) {
+    firstInvalid.focus();
+    showToast('Please correct the highlighted fields.', 'error');
+    return false;
+  }
+  return true;
+}
+
+function handleAuthRedirect(user, defaultPath = 'index.html') {
+  const urlParams = new URLSearchParams(window.location.search);
+  let redirectUrl = urlParams.get('redirect');
+  const role = (user.role || 'customer').toLowerCase();
+
+  let isSafeRedirect = false;
+  if (redirectUrl) {
+    redirectUrl = decodeURIComponent(redirectUrl).trim();
+    if (!redirectUrl.startsWith('http') && !redirectUrl.startsWith('//') && !redirectUrl.match(/^[a-zA-Z]:/)) {
+      if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
+      if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
+      if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
+      if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
+    }
+  }
+
+  window.location.href = getAppUrl(isSafeRedirect && redirectUrl ? redirectUrl : defaultPath);
+}
+
+function scrollAuthPanelToTop() {
+  const leftPanel = document.querySelector('.auth-left-panel');
+  if (leftPanel) leftPanel.scrollTop = 0;
+}
+
+// ==========================================
+// 1. Role Selection (Register page)
+// ==========================================
+
+function initRoleSelection() {
   const roleCards = document.querySelectorAll('.role-card, .role-select-box');
   const customerForm = document.getElementById('customer-form');
   const workerForm = document.getElementById('worker-form');
@@ -14,13 +94,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   roleCards.forEach(function (card) {
     card.addEventListener('click', function () {
-      var role = this.getAttribute('data-role');
+      const role = this.getAttribute('data-role');
 
-      // Highlight selected card
-      roleCards.forEach(function (c) { c.classList.remove('selected'); });
+      roleCards.forEach(c => c.classList.remove('selected'));
       this.classList.add('selected');
 
-      // Show appropriate form after a short delay
       setTimeout(function () {
         if (roleStep) roleStep.classList.add('hidden');
         if (formStep) formStep.classList.remove('hidden');
@@ -33,52 +111,45 @@ document.addEventListener('DOMContentLoaded', function () {
           if (customerForm) customerForm.classList.add('hidden');
         }
 
-        // Scroll form panel cleanly to top so Full Name and Phone are immediately visible
-        var leftPanel = document.querySelector('.auth-left-panel');
-        if (leftPanel) {
-          leftPanel.scrollTop = 0;
-        }
+        scrollAuthPanelToTop();
       }, 300);
     });
   });
 
-  // ---- Back to Role Selection ----
   const backBtns = document.querySelectorAll('.back-to-roles');
   backBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
       if (formStep) formStep.classList.add('hidden');
       if (roleStep) roleStep.classList.remove('hidden');
-      roleCards.forEach(function (c) { c.classList.remove('selected'); });
-
-      var leftPanel = document.querySelector('.auth-left-panel');
-      if (leftPanel) {
-        leftPanel.scrollTop = 0;
-      }
+      roleCards.forEach(c => c.classList.remove('selected'));
+      scrollAuthPanelToTop();
     });
   });
+}
 
-  // ---- Login Form Submit (Real Backend API) ----
+// ==========================================
+// 2. Login Form
+// ==========================================
+
+function initLoginForm() {
   const loginForm = document.getElementById('login-form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var emailInput = this.querySelector('[name="email"]');
-      var passwordInput = this.querySelector('[name="password"]');
-      var email = (emailInput ? emailInput.value : '').trim();
-      var password = passwordInput ? passwordInput.value : '';
+  if (!loginForm) return;
 
-      if (!email || !password) {
-        showToast('Please fill in all fields.', 'error');
-        return;
-      }
+  loginForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const emailInput = this.querySelector('[name="email"]');
+    const passwordInput = this.querySelector('[name="password"]');
+    const email = (emailInput ? emailInput.value : '').trim();
+    const password = passwordInput ? passwordInput.value : '';
 
-      var submitBtn = this.querySelector('button[type="submit"]');
-      var originalText = submitBtn ? submitBtn.innerHTML : 'Login';
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Signing in...';
-      }
+    if (!email || !password) {
+      showToast('Please fill in all fields.', 'error');
+      return;
+    }
 
+    const submitBtn = this.querySelector('button[type="submit"]');
+
+    await withButtonLoading(submitBtn, 'Signing in...', async function () {
       try {
         const res = await apiFetch('auth.php?action=login', {
           method: 'POST',
@@ -86,276 +157,211 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (res.ok && res.data && res.data.status === 'success') {
-          var user = res.data.user;
-          var token = res.data.token;
+          const user = res.data.user;
+          const token = res.data.token;
           setLoggedInSession(token, user);
           showToast('Welcome back, ' + (user.name || user.full_name) + '!', 'success');
 
-          var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
           setTimeout(function () {
-            var urlParams = new URLSearchParams(window.location.search);
-            var redirectUrl = urlParams.get('redirect');
-            var role = (user.role || 'customer').toLowerCase();
-
-            // Only allow redirect if it matches the authenticated user's role
-            var isSafeRedirect = false;
-            if (redirectUrl) {
-              redirectUrl = decodeURIComponent(redirectUrl).trim();
-              if (!redirectUrl.startsWith('http') && !redirectUrl.startsWith('//') && !redirectUrl.match(/^[a-zA-Z]:/)) {
-                if (role === 'admin' && redirectUrl.includes('admin/')) isSafeRedirect = true;
-                if (role === 'worker' && redirectUrl.includes('worker/')) isSafeRedirect = true;
-                if (role === 'customer' && !redirectUrl.includes('admin/') && !redirectUrl.includes('worker/')) isSafeRedirect = true;
-                if (redirectUrl.includes('messages.html') || redirectUrl.includes('index.html')) isSafeRedirect = true;
-              }
-            }
-
-            if (isSafeRedirect && redirectUrl) {
-              var target = redirectUrl.replace(/^\.?\//, '');
-              window.location.href = prefix + target;
-              return;
-            }
-
-            // Redirect to index.html instead of dashboard
-            window.location.href = prefix + 'index.html';
+            handleAuthRedirect(user, 'index.html');
           }, 600);
         } else {
-          var errMsg = (res.data && res.data.message) ? res.data.message : 'Invalid login credentials.';
+          const errMsg = (res.data && res.data.message) ? res.data.message : 'Invalid login credentials.';
           showToast(errMsg, 'error');
         }
       } catch (err) {
         showToast('Connection failed: ' + err.message, 'error');
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalText;
-        }
       }
     });
-  }
+  });
+}
 
-  // ---- Registration Form Submit (Real Backend API) ----
+// ==========================================
+// 3. Registration Forms (Worker & Customer)
+// ==========================================
+
+function initRegisterForms() {
   const registerForms = document.querySelectorAll('.register-form');
   registerForms.forEach(function (form) {
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      clearFormErrors(form);
 
-      var isWorker = form.id === 'worker-form';
-      var role = isWorker ? 'worker' : 'customer';
+      const isWorker = form.id === 'worker-form';
+      const emailInput = form.querySelector('[name="email"]');
 
-      var nameInput = form.querySelector('[name="full_name"]');
-      var emailInput = form.querySelector('[name="email"]');
-      var passwordInput = form.querySelector('[name="password"]');
-      var phoneInput = form.querySelector('[name="phone"]');
-      var locInput = form.querySelector('[name="location"]');
-
-      var fullName = nameInput ? nameInput.value.trim() : '';
-      var email = emailInput ? emailInput.value.trim() : '';
-      var password = passwordInput ? passwordInput.value : '';
-      var phone = phoneInput ? phoneInput.value.trim() : '';
-      var location = locInput ? locInput.value.trim() : 'Colombo';
-
-      var firstInvalid = null;
-
-      if (!fullName || fullName.length < 2) {
-        showFieldError(nameInput, 'Full name is required (at least 2 characters).');
-        if (!firstInvalid) firstInvalid = nameInput;
-      }
-
-      var phoneDigits = phone.replace(/[\s\-]/g, '');
-      if (!phone || !/^(\+94|0)?[0-9]{9,10}$/.test(phoneDigits)) {
-        showFieldError(phoneInput, 'Please enter a valid phone number (e.g. 0771234567).');
-        if (!firstInvalid) firstInvalid = phoneInput;
-      }
-
-      var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!email || !emailRegex.test(email)) {
-        showFieldError(emailInput, 'Please enter a valid email address.');
-        if (!firstInvalid) firstInvalid = emailInput;
-      }
-
-      if (!password || password.length < 6) {
-        showFieldError(passwordInput, 'Password must be at least 6 characters long.');
-        if (!firstInvalid) firstInvalid = passwordInput;
-      }
-
-      var payload = {
-        name: fullName,
-        full_name: fullName,
-        email: email,
-        password: password,
-        phone: phone,
-        role: role,
-        address: location
-      };
-
-      var submitBtn = form.querySelector('button[type="submit"]');
-      var origText = submitBtn ? submitBtn.innerHTML : 'Create Account';
+      // Common validations
+      const baseRules = [
+        { name: 'full_name', test: v => v && v.length >= 2, message: 'Full name is required (at least 2 characters).' },
+        { name: 'phone', test: v => v && /^(\+94|0)?[0-9]{9,10}$/.test(v.replace(/[\s\-]/g, '')), message: 'Please enter a valid phone number (e.g. 0771234567).' },
+        { name: 'email', test: v => v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), message: 'Please enter a valid email address.' },
+        { name: 'password', test: v => v && v.length >= 6, message: 'Password must be at least 6 characters long.' }
+      ];
 
       if (isWorker) {
-        var serviceInput = form.querySelector('[name="service"]');
-        var nicInput = form.querySelector('[name="nic"]');
+        baseRules.push(
+          { name: 'service', test: v => Boolean(v), message: 'Please select your primary service.' },
+          { name: 'nic', test: v => Boolean(v), message: 'NIC number is required for worker verification.' }
+        );
+      }
 
-        var serviceVal = serviceInput ? serviceInput.value : '';
-        var nic = nicInput ? nicInput.value.trim() : '';
+      if (!validateFields(form, baseRules)) {
+        return;
+      }
 
-        if (!serviceVal) {
-          showFieldError(serviceInput, 'Please select your primary service.');
-          if (!firstInvalid) firstInvalid = serviceInput;
-        }
+      const fullName = (form.querySelector('[name="full_name"]')?.value || '').trim();
+      const email = (emailInput?.value || '').trim();
+      const password = form.querySelector('[name="password"]')?.value || '';
+      const phone = (form.querySelector('[name="phone"]')?.value || '').trim();
+      const location = (form.querySelector('[name="location"]')?.value || '').trim() || 'Colombo';
 
-        if (!nic) {
-          showFieldError(nicInput, 'NIC number is required for worker verification.');
-          if (!firstInvalid) firstInvalid = nicInput;
-        }
+      if (isWorker) {
+        await handleWorkerRegistration(form, { fullName, email, password, phone, location, emailInput });
+      } else {
+        await handleCustomerRegistration(form, { fullName, email, password, phone, location, emailInput });
+      }
+    });
+  });
+}
 
-        if (firstInvalid) {
-          firstInvalid.focus();
-          showToast('Please correct the highlighted fields.', 'error');
-          return;
-        }
+async function handleWorkerRegistration(form, data) {
+  const serviceInput = form.querySelector('[name="service"]');
+  const nicInput = form.querySelector('[name="nic"]');
+  const serviceVal = serviceInput ? serviceInput.value : '';
+  const nic = nicInput ? nicInput.value.trim() : '';
 
-        var formData = new FormData();
-        formData.append('full_name', fullName);
-        formData.append('name', fullName);
-        formData.append('email', email);
-        formData.append('password', password);
-        formData.append('phone', phone);
-        formData.append('role', 'worker');
-        formData.append('address', location);
-        formData.append('location', location);
-        formData.append('service', serviceVal);
-        formData.append('category_id', parseInt(serviceVal, 10) || 1);
-        formData.append('nic', nic);
+  const formData = new FormData();
+  formData.append('full_name', data.fullName);
+  formData.append('name', data.fullName);
+  formData.append('email', data.email);
+  formData.append('password', data.password);
+  formData.append('phone', data.phone);
+  formData.append('role', 'worker');
+  formData.append('address', data.location);
+  formData.append('location', data.location);
+  formData.append('service', serviceVal);
+  formData.append('category_id', parseInt(serviceVal, 10) || 1);
+  formData.append('nic', nic);
 
-        // Open Mandatory One-Time Registration Mock Payment Modal
-        var payModal = document.getElementById('worker-payment-modal');
-        var btnPayNow = document.getElementById('btn-pay-now-worker');
-        var btnCancelPay = document.getElementById('btn-cancel-pay-worker');
-        var btnClosePay = document.getElementById('btn-close-pay-modal');
+  const payModal = document.getElementById('worker-payment-modal');
+  const btnPayNow = document.getElementById('btn-pay-now-worker');
+  const btnCancelPay = document.getElementById('btn-cancel-pay-worker');
+  const btnClosePay = document.getElementById('btn-close-pay-modal');
 
-        if (payModal && btnPayNow) {
-          payModal.style.display = 'flex';
-          if (typeof lucide !== 'undefined') lucide.createIcons();
+  // Open Mandatory One-Time Registration Mock Payment Modal if present
+  if (payModal && btnPayNow) {
+    payModal.style.display = 'flex';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 
-          var closePayModal = function() {
-            payModal.style.display = 'none';
-          };
+    const closePayModal = () => { payModal.style.display = 'none'; };
+    if (btnCancelPay) btnCancelPay.onclick = closePayModal;
+    if (btnClosePay) btnClosePay.onclick = closePayModal;
 
-          if (btnCancelPay) btnCancelPay.onclick = closePayModal;
-          if (btnClosePay) btnClosePay.onclick = closePayModal;
+    btnPayNow.onclick = async function () {
+      await withButtonLoading(
+        btnPayNow,
+        '<i data-lucide="loader" class="spin" width="16" height="16"></i> Processing Payment & Registering...',
+        async function () {
+          try {
+            const response = await fetch(getAppUrl('api/auth.php?action=register'), {
+              method: 'POST',
+              body: formData
+            });
 
-          btnPayNow.onclick = async function() {
-            btnPayNow.disabled = true;
-            btnPayNow.innerHTML = '<i data-lucide="loader" class="spin" width="16" height="16"></i> Processing Payment & Registering...';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            const resData = await response.json();
+            if (response.ok && resData.status === 'success') {
+              const user = resData.user;
+              const token = resData.token;
+              setLoggedInSession(token, user);
 
-            try {
-              var prefixApi = window.location.pathname.includes('/auth/') ? '../' : './';
-              const response = await fetch(prefixApi + 'api/auth.php?action=register', {
-                method: 'POST',
-                body: formData
-              });
-
-              const data = await response.json();
-              if (response.ok && data.status === 'success') {
-                var user = data.user;
-                var token = data.token;
-                setLoggedInSession(token, user);
-
-                // Instantly activate one-time job access via mock IPG payment
-                try {
-                  await fetch(prefixApi + 'api/wallet.php?action=pay-access', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({ payment_method: 'Online IPG (Card/Visa/Master)' })
-                  });
-                } catch (payErr) {
-                  console.warn('Could not auto-trigger pay-access:', payErr);
-                }
-
-                showToast('Registration & One-Time Payment Successful! You can upload your KYC documents in your Identity & KYC section.', 'success');
-                payModal.style.display = 'none';
-
-                var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
-                setTimeout(function () {
-                  window.location.href = prefix + 'index.html';
-                }, 1000);
-              } else {
-                var msg = (data && data.message) ? data.message : 'Registration failed. Please check your details.';
-                showToast(msg, 'error');
-                payModal.style.display = 'none';
-                if (msg.toLowerCase().includes('email')) {
-                  showFieldError(emailInput, msg);
-                  emailInput.focus();
-                }
+              // Instantly activate one-time job access via mock IPG payment
+              try {
+                await fetch(getAppUrl('api/wallet.php?action=pay-access'), {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                  },
+                  body: JSON.stringify({ payment_method: 'Online IPG (Card/Visa/Master)' })
+                });
+              } catch (payErr) {
+                console.warn('Could not auto-trigger pay-access:', payErr);
               }
-            } catch (err) {
-              showToast('Error during registration: ' + err.message, 'error');
+
+              showToast('Registration & One-Time Payment Successful! You can upload your KYC documents in your Identity & KYC section.', 'success');
               payModal.style.display = 'none';
-            } finally {
-              btnPayNow.disabled = false;
-              btnPayNow.innerHTML = '<i data-lucide="check-circle" width="18" height="18"></i> Pay Now & Complete Registration';
-              if (typeof lucide !== 'undefined') lucide.createIcons();
+
+              setTimeout(function () {
+                window.location.href = getAppUrl('index.html');
+              }, 1000);
+            } else {
+              const msg = (resData && resData.message) ? resData.message : 'Registration failed. Please check your details.';
+              showToast(msg, 'error');
+              payModal.style.display = 'none';
+              if (msg.toLowerCase().includes('email') && data.emailInput) {
+                showFieldError(data.emailInput, msg);
+                data.emailInput.focus();
+              }
             }
-          };
-          return;
-        }
-
-        try {
-          var prefixApi = window.location.pathname.includes('/auth/') ? '../' : './';
-          const response = await fetch(prefixApi + 'api/auth.php?action=register', {
-            method: 'POST',
-            body: formData
-          });
-
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            var user = data.user;
-            var token = data.token;
-            setLoggedInSession(token, user);
-            showToast('Worker account registered! Documents submitted for verification.', 'success');
-
-            var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
-            setTimeout(function () {
-              window.location.href = prefix + 'index.html';
-            }, 1000);
-          } else {
-            var msg = (data && data.message) ? data.message : 'Registration failed. Please check your details.';
-            showToast(msg, 'error');
-            if (msg.toLowerCase().includes('email')) {
-              showFieldError(emailInput, msg);
-              emailInput.focus();
-            }
-          }
-        } catch (err) {
-          showToast('Error during registration: ' + err.message, 'error');
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = origText;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+          } catch (err) {
+            showToast('Error during registration: ' + err.message, 'error');
+            payModal.style.display = 'none';
           }
         }
-        return;
-      }
+      );
+      btnPayNow.innerHTML = '<i data-lucide="check-circle" width="18" height="18"></i> Pay Now & Complete Registration';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+    return;
+  }
 
-      // Customer Registration
-      if (firstInvalid) {
-        firstInvalid.focus();
-        showToast('Please correct the highlighted fields.', 'error');
-        return;
-      }
+  // Fallback direct submission if modal is not present
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const origText = submitBtn ? submitBtn.innerHTML : 'Create Account';
 
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader" class="spin" width="16" height="16"></i> Registering...';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      }
+  await withButtonLoading(submitBtn, origText, async function () {
+    try {
+      const response = await fetch(getAppUrl('api/auth.php?action=register'), {
+        method: 'POST',
+        body: formData
+      });
 
+      const resData = await response.json();
+      if (response.ok && resData.status === 'success') {
+        setLoggedInSession(resData.token, resData.user);
+        showToast('Worker account registered! Documents submitted for verification.', 'success');
+        setTimeout(function () {
+          window.location.href = getAppUrl('index.html');
+        }, 1000);
+      } else {
+        const msg = (resData && resData.message) ? resData.message : 'Registration failed. Please check your details.';
+        showToast(msg, 'error');
+        if (msg.toLowerCase().includes('email') && data.emailInput) {
+          showFieldError(data.emailInput, msg);
+          data.emailInput.focus();
+        }
+      }
+    } catch (err) {
+      showToast('Error during registration: ' + err.message, 'error');
+    }
+  });
+}
+
+async function handleCustomerRegistration(form, data) {
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const payload = {
+    name: data.fullName,
+    full_name: data.fullName,
+    email: data.email,
+    password: data.password,
+    phone: data.phone,
+    role: 'customer',
+    address: data.location
+  };
+
+  await withButtonLoading(
+    submitBtn,
+    '<i data-lucide="loader" class="spin" width="16" height="16"></i> Registering...',
+    async function () {
       try {
         const res = await apiFetch('auth.php?action=register', {
           method: 'POST',
@@ -363,36 +369,31 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (res.ok && res.data && res.data.status === 'success') {
-          var user = res.data.user;
-          var token = res.data.token;
-          setLoggedInSession(token, user);
+          setLoggedInSession(res.data.token, res.data.user);
           showToast('Account registered successfully! Welcome to JodKade.', 'success');
-
-          var prefix = window.location.pathname.includes('/auth/') ? '../' : './';
           setTimeout(function () {
-            window.location.href = prefix + 'index.html';
+            window.location.href = getAppUrl('index.html');
           }, 1000);
         } else {
-          var msg = (res.data && res.data.message) ? res.data.message : 'Registration failed. Please check your details.';
+          const msg = (res.data && res.data.message) ? res.data.message : 'Registration failed. Please check your details.';
           showToast(msg, 'error');
-          if (msg.toLowerCase().includes('email')) {
-            showFieldError(emailInput, msg);
-            emailInput.focus();
+          if (msg.toLowerCase().includes('email') && data.emailInput) {
+            showFieldError(data.emailInput, msg);
+            data.emailInput.focus();
           }
         }
       } catch (err) {
         showToast('Error during registration: ' + err.message, 'error');
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = origText;
-          if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
       }
-    });
-  });
+    }
+  );
+}
 
-  // ---- Dropzone File Upload Previews (NIC, Police Report, Qualification) ----
+// ==========================================
+// 4. File Upload Previews (NIC, Police, Qual, Photo)
+// ==========================================
+
+function initUploadPreviews() {
   function setupUploadPreview(inputId, dropzoneId, labelTextId, defaultText) {
     const input = document.getElementById(inputId);
     const dropzone = document.getElementById(dropzoneId);
@@ -419,15 +420,14 @@ document.addEventListener('DOMContentLoaded', function () {
   setupUploadPreview('police-upload', 'police-dropzone', 'police-label-text', 'Click to upload Police Report *');
   setupUploadPreview('qual-upload', 'qual-dropzone', 'qual-label-text', 'Upload Trade Certificate (Optional)');
 
-  // ---- Profile Photo Preview ----
   const photoUpload = document.getElementById('photo-upload');
   if (photoUpload) {
     photoUpload.addEventListener('change', function () {
-      var file = this.files[0];
+      const file = this.files[0];
       if (file) {
-        var reader = new FileReader();
+        const reader = new FileReader();
         reader.onload = function (e) {
-          var preview = document.getElementById('photo-preview');
+          const preview = document.getElementById('photo-preview');
           if (preview) {
             preview.src = e.target.result;
             preview.style.display = 'block';
@@ -437,13 +437,18 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+}
 
-  // ---- Password Visibility Toggle ----
+// ==========================================
+// 5. Password Visibility Toggle
+// ==========================================
+
+function initPasswordToggles() {
   const togglePwBtns = document.querySelectorAll('.toggle-password');
   togglePwBtns.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var wrap = this.closest('.auth-input-wrap, .input-password-wrap') || this.parentElement;
-      var input = wrap ? wrap.querySelector('input') : this.previousElementSibling;
+      const wrap = this.closest('.auth-input-wrap, .input-password-wrap') || this.parentElement;
+      const input = wrap ? wrap.querySelector('input') : this.previousElementSibling;
       if (input && input.type === 'password') {
         input.type = 'text';
         this.innerHTML = '<i data-lucide="eye" width="18" height="18"></i>';
@@ -454,5 +459,4 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof lucide !== 'undefined') lucide.createIcons();
     });
   });
-
-});
+}

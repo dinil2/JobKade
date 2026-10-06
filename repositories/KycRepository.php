@@ -156,7 +156,7 @@ class KycRepository {
             LEFT JOIN worker_categories wc ON wp.id = wc.worker_id
             LEFT JOIN categories c ON wc.category_id = c.id
             WHERE kd.status = 'pending'
-            GROUP BY kd.id
+            GROUP BY kd.id, wp.id, u.id
             ORDER BY kd.created_at ASC
         ");
         return $stmt->fetchAll();
@@ -191,7 +191,7 @@ class KycRepository {
             LEFT JOIN worker_categories wc ON wp.id = wc.worker_id
             LEFT JOIN categories c ON wc.category_id = c.id
             WHERE kd.status = :status
-            GROUP BY kd.id
+            GROUP BY kd.id, wp.id, u.id
             ORDER BY kd.created_at DESC
         ");
         $stmt->execute([':status' => $status]);
