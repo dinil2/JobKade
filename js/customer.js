@@ -6,11 +6,12 @@
 // ---- Shared Utilities & Helpers ----
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
+const $id = id => document.getElementById(id);
 
 const getInitials = (name = '') =>
   name.trim().split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'C';
 
-const formatLKR = (amt) =>
+const formatLKR = amt =>
   'Rs. ' + parseFloat(amt || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const refreshIcons = () => {
@@ -41,7 +42,6 @@ async function withBtnLoading(btn, loadingHtml, action) {
   }
 }
 
-// Update avatar images and initials across sidebars and navbars
 function updateAvatarsAcrossUI(imgUrl, initials) {
   $$('.sidebar.customer .avatar, .dashboard-nav-right .avatar, .avatar-nav').forEach(el => {
     if (imgUrl) {
@@ -56,30 +56,22 @@ function updateAvatarsAcrossUI(imgUrl, initials) {
 // DOM Ready Controller
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Shared auth guard (js/main.js): redirects to login unless a customer session exists
   const user = (typeof requireAuth === 'function') ? requireAuth('customer') : getCustomerUser();
   if (!user) return;
 
-  // Update Greeting & Profile in Sidebar & Navbar
-  const customerName = user?.name || user?.full_name || 'Customer';
+  const customerName = user.name || user.full_name || 'Customer';
   const firstName = customerName.split(' ')[0] || 'Customer';
   const initials = getInitials(customerName);
 
-  const greetingEl = $('#greeting');
+  const greetingEl = $id('greeting');
   if (greetingEl) greetingEl.textContent = `${typeof getGreeting === 'function' ? getGreeting() : 'Welcome'}, ${firstName} 👋`;
 
   const sidebarName = $('.sidebar.customer .sidebar-user-name');
   if (sidebarName) sidebarName.textContent = customerName;
 
-  // Restore avatar or show initials consistently across all customer pages
-  const savedAvatar = localStorage.getItem('jobkade_customer_avatar') || user?.avatar;
-  if (savedAvatar) {
-    updateAvatarsAcrossUI(savedAvatar, null);
-  } else {
-    updateAvatarsAcrossUI(null, initials);
-  }
+  const savedAvatar = localStorage.getItem('jobkade_customer_avatar') || user.avatar;
+  updateAvatarsAcrossUI(savedAvatar || null, savedAvatar ? null : initials);
 
-  // Initialize Page Modules
   loadCustomerDashboardStats();
   initJobPostPage();
   initSavedWorkers();
@@ -95,18 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. Job Post Form & Leaflet Location Map
 // ==========================================
 function initJobPostPage() {
-  const form = $('#job-post-form');
-  const imgUpload = $('#job-images');
-  const previewGrid = $('#image-preview-grid');
-  const mapContainer = $('#job-location-map');
+  const form = $id('job-post-form');
+  const imgUpload = $id('job-images');
+  const previewGrid = $id('image-preview-grid');
+  const mapContainer = $id('job-location-map');
 
   if (imgUpload && previewGrid) {
     imgUpload.addEventListener('change', () => {
       previewGrid.innerHTML = '';
       const files = [...imgUpload.files];
-      if (files.length > 5) {
-        showToast('Maximum 5 images allowed. Only the first 5 will be uploaded.', 'info');
-      }
+      if (files.length > 5) showToast('Maximum 5 images allowed. Only the first 5 will be uploaded.', 'info');
 
       files.slice(0, 5).forEach(file => {
         if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
@@ -121,10 +111,7 @@ function initJobPostPage() {
         reader.onload = e => {
           const item = document.createElement('div');
           item.className = 'image-preview-item';
-          item.innerHTML = `
-            <img src="${e.target.result}" alt="Preview">
-            <span class="remove-img" onclick="this.parentElement.remove()">&times;</span>
-          `;
+          item.innerHTML = `<img src="${e.target.result}" alt="Preview"><span class="remove-img" onclick="this.parentElement.remove()">&times;</span>`;
           previewGrid.appendChild(item);
         };
         reader.readAsDataURL(file);
@@ -132,7 +119,6 @@ function initJobPostPage() {
     });
   }
 
-  // Interactive Leaflet Map
   let curLat = 6.9271;
   let curLng = 79.8612;
   let jobMap = null;
@@ -142,9 +128,9 @@ function initJobPostPage() {
     curLat = parseFloat(lat);
     curLng = parseFloat(lng);
 
-    const latInput = $('#job-latitude');
-    const lngInput = $('#job-longitude');
-    const coordDisplay = $('#coord-display');
+    const latInput = $id('job-latitude');
+    const lngInput = $id('job-longitude');
+    const coordDisplay = $id('coord-display');
 
     if (latInput) latInput.value = curLat.toFixed(7);
     if (lngInput) lngInput.value = curLng.toFixed(7);
@@ -154,34 +140,26 @@ function initJobPostPage() {
     if (jobMarker) jobMarker.setLatLng([curLat, curLng]);
 
     if (reverseGeocode) {
-      const statusEl = $('#geo-status-indicator');
+      const statusEl = $id('geo-status-indicator');
       if (statusEl) statusEl.style.display = 'inline-block';
 
       fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${curLat}&lon=${curLng}`)
         .then(res => res.json())
         .then(data => {
-          if (data?.display_name) {
-            const addrInput = $('#job-location-address');
-            if (addrInput) {
-              const shortAddr = data.display_name.split(',').slice(0, 3).join(',').trim();
-              addrInput.value = shortAddr || data.display_name;
-            }
+          if (data?.display_name && $id('job-location-address')) {
+            const shortAddr = data.display_name.split(',').slice(0, 3).join(',').trim();
+            $id('job-location-address').value = shortAddr || data.display_name;
           }
         })
         .catch(err => console.warn('Reverse geocoding error:', err))
-        .finally(() => {
-          if (statusEl) statusEl.style.display = 'none';
-        });
+        .finally(() => { if (statusEl) statusEl.style.display = 'none'; });
     }
   }
 
   if (mapContainer && typeof L !== 'undefined') {
     try {
       jobMap = L.map('job-location-map').setView([curLat, curLng], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(jobMap);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(jobMap);
 
       jobMarker = L.marker([curLat, curLng], { draggable: true }).addTo(jobMap);
       jobMarker.bindPopup('<b>Selected Job Location</b><br>Drag me or click map to move').openPopup();
@@ -197,78 +175,71 @@ function initJobPostPage() {
       console.warn('Leaflet map error:', e);
     }
 
-    // "Use Current Location" GPS button
-    const btnUseLoc = $('#btn-use-location');
-    if (btnUseLoc) {
-      btnUseLoc.addEventListener('click', () => {
-        if (!navigator.geolocation) {
-          showToast('Geolocation is not supported by your browser.', 'error');
-          return;
-        }
-        const statusEl = $('#geo-status-indicator');
-        if (statusEl) statusEl.style.display = 'inline-block';
-        btnUseLoc.disabled = true;
+    const btnUseLoc = $id('btn-use-location');
+    btnUseLoc?.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser.', 'error');
+        return;
+      }
+      const statusEl = $id('geo-status-indicator');
+      if (statusEl) statusEl.style.display = 'inline-block';
+      btnUseLoc.disabled = true;
 
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            const { latitude, longitude } = pos.coords;
-            setCoords(latitude, longitude, true);
-            jobMap?.setView([latitude, longitude], 15);
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const { latitude, longitude } = pos.coords;
+          setCoords(latitude, longitude, true);
+          jobMap?.setView([latitude, longitude], 15);
+          jobMarker?.openPopup();
+          showToast('Location updated from your GPS!', 'success');
+          if (statusEl) statusEl.style.display = 'none';
+          btnUseLoc.disabled = false;
+        },
+        err => {
+          console.warn('Geolocation error:', err);
+          showToast('Unable to detect location. Please click on the map to set location.', 'error');
+          if (statusEl) statusEl.style.display = 'none';
+          btnUseLoc.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+
+    const addrInput = $id('job-location-address');
+    addrInput?.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const query = addrInput.value.trim();
+        if (!query) return;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Sri Lanka')}`);
+          const data = await res.json();
+          if (data?.length > 0) {
+            const sLat = parseFloat(data[0].lat);
+            const sLng = parseFloat(data[0].lon);
+            setCoords(sLat, sLng, false);
+            jobMap?.setView([sLat, sLng], 14);
             jobMarker?.openPopup();
-            showToast('Location updated from your GPS!', 'success');
-            if (statusEl) statusEl.style.display = 'none';
-            btnUseLoc.disabled = false;
-          },
-          err => {
-            console.warn('Geolocation error:', err);
-            showToast('Unable to detect location. Please click on the map to set location.', 'error');
-            if (statusEl) statusEl.style.display = 'none';
-            btnUseLoc.disabled = false;
-          },
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      });
-    }
-
-    // Address search on Enter
-    const addrInput = $('#job-location-address');
-    if (addrInput) {
-      addrInput.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const query = addrInput.value.trim();
-          if (!query) return;
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Sri Lanka')}`);
-            const data = await res.json();
-            if (data?.length > 0) {
-              const sLat = parseFloat(data[0].lat);
-              const sLng = parseFloat(data[0].lon);
-              setCoords(sLat, sLng, false);
-              jobMap?.setView([sLat, sLng], 14);
-              jobMarker?.openPopup();
-              showToast(`Map centered to ${data[0].display_name.split(',')[0] || query}`, 'info');
-            }
-          } catch (err) {
-            console.warn('Geocoding search error:', err);
+            showToast(`Map centered to ${data[0].display_name.split(',')[0] || query}`, 'info');
           }
+        } catch (err) {
+          console.warn('Geocoding search error:', err);
         }
-      });
-    }
+      }
+    });
   }
 
-  // Submit Job Post Form
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearFormErrors(form);
 
-      const titleInput = $('#job-title', form) || form.querySelector('[name="job-title"]');
-      const catSelect = $('#job-category', form) || form.querySelector('select');
-      const descInput = $('#job-description', form) || form.querySelector('textarea');
-      const locInput = $('#job-location-address');
-      const latInput = $('#job-latitude');
-      const lngInput = $('#job-longitude');
+      const titleInput = $id('job-title') || form.querySelector('[name="job-title"]');
+      const catSelect = $id('job-category') || form.querySelector('select');
+      const descInput = $id('job-description') || form.querySelector('textarea');
+      const locInput = $id('job-location-address');
+      const latInput = $id('job-latitude');
+      const lngInput = $id('job-longitude');
 
       const title = titleInput?.value.trim() || '';
       const desc = descInput?.value.trim() || '';
@@ -277,22 +248,10 @@ function initJobPostPage() {
       const finalLng = lngInput ? parseFloat(lngInput.value) : curLng;
 
       let firstInvalid = null;
-      if (!title || title.length < 3 || title.length > 150) {
-        showFieldError(titleInput, 'Job title is required (3–150 characters).');
-        firstInvalid = firstInvalid || titleInput;
-      }
-      if (!catSelect?.value) {
-        showFieldError(catSelect, 'Please select a service category.');
-        firstInvalid = firstInvalid || catSelect;
-      }
-      if (!desc || desc.length < 10 || desc.length > 3000) {
-        showFieldError(descInput, 'Please provide a detailed description (10–3,000 characters).');
-        firstInvalid = firstInvalid || descInput;
-      }
-      if (!location || location.length < 2) {
-        showFieldError(locInput, 'Please provide a valid location/address.');
-        firstInvalid = firstInvalid || locInput;
-      }
+      if (!title || title.length < 3 || title.length > 150) { showFieldError(titleInput, 'Job title is required (3–150 characters).'); firstInvalid = firstInvalid || titleInput; }
+      if (!catSelect?.value) { showFieldError(catSelect, 'Please select a service category.'); firstInvalid = firstInvalid || catSelect; }
+      if (!desc || desc.length < 10 || desc.length > 3000) { showFieldError(descInput, 'Please provide a detailed description (10–3,000 characters).'); firstInvalid = firstInvalid || descInput; }
+      if (!location || location.length < 2) { showFieldError(locInput, 'Please provide a valid location/address.'); firstInvalid = firstInvalid || locInput; }
       if (isNaN(finalLat) || finalLat < -90 || finalLat > 90 || isNaN(finalLng) || finalLng < -180 || finalLng > 180) {
         showToast('Please select a valid location on the map.', 'error');
         firstInvalid = firstInvalid || locInput;
@@ -304,10 +263,7 @@ function initJobPostPage() {
         return;
       }
 
-      const catMap = {
-        'Electrical': 1, 'Plumbing': 2, 'AC Repair': 3, 'Painting': 4,
-        'Carpentry': 5, 'Masonry': 6, 'Cleaning': 7, 'Appliance Repair': 8, 'Other': 9
-      };
+      const catMap = { 'Electrical': 1, 'Plumbing': 2, 'AC Repair': 3, 'Painting': 4, 'Carpentry': 5, 'Masonry': 6, 'Cleaning': 7, 'Appliance Repair': 8, 'Other': 9 };
       let catId = parseInt(catSelect.value, 10);
       if (isNaN(catId) || catId <= 0) {
         const catText = catSelect.options[catSelect.selectedIndex]?.text;
@@ -319,14 +275,7 @@ function initJobPostPage() {
         try {
           const res = await apiFetch('jobs.php?action=create', {
             method: 'POST',
-            body: JSON.stringify({
-              title,
-              description: desc,
-              category_id: catId,
-              address: location,
-              latitude: finalLat,
-              longitude: finalLng
-            })
+            body: JSON.stringify({ title, description: desc, category_id: catId, address: location, latitude: finalLat, longitude: finalLng })
           });
 
           if (res.ok && res.data?.status === 'success') {
@@ -347,7 +296,7 @@ function initJobPostPage() {
 // 2. Saved Workers Management
 // ==========================================
 function initSavedWorkers() {
-  const container = $('#saved-workers-container');
+  const container = $id('saved-workers-container');
   if (!container) return;
 
   const user = getCustomerUser();
@@ -365,11 +314,7 @@ function initSavedWorkers() {
 
   const key = `jobkade_saved_workers_${user.id}`;
   let savedList = [];
-  try {
-    savedList = JSON.parse(localStorage.getItem(key) || '[]');
-  } catch {
-    savedList = [];
-  }
+  try { savedList = JSON.parse(localStorage.getItem(key) || '[]'); } catch { savedList = []; }
 
   if (!Array.isArray(savedList) || savedList.length === 0) {
     container.innerHTML = `
@@ -392,7 +337,6 @@ function initSavedWorkers() {
   const avatarColors = ['avatar-blue', 'avatar-green', 'avatar-orange', 'avatar-purple', 'avatar-teal'];
   container.innerHTML = savedList.map((w, idx) => {
     let name = w.full_name || w.name || 'Skilled Worker';
-    // Clean up autogenerated raw names if any exist
     if (/^Worker\s+\d+_\d+$/i.test(name.trim())) {
       name = (w.profession || w.category_name) ? `${w.profession || w.category_name} Specialist` : 'Verified Worker';
     }
@@ -410,7 +354,6 @@ function initSavedWorkers() {
         <button type="button" class="remove-saved-btn-top remove-saved-btn" title="Remove worker" data-worker-id="${w.id}" aria-label="Remove">
           <i data-lucide="x" width="16" height="16"></i>
         </button>
-
         <div class="saved-worker-card-header">
           <div class="saved-worker-avatar-wrap">
             ${avatarSrc
@@ -427,21 +370,16 @@ function initSavedWorkers() {
             </div>
           </div>
         </div>
-
         <div class="saved-worker-meta-row">
           <span class="meta-item"><i data-lucide="map-pin" width="13" height="13"></i> ${locName}</span>
           ${phoneNum ? `<span class="meta-item"><i data-lucide="phone" width="13" height="13"></i> ${phoneNum}</span>` : ''}
         </div>
-
         <div class="saved-worker-actions-bar">
           <a href="../worker-profile.html?id=${w.id}" class="btn btn-outline btn-sm btn-profile">View Profile</a>
           <a href="../messages.html?user_id=${w.user_id || w.id}" class="btn btn-primary btn-sm btn-action-icon" title="Message Worker">
             <i data-lucide="message-square" width="15" height="15"></i>
           </a>
-          ${phoneNum ? `
-            <a href="tel:${phoneNum}" class="btn btn-call btn-sm btn-action-icon" title="Call Worker">
-              <i data-lucide="phone" width="15" height="15"></i>
-            </a>` : ''}
+          ${phoneNum ? `<a href="tel:${phoneNum}" class="btn btn-call btn-sm btn-action-icon" title="Call Worker"><i data-lucide="phone" width="15" height="15"></i></a>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -449,12 +387,11 @@ function initSavedWorkers() {
   refreshIcons();
 }
 
-// Event Delegation for Saved Worker Removal & Job Cancellation
+// Global Event Delegation for Saved Worker, Cancellations, Receipts, Reviews
 let activeJobCard = null;
 let currentReceiptDetails = null;
 
 document.addEventListener('click', (e) => {
-  // Remove saved worker
   const removeWorkerBtn = e.target.closest('.remove-saved-btn');
   if (removeWorkerBtn) {
     const card = removeWorkerBtn.closest('.saved-worker-card');
@@ -468,7 +405,7 @@ document.addEventListener('click', (e) => {
       card.remove();
       const key = `jobkade_saved_workers_${user.id}`;
       try {
-        let curr = JSON.parse(localStorage.getItem(key) || '[]').filter(it => String(it.id) !== String(workerId));
+        const curr = JSON.parse(localStorage.getItem(key) || '[]').filter(it => String(it.id) !== String(workerId));
         localStorage.setItem(key, JSON.stringify(curr));
         if (curr.length === 0) initSavedWorkers();
       } catch {}
@@ -476,14 +413,12 @@ document.addEventListener('click', (e) => {
     }, 250);
   }
 
-  // Cancel Job click
   const cancelBtn = e.target.closest('.cancel-job-btn');
   if (cancelBtn) {
     activeJobCard = cancelBtn.closest('.job-card');
     openModal('cancel-job-modal');
   }
 
-  // View Receipt click
   const viewReceiptBtn = e.target.closest('.btn-view-receipt');
   if (viewReceiptBtn) {
     currentReceiptDetails = {
@@ -500,7 +435,6 @@ document.addEventListener('click', (e) => {
     showCustomerReceiptModal(currentReceiptDetails);
   }
 
-  // Rate & Review Worker click (from job card)
   const openReviewBtn = e.target.closest('.btn-open-review');
   if (openReviewBtn) {
     openReviewWorkerModal({
@@ -511,7 +445,6 @@ document.addEventListener('click', (e) => {
     });
   }
 
-  // Rate & Review Worker click (from receipt modal)
   const receiptReviewBtn = e.target.closest('#btn-receipt-leave-review');
   if (receiptReviewBtn && currentReceiptDetails) {
     closeModal('receipt-modal');
@@ -524,22 +457,19 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Confirm Job Cancellation in Modal
 const confirmCancelBtn = $('#cancel-job-modal .btn-danger');
-if (confirmCancelBtn) {
-  confirmCancelBtn.addEventListener('click', () => {
-    if (activeJobCard) {
-      activeJobCard.setAttribute('data-status', 'cancelled');
-      const badge = activeJobCard.querySelector('.badge');
-      if (badge) {
-        badge.className = 'badge badge-cancelled';
-        badge.textContent = 'Cancelled';
-      }
-      showToast('Job request marked as cancelled.', 'info');
-      closeModal('cancel-job-modal');
+confirmCancelBtn?.addEventListener('click', () => {
+  if (activeJobCard) {
+    activeJobCard.setAttribute('data-status', 'cancelled');
+    const badge = activeJobCard.querySelector('.badge');
+    if (badge) {
+      badge.className = 'badge badge-cancelled';
+      badge.textContent = 'Cancelled';
     }
-  });
-}
+    showToast('Job request marked as cancelled.', 'info');
+    closeModal('cancel-job-modal');
+  }
+});
 
 // ==========================================
 // 3. Status Filters & Customer Jobs List
@@ -550,7 +480,6 @@ function initJobStatusFilters() {
     btn.addEventListener('click', () => {
       filters.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-
       const filter = btn.dataset.filter;
       $$('#customer-jobs-container .job-card').forEach(job => {
         job.style.display = (filter === 'all' || job.dataset.status === filter) ? '' : 'none';
@@ -560,7 +489,7 @@ function initJobStatusFilters() {
 }
 
 async function loadCustomerJobs() {
-  const container = $('#customer-jobs-container');
+  const container = $id('customer-jobs-container');
   if (!container || !window.location.pathname.includes('jobs.html')) return;
 
   try {
@@ -621,25 +550,15 @@ async function loadCustomerJobs() {
               </div>`;
             payButton = `
               <button class="btn btn-outline btn-sm btn-view-receipt"
-                data-invoice-id="${inv.id}"
-                data-job-id="${j.id}"
-                data-worker-id="${workerId}"
-                data-receipt-no="${inv.receipt_number || `REC-JOB-${inv.id}`}"
-                data-amount="${rawAmt}"
-                data-job-title="${safeTitle}"
-                data-worker-name="${workerName}"
-                data-date="${inv.paid_at || j.created_at || 'Recently'}"
-                data-method="${inv.payment_method || 'online'}">
+                data-invoice-id="${inv.id}" data-job-id="${j.id}" data-worker-id="${workerId}"
+                data-receipt-no="${inv.receipt_number || `REC-JOB-${inv.id}`}" data-amount="${rawAmt}"
+                data-job-title="${safeTitle}" data-worker-name="${workerName}"
+                data-date="${inv.paid_at || j.created_at || 'Recently'}" data-method="${inv.payment_method || 'online'}">
                 <i data-lucide="receipt" width="14" height="14"></i> View Digital Receipt
               </button>`;
-            
-            // Add Review Worker Button for completed & settled job
             reviewButton = `
               <button class="btn btn-sm btn-open-review"
-                data-job-id="${j.id}"
-                data-worker-id="${workerId}"
-                data-worker-name="${workerName}"
-                data-job-title="${safeTitle}"
+                data-job-id="${j.id}" data-worker-id="${workerId}" data-worker-name="${workerName}" data-job-title="${safeTitle}"
                 style="background:#F59E0B; border-color:#F59E0B; color:#ffffff; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
                 <i data-lucide="star" width="14" height="14" style="fill:#ffffff;"></i> Rate &amp; Review Worker
               </button>`;
@@ -647,10 +566,7 @@ async function loadCustomerJobs() {
         } else if (status === 'completed') {
           reviewButton = `
             <button class="btn btn-sm btn-open-review"
-              data-job-id="${j.id}"
-              data-worker-id="${j.worker_id || 1}"
-              data-worker-name="Assigned Worker"
-              data-job-title="${safeTitle}"
+              data-job-id="${j.id}" data-worker-id="${j.worker_id || 1}" data-worker-name="Assigned Worker" data-job-title="${safeTitle}"
               style="background:#F59E0B; border-color:#F59E0B; color:#ffffff; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
               <i data-lucide="star" width="14" height="14" style="fill:#ffffff;"></i> Rate Worker
             </button>`;
@@ -674,7 +590,6 @@ async function loadCustomerJobs() {
             </div>
           </div>`;
       }).join('');
-      refreshIcons();
     } else {
       container.innerHTML = `
         <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
@@ -683,8 +598,8 @@ async function loadCustomerJobs() {
           <p style="color: var(--text-secondary); margin-bottom: 20px;">You have not posted any service requests yet.</p>
           <a href="post-job.html" class="btn btn-primary"><i data-lucide="plus" width="16" height="16"></i> Post a Job Request</a>
         </div>`;
-      refreshIcons();
     }
+    refreshIcons();
   } catch (err) {
     console.warn('loadCustomerJobs error:', err);
     container.innerHTML = `
@@ -699,7 +614,6 @@ async function loadCustomerJobs() {
 // 4. Invoice Payment & Receipt Modal
 // ==========================================
 function initCustomerInvoicePayment() {
-  // Pay Invoice Button Click
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-pay-job-invoice');
     if (!btn) return;
@@ -709,33 +623,25 @@ function initCustomerInvoicePayment() {
     const amount = parseFloat(btn.dataset.amount || '0');
     const notes = btn.dataset.notes || '';
 
-    const idInput = $('#pay-inv-id');
-    const titleEl = $('#pay-inv-job-title');
-    const amountEl = $('#pay-inv-amount');
-    const notesRow = $('#pay-inv-notes-row');
-    const notesEl = $('#pay-inv-notes');
+    if ($id('pay-inv-id')) $id('pay-inv-id').value = invId;
+    if ($id('pay-inv-job-title')) $id('pay-inv-job-title').textContent = jobTitle;
+    if ($id('pay-inv-amount')) $id('pay-inv-amount').textContent = formatLKR(amount);
 
-    if (idInput) idInput.value = invId;
-    if (titleEl) titleEl.textContent = jobTitle;
-    if (amountEl) amountEl.textContent = formatLKR(amount);
-
-    if (notes && notesRow && notesEl) {
-      notesEl.textContent = notes;
-      notesRow.style.display = 'block';
-    } else if (notesRow) {
-      notesRow.style.display = 'none';
+    const notesRow = $id('pay-inv-notes-row');
+    if (notesRow) {
+      notesRow.style.display = notes ? 'block' : 'none';
+      if ($id('pay-inv-notes')) $id('pay-inv-notes').textContent = notes;
     }
 
     const user = getCustomerUser();
-    const cardNameInput = $('#mock-card-name');
+    const cardNameInput = $id('mock-card-name');
     if (cardNameInput && (user?.name || user?.full_name)) {
       cardNameInput.value = (user.name || user.full_name).toUpperCase();
     }
 
-    // Toggle card fields visibility based on method
-    const cardBox = $('#mockup-card-fields');
-    const onlineRadio = $('#radio-pay-online');
-    const cashRadio = $('#radio-pay-cash');
+    const cardBox = $id('mockup-card-fields');
+    const onlineRadio = $id('radio-pay-online');
+    const cashRadio = $id('radio-pay-cash');
     if (onlineRadio && cashRadio && cardBox) {
       onlineRadio.checked = true;
       cardBox.style.display = 'flex';
@@ -743,14 +649,13 @@ function initCustomerInvoicePayment() {
       cashRadio.onchange = () => { if (cashRadio.checked) cardBox.style.display = 'none'; };
     }
 
-    // Demo autofill click
-    const autofillBtn = $('#btn-autofill-demo-card');
+    const autofillBtn = $id('btn-autofill-demo-card');
     if (autofillBtn) {
       autofillBtn.onclick = (ev) => {
         ev.preventDefault();
-        $('#mock-card-number') && ($('#mock-card-number').value = '4532 8812 9043 2419');
-        $('#mock-card-exp') && ($('#mock-card-exp').value = '12/28');
-        $('#mock-card-cvv') && ($('#mock-card-cvv').value = '882');
+        if ($id('mock-card-number')) $id('mock-card-number').value = '4532 8812 9043 2419';
+        if ($id('mock-card-exp')) $id('mock-card-exp').value = '12/28';
+        if ($id('mock-card-cvv')) $id('mock-card-cvv').value = '882';
         showToast('Demo card credentials auto-filled.', 'info');
       };
     }
@@ -759,88 +664,87 @@ function initCustomerInvoicePayment() {
     refreshIcons();
   });
 
-  // Submit Pay Form
-  const form = $('#customer-pay-invoice-form');
-  if (form) {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const invId = parseInt($('#pay-inv-id')?.value, 10);
-      const methodRadio = form.querySelector('input[name="payment_method"]:checked');
-      const method = methodRadio?.value || 'online';
+  const form = $id('customer-pay-invoice-form');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const invId = parseInt($id('pay-inv-id')?.value, 10);
+    const method = form.querySelector('input[name="payment_method"]:checked')?.value || 'online';
 
-      if (isNaN(invId) || invId <= 0) {
-        showToast('Invalid invoice ID.', 'error');
-        return;
-      }
+    if (isNaN(invId) || invId <= 0) {
+      showToast('Invalid invoice ID.', 'error');
+      return;
+    }
 
-      const submitBtn = $('#btn-confirm-pay');
-      const loadingText = method === 'online'
-        ? '<i data-lucide="loader" width="16" height="16" class="spin"></i> Authorizing Mockup IPG Card...'
-        : '<i data-lucide="loader" width="16" height="16" class="spin"></i> Processing Settlement...';
+    const submitBtn = $id('btn-confirm-pay');
+    const loadingText = method === 'online'
+      ? '<i data-lucide="loader" width="16" height="16" class="spin"></i> Authorizing Mockup IPG Card...'
+      : '<i data-lucide="loader" width="16" height="16" class="spin"></i> Processing Settlement...';
 
-      await withBtnLoading(submitBtn, loadingText, async () => {
-        try {
-          if (method === 'online') {
-            await new Promise(r => setTimeout(r, 800)); // Realism simulation
-          }
+    await withBtnLoading(submitBtn, loadingText, async () => {
+      try {
+        if (method === 'online') await new Promise(r => setTimeout(r, 800));
 
-          const res = await apiFetch('jobs.php?action=pay-invoice', {
-            method: 'POST',
-            body: JSON.stringify({ invoice_id: invId, payment_method: method })
-          });
+        const res = await apiFetch('jobs.php?action=pay-invoice', {
+          method: 'POST',
+          body: JSON.stringify({ invoice_id: invId, payment_method: method })
+        });
 
-          if (res.ok && res.data?.status === 'success') {
-            closeModal('pay-invoice-modal');
-            const jobTitle = $('#pay-inv-job-title')?.textContent || 'Home Service';
-            const jobAmt = $('#pay-inv-amount')?.textContent.replace(/[^0-9.]/g, '') || 0;
+        if (res.ok && res.data?.status === 'success') {
+          closeModal('pay-invoice-modal');
+          const jobTitle = $id('pay-inv-job-title')?.textContent || 'Home Service';
+          const jobAmt = $id('pay-inv-amount')?.textContent.replace(/[^0-9.]/g, '') || 0;
 
-            showToast(method === 'online'
-              ? 'Mockup payment successful! Funds credited to worker wallet.'
-              : 'Cash settlement confirmed! Commission settled.', 'success');
+          showToast(method === 'online' ? 'Mockup payment successful! Funds credited to worker wallet.' : 'Cash settlement confirmed! Commission settled.', 'success');
 
-            currentReceiptDetails = {
-              invoice_id: invId,
-              receipt_no: res.data.receipt_number || `REC-JOB-${invId}`,
-              amount: jobAmt,
-              job_title: jobTitle,
-              worker_name: res.data.worker_name || 'Verified Skilled Worker',
-              worker_id: res.data.worker_id || 1,
-              method,
-              date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-            };
+          currentReceiptDetails = {
+            invoice_id: invId,
+            receipt_no: res.data.receipt_number || `REC-JOB-${invId}`,
+            amount: jobAmt,
+            job_title: jobTitle,
+            worker_name: res.data.worker_name || 'Verified Skilled Worker',
+            worker_id: res.data.worker_id || 1,
+            method,
+            date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+          };
 
-            showCustomerReceiptModal(currentReceiptDetails);
-            loadCustomerJobs();
-          } else {
-            showToast(res.data?.message || 'Payment failed.', 'error');
-          }
-        } catch (err) {
-          showToast('Payment error: ' + err.message, 'error');
+          showCustomerReceiptModal(currentReceiptDetails);
+          loadCustomerJobs();
+        } else {
+          showToast(res.data?.message || 'Payment failed.', 'error');
         }
-      });
+      } catch (err) {
+        showToast('Payment error: ' + err.message, 'error');
+      }
     });
-  }
+  });
 }
 
 function showCustomerReceiptModal(details) {
   const user = getCustomerUser();
   const custName = user?.full_name || user?.name || 'Customer';
 
-  $('#receipt-number') && ($('#receipt-number').textContent = details.receipt_no || `REC-JOB-${details.invoice_id || '2026'}`);
-  $('#receipt-amount-display') && ($('#receipt-amount-display').textContent = formatLKR(details.amount));
-  $('#receipt-date') && ($('#receipt-date').textContent = details.date || new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
-  $('#receipt-job-title') && ($('#receipt-job-title').textContent = details.job_title || 'Service Job');
-  $('#receipt-worker-name') && ($('#receipt-worker-name').textContent = details.worker_name || 'Verified Skilled Worker');
-  $('#receipt-customer-name') && ($('#receipt-customer-name').textContent = custName);
+  const fieldMap = {
+    'receipt-number': details.receipt_no || `REC-JOB-${details.invoice_id || '2026'}`,
+    'receipt-amount-display': formatLKR(details.amount),
+    'receipt-date': details.date || new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    'receipt-job-title': details.job_title || 'Service Job',
+    'receipt-worker-name': details.worker_name || 'Verified Skilled Worker',
+    'receipt-customer-name': custName
+  };
 
-  const recBadge = $('#receipt-method-badge');
+  Object.entries(fieldMap).forEach(([id, val]) => {
+    const el = $id(id);
+    if (el) el.textContent = val;
+  });
+
+  const recBadge = $id('receipt-method-badge');
   if (recBadge) {
     const isCash = details.method === 'cash';
     recBadge.className = isCash ? 'badge badge-success' : 'badge badge-primary';
     recBadge.textContent = isCash ? 'Cash on Completion' : 'Online Card (Mockup IPG)';
   }
 
-  const recNote = $('#receipt-commission-note');
+  const recNote = $id('receipt-commission-note');
   if (recNote) {
     recNote.textContent = details.method === 'cash'
       ? 'Cash collected in hand - Platform commission deducted from worker balance'
@@ -855,59 +759,43 @@ function showCustomerReceiptModal(details) {
 // 5. Rate & Review Worker Feature
 // ==========================================
 function openReviewWorkerModal(info) {
-  const modal = $('#review-worker-modal');
-  if (!modal) return;
+  if (!$id('review-worker-modal')) return;
 
-  $('#review-worker-id') && ($('#review-worker-id').value = info.worker_id || 1);
-  $('#review-job-id') && ($('#review-job-id').value = info.job_id || '');
-  $('#review-worker-name-display') && ($('#review-worker-name-display').textContent = info.worker_name || 'Verified Skilled Worker');
-  $('#review-job-title-display') && ($('#review-job-title-display').textContent = info.job_title || 'Home Service Request');
+  if ($id('review-worker-id')) $id('review-worker-id').value = info.worker_id || 1;
+  if ($id('review-job-id')) $id('review-job-id').value = info.job_id || '';
+  if ($id('review-worker-name-display')) $id('review-worker-name-display').textContent = info.worker_name || 'Verified Skilled Worker';
+  if ($id('review-job-title-display')) $id('review-job-title-display').textContent = info.job_title || 'Home Service Request';
 
-  // Reset star rating to 5 stars
   setStarRating(5);
-
   openModal('review-worker-modal');
   refreshIcons();
 }
 
 function setStarRating(rating) {
-  const ratingInput = $('#review-rating-value');
-  const ratingLabel = $('#star-rating-label');
+  const ratingInput = $id('review-rating-value');
+  const ratingLabel = $id('star-rating-label');
   if (ratingInput) ratingInput.value = rating;
 
-  const labels = {
-    1: '1 - Poor Service',
-    2: '2 - Fair Experience',
-    3: '3 - Satisfactory',
-    4: '4 - Very Good',
-    5: '5 - Excellent Service'
-  };
+  const labels = { 1: '1 - Poor Service', 2: '2 - Fair Experience', 3: '3 - Satisfactory', 4: '4 - Very Good', 5: '5 - Excellent Service' };
   if (ratingLabel) ratingLabel.textContent = labels[rating] || `${rating} Stars`;
 
   $$('#star-rating-container .star-btn').forEach(btn => {
     const starVal = parseInt(btn.dataset.rating, 10);
-    if (starVal <= rating) {
-      btn.style.color = '#F59E0B';
-      btn.classList.add('active');
-    } else {
-      btn.style.color = '#CBD5E1';
-      btn.classList.remove('active');
-    }
+    const isActive = starVal <= rating;
+    btn.style.color = isActive ? '#F59E0B' : '#CBD5E1';
+    btn.classList.toggle('active', isActive);
   });
 }
 
 function initCustomerReviewModal() {
-  const container = $('#star-rating-container');
+  const container = $id('star-rating-container');
   if (container) {
-    container.addEventListener('click', (e) => {
+    container.addEventListener('click', e => {
       const star = e.target.closest('.star-btn');
-      if (star) {
-        const rating = parseInt(star.dataset.rating, 10);
-        setStarRating(rating);
-      }
+      if (star) setStarRating(parseInt(star.dataset.rating, 10));
     });
 
-    container.addEventListener('mouseover', (e) => {
+    container.addEventListener('mouseover', e => {
       const star = e.target.closest('.star-btn');
       if (star) {
         const hoverVal = parseInt(star.dataset.rating, 10);
@@ -918,13 +806,11 @@ function initCustomerReviewModal() {
     });
 
     container.addEventListener('mouseleave', () => {
-      const curRating = parseInt($('#review-rating-value')?.value || '5', 10);
-      setStarRating(curRating);
+      setStarRating(parseInt($id('review-rating-value')?.value || '5', 10));
     });
   }
 
-  // Quick Tags interaction
-  const commentBox = $('#review-comment');
+  const commentBox = $id('review-comment');
   $$('#review-quick-tags .btn-tag').forEach(tagBtn => {
     tagBtn.addEventListener('click', () => {
       const tagText = tagBtn.dataset.tag;
@@ -940,83 +826,64 @@ function initCustomerReviewModal() {
     });
   });
 
-  // Submit Review Form
-  const reviewForm = $('#customer-review-form');
-  if (reviewForm) {
-    reviewForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const workerId = parseInt($('#review-worker-id')?.value || '0', 10);
-      const jobId = parseInt($('#review-job-id')?.value || '0', 10);
-      const rating = parseInt($('#review-rating-value')?.value || '5', 10);
-      const comment = $('#review-comment')?.value.trim() || '';
+  const reviewForm = $id('customer-review-form');
+  reviewForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const workerId = parseInt($id('review-worker-id')?.value || '0', 10);
+    const jobId = parseInt($id('review-job-id')?.value || '0', 10);
+    const rating = parseInt($id('review-rating-value')?.value || '5', 10);
+    const comment = $id('review-comment')?.value.trim() || '';
 
-      if (!workerId || workerId <= 0) {
-        showToast('Invalid worker selected.', 'error');
-        return;
-      }
-      if (!comment || comment.length < 5) {
-        showToast('Please provide a short review comment (at least 5 characters).', 'error');
-        return;
-      }
+    if (!workerId || workerId <= 0) { showToast('Invalid worker selected.', 'error'); return; }
+    if (!comment || comment.length < 5) { showToast('Please provide a short review comment (at least 5 characters).', 'error'); return; }
 
-      const submitBtn = $('#btn-submit-review');
-      await withBtnLoading(submitBtn, '<i data-lucide="loader" width="16" height="16" class="spin"></i> Publishing...', async () => {
-        try {
-          const res = await apiFetch('reviews.php?action=create', {
-            method: 'POST',
-            body: JSON.stringify({
-              worker_id: workerId,
-              job_id: jobId || null,
-              rating,
-              comment
-            })
-          });
+    const submitBtn = $id('btn-submit-review');
+    await withBtnLoading(submitBtn, '<i data-lucide="loader" width="16" height="16" class="spin"></i> Publishing...', async () => {
+      try {
+        const res = await apiFetch('reviews.php?action=create', {
+          method: 'POST',
+          body: JSON.stringify({ worker_id: workerId, job_id: jobId || null, rating, comment })
+        });
 
-          if (res.ok && res.data?.status === 'success') {
-            closeModal('review-worker-modal');
-            showToast('Thank you! Your rating & review have been submitted.', 'success');
+        if (res.ok && res.data?.status === 'success') {
+          closeModal('review-worker-modal');
+          showToast('Thank you! Your rating & review have been submitted.', 'success');
 
-            // Visually update the review button on the job card
-            if (jobId) {
-              const card = $(`#job-card-${jobId}`);
-              const btn = card?.querySelector('.btn-open-review');
-              if (btn) {
-                btn.outerHTML = `<span class="badge badge-success" style="font-weight:700; padding:6px 12px;"><i data-lucide="check" width="12" height="12"></i> Reviewed ★${rating}</span>`;
-                refreshIcons();
-              }
+          if (jobId) {
+            const card = $id(`job-card-${jobId}`);
+            const btn = card?.querySelector('.btn-open-review');
+            if (btn) {
+              btn.outerHTML = `<span class="badge badge-success" style="font-weight:700; padding:6px 12px;"><i data-lucide="check" width="12" height="12"></i> Reviewed ★${rating}</span>`;
+              refreshIcons();
             }
-          } else {
-            showToast(res.data?.message || 'Failed to submit review.', 'error');
           }
-        } catch (err) {
-          showToast('Error: ' + err.message, 'error');
+        } else {
+          showToast(res.data?.message || 'Failed to submit review.', 'error');
         }
-      });
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     });
-  }
+  });
 }
 
 // ==========================================
-// 6. Customer Profile Page & Avatar Management
+// 6. Customer Profile & Avatar
 // ==========================================
 async function initCustomerProfile() {
-  const form = $('#customer-profile-form');
+  const form = $id('customer-profile-form');
   if (!form || !window.location.pathname.includes('profile.html')) return;
 
-  const nameInput = $('#customer-name-input');
-  const phoneInput = $('#customer-phone-input');
-  const emailInput = $('#customer-email-input');
-  const addressInput = $('#customer-address-input');
-  const nameHeading = $('#customer-profile-name-heading');
-  const emailHeading = $('#customer-profile-email-heading');
-  const avatarInitials = $('#customer-avatar-initials');
-  const avatarImg = $('#customer-avatar-img');
-  const avatarClickable = $('#customer-avatar-clickable');
-  const cameraBtn = $('#btn-customer-camera-trigger');
-  const avatarHint = $('#customer-avatar-hint');
-  const photoUpload = $('#customer-photo-upload');
+  const nameInput = $id('customer-name-input');
+  const phoneInput = $id('customer-phone-input');
+  const emailInput = $id('customer-email-input');
+  const addressInput = $id('customer-address-input');
+  const nameHeading = $id('customer-profile-name-heading');
+  const emailHeading = $id('customer-profile-email-heading');
+  const avatarInitials = $id('customer-avatar-initials');
+  const avatarImg = $id('customer-avatar-img');
+  const photoUpload = $id('customer-photo-upload');
 
-  // Immediately populate logged-in customer info from cache to prevent template flash
   const curUser = getCustomerUser();
   if (curUser) {
     const curName = curUser.full_name || curUser.name || '';
@@ -1033,13 +900,9 @@ async function initCustomerProfile() {
     if (addressInput && curUser.address) addressInput.value = curUser.address;
   }
 
-  // Restore saved photo from localStorage if present
   const savedAvatar = localStorage.getItem('jobkade_customer_avatar') || curUser?.avatar;
   if (savedAvatar) {
-    if (avatarImg) {
-      avatarImg.src = savedAvatar;
-      avatarImg.style.display = 'block';
-    }
+    if (avatarImg) { avatarImg.src = savedAvatar; avatarImg.style.display = 'block'; }
     if (avatarInitials) avatarInitials.style.display = 'none';
     updateAvatarsAcrossUI(savedAvatar, null);
   } else {
@@ -1050,58 +913,41 @@ async function initCustomerProfile() {
     }
   }
 
-  // Interactive Avatar Click
   const triggerPhotoUpload = () => photoUpload?.click();
-  avatarClickable?.addEventListener('click', triggerPhotoUpload);
-  avatarHint?.addEventListener('click', triggerPhotoUpload);
-  cameraBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    triggerPhotoUpload();
+  $id('customer-avatar-clickable')?.addEventListener('click', triggerPhotoUpload);
+  $id('customer-avatar-hint')?.addEventListener('click', triggerPhotoUpload);
+  $id('btn-customer-camera-trigger')?.addEventListener('click', e => { e.stopPropagation(); triggerPhotoUpload(); });
+
+  photoUpload?.addEventListener('change', () => {
+    const file = photoUpload.files[0];
+    if (!file) return;
+
+    if (!file.type.match(/^image\//)) { showToast('Please select a valid image file (PNG, JPG, JPEG, WebP).', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast('Image file size must be less than 5MB.', 'error'); return; }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      if (avatarImg) { avatarImg.src = dataUrl; avatarImg.style.display = 'block'; }
+      if (avatarInitials) avatarInitials.style.display = 'none';
+
+      try {
+        localStorage.setItem('jobkade_customer_avatar', dataUrl);
+        const sUser = JSON.parse(localStorage.getItem('jobkade_user') || 'null');
+        if (sUser) {
+          sUser.avatar = dataUrl;
+          localStorage.setItem('jobkade_user', JSON.stringify(sUser));
+        }
+      } catch (err) {
+        console.warn('Could not store avatar:', err);
+      }
+
+      updateAvatarsAcrossUI(dataUrl, null);
+      showToast('Profile photo updated successfully!', 'success');
+    };
+    reader.readAsDataURL(file);
   });
 
-  if (photoUpload) {
-    photoUpload.addEventListener('change', () => {
-      const file = photoUpload.files[0];
-      if (!file) return;
-
-      if (!file.type.match(/^image\//)) {
-        showToast('Please select a valid image file (PNG, JPG, JPEG, WebP).', 'error');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('Image file size must be less than 5MB.', 'error');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target.result;
-        if (avatarImg) {
-          avatarImg.src = dataUrl;
-          avatarImg.style.display = 'block';
-        }
-        if (avatarInitials) avatarInitials.style.display = 'none';
-
-        try {
-          localStorage.setItem('jobkade_customer_avatar', dataUrl);
-          const sUserStr = localStorage.getItem('jobkade_user');
-          if (sUserStr) {
-            const sU = JSON.parse(sUserStr);
-            sU.avatar = dataUrl;
-            localStorage.setItem('jobkade_user', JSON.stringify(sU));
-          }
-        } catch (err) {
-          console.warn('Could not store customer avatar:', err);
-        }
-
-        updateAvatarsAcrossUI(dataUrl, null);
-        showToast('Profile photo updated successfully!', 'success');
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Load fresh profile data from API
   try {
     const res = await apiFetch('auth.php?action=me');
     if (res.ok && res.data?.user) {
@@ -1119,10 +965,9 @@ async function initCustomerProfile() {
       }
     }
   } catch (err) {
-    console.warn('Could not load customer profile from API:', err);
+    console.warn('Could not load profile:', err);
   }
 
-  // Submit Profile Form
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearFormErrors(form);
@@ -1130,33 +975,17 @@ async function initCustomerProfile() {
     const fullName = nameInput?.value.trim() || '';
     const phone = phoneInput?.value.trim() || '';
     const address = addressInput?.value.trim() || '';
-    const curPass = $('#customer-current-password')?.value || '';
-    const newPass = $('#customer-new-password')?.value || '';
-    const confirmPass = $('#customer-confirm-password')?.value || '';
+    const curPass = $id('customer-current-password')?.value || '';
+    const newPass = $id('customer-new-password')?.value || '';
+    const confirmPass = $id('customer-confirm-password')?.value || '';
 
     let hasError = false;
-    if (!fullName || fullName.length < 2) {
-      showFieldError(nameInput, 'Full name must be at least 2 characters.');
-      hasError = true;
-    }
-    const phonePattern = /^[0-9+\s-]{9,15}$/;
-    if (!phone || !phonePattern.test(phone)) {
-      showFieldError(phoneInput, 'Please enter a valid phone number (e.g. 077 123 4567).');
-      hasError = true;
-    }
+    if (!fullName || fullName.length < 2) { showFieldError(nameInput, 'Full name must be at least 2 characters.'); hasError = true; }
+    if (!phone || !/^[0-9+\s-]{9,15}$/.test(phone)) { showFieldError(phoneInput, 'Please enter a valid phone number.'); hasError = true; }
     if (newPass) {
-      if (newPass.length < 6) {
-        showFieldError($('#customer-new-password'), 'New password must be at least 6 characters.');
-        hasError = true;
-      }
-      if (newPass !== confirmPass) {
-        showFieldError($('#customer-confirm-password'), 'New passwords do not match.');
-        hasError = true;
-      }
-      if (!curPass) {
-        showFieldError($('#customer-current-password'), 'Please enter your current password to change it.');
-        hasError = true;
-      }
+      if (newPass.length < 6) { showFieldError($id('customer-new-password'), 'New password must be at least 6 characters.'); hasError = true; }
+      if (newPass !== confirmPass) { showFieldError($id('customer-confirm-password'), 'New passwords do not match.'); hasError = true; }
+      if (!curPass) { showFieldError($id('customer-current-password'), 'Please enter your current password.'); hasError = true; }
     }
 
     if (hasError) {
@@ -1165,7 +994,7 @@ async function initCustomerProfile() {
       return;
     }
 
-    const submitBtn = $('#btn-save-customer-profile') || form.querySelector('button[type="submit"]');
+    const submitBtn = $id('btn-save-customer-profile') || form.querySelector('button[type="submit"]');
     await withBtnLoading(submitBtn, '<i data-lucide="loader" width="18" height="18" class="spin"></i> Saving...', async () => {
       try {
         const profileRes = await apiFetch('auth.php?action=update-profile', {
@@ -1183,15 +1012,13 @@ async function initCustomerProfile() {
             method: 'POST',
             body: JSON.stringify({ current_password: curPass, new_password: newPass })
           });
-
           if (!passRes.ok || passRes.data?.status !== 'success') {
             showToast(passRes.data?.message || 'Profile saved, but password change failed.', 'warning');
             return;
           }
-
-          $('#customer-current-password') && ($('#customer-current-password').value = '');
-          $('#customer-new-password') && ($('#customer-new-password').value = '');
-          $('#customer-confirm-password') && ($('#customer-confirm-password').value = '');
+          if ($id('customer-current-password')) $id('customer-current-password').value = '';
+          if ($id('customer-new-password')) $id('customer-new-password').value = '';
+          if ($id('customer-confirm-password')) $id('customer-confirm-password').value = '';
         }
 
         showToast('Profile updated successfully!', 'success');
@@ -1218,8 +1045,8 @@ async function initCustomerProfile() {
 // ==========================================
 async function loadCustomerDashboardStats() {
   if (!window.location.pathname.includes('customer/dashboard.html')) return;
-  const activeEl = $('#stat-active-requests');
-  const completedEl = $('#stat-completed-jobs');
+  const activeEl = $id('stat-active-requests');
+  const completedEl = $id('stat-completed-jobs');
   if (!activeEl && !completedEl) return;
 
   try {
