@@ -94,63 +94,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 5. Sidebar Setup
   function setupSidebarForRole(curUser) {
-    const aside = document.querySelector('.sidebar');
-    if (!aside) return;
-
-    const initial = (curUser.name || curUser.full_name || 'U').charAt(0).toUpperCase();
-    const role = (curUser.role || 'customer').toLowerCase();
-    const avatarColor = role === 'worker' ? 'avatar-green' : (role === 'admin' ? 'avatar-purple' : 'avatar-blue');
-
-    aside.className = 'sidebar ' + role;
-    const headerEl = aside.querySelector('.sidebar-header');
-    if (headerEl) {
-      headerEl.innerHTML = `
-        <div class="sidebar-user">
-          <div class="avatar avatar-md ${avatarColor}">${initial}</div>
-          <div>
-            <div class="sidebar-user-name">${escapeHtml(curUser.name || curUser.full_name || 'User')}</div>
-            <div class="sidebar-user-role" style="text-transform: capitalize;">${role}</div>
-          </div>
-        </div>`;
+    const role = (curUser && curUser.role ? curUser.role : 'customer').toLowerCase();
+    if (typeof window.renderSharedComponents === 'function') {
+      window.renderSharedComponents(role);
     }
-
-    const navEl = aside.querySelector('.sidebar-nav');
-    if (navEl) {
-      const navTemplates = {
-        worker: `
-          <div class="sidebar-label">Main</div>
-          <a href="worker/dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-          <a href="worker/profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a>
-          <a href="worker/kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a>
-          <a href="worker/my-services.html" class="sidebar-link"><i data-lucide="briefcase"></i> My Services</a>
-          <a href="worker/jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a>
-          <a href="worker/subscription.html" class="sidebar-link"><i data-lucide="credit-card"></i> Subscriptions</a>
-          <div class="sidebar-label">Account</div>
-          <a href="messages.html" class="sidebar-link active"><i data-lucide="message-square"></i> Messages</a>`,
-        admin: `
-          <div class="sidebar-label">Management</div>
-          <a href="admin/dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Overview</a>
-          <a href="admin/kyc-moderation.html" class="sidebar-link"><i data-lucide="shield-check"></i> KYC Moderation</a>
-          <a href="admin/workers.html" class="sidebar-link"><i data-lucide="users"></i> Manage Workers</a>
-          <a href="admin/customers.html" class="sidebar-link"><i data-lucide="user-check"></i> Manage Customers</a>
-          <a href="admin/jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Job Requests</a>
-          <div class="sidebar-label">Account</div>
-          <a href="messages.html" class="sidebar-link active"><i data-lucide="message-square"></i> Messages</a>`,
-        customer: `
-          <div class="sidebar-label">Main</div>
-          <a href="customer/dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-          <a href="workers.html" class="sidebar-link"><i data-lucide="search"></i> Find Workers</a>
-          <a href="customer/jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> My Job Requests</a>
-          <a href="customer/post-job.html" class="sidebar-link"><i data-lucide="plus-circle"></i> Post a Job</a>
-          <a href="customer/saved-workers.html" class="sidebar-link"><i data-lucide="heart"></i> Saved Workers</a>
-          <div class="sidebar-label">Account</div>
-          <a href="messages.html" class="sidebar-link active"><i data-lucide="message-square"></i> Messages</a>
-          <a href="customer/profile.html" class="sidebar-link"><i data-lucide="user"></i> Profile</a>`
-      };
-
-      navEl.innerHTML = navTemplates[role] || navTemplates.customer;
+    if (typeof window.updateSharedUserUI === 'function') {
+      window.updateSharedUserUI(curUser);
     }
-
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 

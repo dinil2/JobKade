@@ -3,7 +3,13 @@
    Shared functionality across all pages
    ========================================== */
 
-document.addEventListener('DOMContentLoaded', function () {
+function escapeHtml(str) {
+  return str ? String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])) : '';
+}
+
+function initSharedApp() {
+  renderSharedComponents();
+
   initNavbarScroll();
   initMobileMenu();
   initSidebar();
@@ -20,7 +26,288 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSharedApp);
+} else {
+  initSharedApp();
+}
+
+// Immediate initial rendering if containers already exist in the DOM
+if (typeof document !== 'undefined') {
+  if (document.getElementById('navbar-container') || document.getElementById('sidebar-container') ||
+      document.getElementById('navbarContainer') || document.getElementById('sidebarContainer')) {
+    renderSharedComponents();
+  }
+}
+
+// ==========================================
+// Shared Dashboard Navbar & Sidebar Components
+// ==========================================
+
+function getPageRole() {
+  const path = window.location.pathname.toLowerCase();
+  if (path.includes('/worker/')) return 'worker';
+  if (path.includes('/customer/')) return 'customer';
+  if (path.includes('/admin/')) return 'admin';
+  if (document.body.dataset && document.body.dataset.role) {
+    return document.body.dataset.role.toLowerCase();
+  }
+  const user = getLoggedInUser();
+  if (user && user.role) {
+    return String(user.role).toLowerCase();
+  }
+  return 'customer';
+}
+
+function getRoleUserInfo(role) {
+  const user = getLoggedInUser();
+  const defaultNames = {
+    worker: 'Kasun Perera',
+    customer: 'Dinil Sandaruwan',
+    admin: 'System Administrator'
+  };
+  const defaultInitials = {
+    worker: 'KP',
+    customer: 'DS',
+    admin: 'AD'
+  };
+  const defaultRoles = {
+    worker: 'Worker',
+    customer: 'Customer',
+    admin: 'Platform Admin'
+  };
+
+  const name = user?.name || user?.full_name || defaultNames[role] || 'User';
+  let initials = defaultInitials[role] || 'U';
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 0) {
+      initials = parts[0].substring(0, 2).toUpperCase();
+    }
+  }
+
+  const roleTitle = defaultRoles[role] || 'Member';
+  return { name, initials, roleTitle };
+}
+
+function isItemActive(item, currentPath, currentFile, role) {
+  if (role === 'worker') {
+    if (item.label === 'Dashboard') return currentFile === 'dashboard.html' && currentPath.includes('/worker/');
+    if (item.label === 'My Profile') return currentFile === 'profile-edit.html' || currentFile === 'settings.html';
+    if (item.label === 'Identity and KYC') return currentFile === 'kyc.html';
+    if (item.label === 'My Services') return currentFile === 'my-services.html' || currentFile === 'add-service.html';
+    if (item.label === 'Customer Jobs') return currentFile === 'jobs.html' && currentPath.includes('/worker/');
+    if (item.label === 'Wallet and Earnings') return currentFile === 'wallet.html';
+    if (item.label === 'Subscriptions') return currentFile === 'subscription.html';
+    if (item.label === 'Messages') return currentFile === 'messages.html';
+  } else if (role === 'customer') {
+    if (item.label === 'Dashboard') return currentFile === 'dashboard.html' && currentPath.includes('/customer/');
+    if (item.label === 'Post a Job') return currentFile === 'post-job.html';
+    if (item.label === 'My Jobs') return currentFile === 'jobs.html' && currentPath.includes('/customer/');
+    if (item.label === 'Saved Workers') return currentFile === 'saved-workers.html';
+    if (item.label === 'Messages') return currentFile === 'messages.html';
+    if (item.label === 'My Profile') return currentFile === 'profile.html';
+  } else if (role === 'admin') {
+    if (item.label === 'Overview') return ['dashboard.html', 'index.html', 'admin', ''].includes(currentFile);
+    if (item.label === 'KYC Moderation') return ['kyc-moderation.html', 'verification.html'].includes(currentFile);
+    if (item.label === 'Manage Workers') return currentFile === 'workers.html';
+    if (item.label === 'Manage Customers') return currentFile === 'customers.html';
+    if (item.label === 'Job Requests') return currentFile === 'jobs.html';
+    if (item.label === 'Content Moderation') return currentFile === 'moderation.html';
+    if (item.label === 'Analytics and Reports') return currentFile === 'analytics.html';
+  }
+  return false;
+}
+
+function updateAdminBadge() {
+  const badges = document.querySelectorAll('#pendingCounterBadge');
+  if (!badges.length) return;
+  const token = localStorage.getItem('jobkade_token') || '';
+  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.toLowerCase().includes(s));
+  const rootPath = isSubfolder ? '../' : '';
+  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+  fetch(`${rootPath}api/admin.php?action=stats`, { headers })
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.stats && data.stats.pending_kyc !== undefined) {
+        badges.forEach(el => {
+          el.textContent = data.stats.pending_kyc;
+        });
+      }
+    })
+    .catch(() => {});
+}
+
+function renderSharedComponents(roleOverride) {
+  const navbarContainer = document.getElementById('navbar-container') || document.getElementById('navbarContainer');
+  const sidebarContainer = document.getElementById('sidebar-container') || document.getElementById('sidebarContainer');
+  if (!navbarContainer && !sidebarContainer) return;
+
+  const role = (roleOverride || getPageRole()).toLowerCase();
+  const currentPath = window.location.pathname.toLowerCase();
+  const currentFile = currentPath.split('/').pop() || 'index.html';
+  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => currentPath.includes(s));
+  const rootPath = isSubfolder ? '../' : '';
+
+  const userInfo = getRoleUserInfo(role);
+  const avatarColor = role === 'admin' ? 'avatar-purple' : (role === 'worker' ? 'avatar-green' : 'avatar-blue');
+
+  // 1. Render Unified Top Navbar
+  if (navbarContainer) {
+    let profileHref = `${rootPath}customer/profile.html`;
+    if (role === 'worker') profileHref = `${rootPath}worker/profile-edit.html`;
+    else if (role === 'admin') profileHref = `${rootPath}admin/dashboard.html`;
+
+    navbarContainer.innerHTML = `
+      <nav class="navbar" id="navbar">
+        <div class="container dashboard-nav">
+          <div class="dashboard-nav-left">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar"><i data-lucide="menu" width="24" height="24"></i></button>
+            <a href="${rootPath}index.html" class="nav-logo">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <rect width="32" height="32" rx="8" fill="#5996FF"/>
+                <path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="16" cy="10" r="2" fill="#66BB6A"/>
+              </svg>
+              Job<span>Kade</span>
+            </a>
+          </div>
+          <div class="dashboard-nav-right">
+            <div class="notification-wrapper">
+              <button class="notification-bell" aria-label="Notifications" title="Notifications">
+                <i data-lucide="bell" width="22" height="22"></i>
+                <span class="notif-count" style="display: none;">0</span>
+              </button>
+              <div class="notification-dropdown">
+                <div class="notification-dropdown-header">
+                  <h4>Notifications</h4>
+                  <a href="#" class="text-sm text-primary-color mark-all-read-btn" id="markAllReadBtn">Mark all read</a>
+                </div>
+                <div class="notification-list" id="notificationList">
+                  <div class="notification-empty" style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No notifications yet.</div>
+                </div>
+              </div>
+            </div>
+            <a href="${profileHref}" style="text-decoration:none;" title="My Profile" id="navbarProfileLink">
+              <div class="avatar avatar-nav ${avatarColor}" id="${role === 'admin' ? 'adminNavAvatar' : 'navAvatar'}">${escapeHtml(userInfo.initials)}</div>
+            </a>
+            <a href="${rootPath}auth/login.html" class="nav-logout-btn" id="navLogoutBtn" title="Logout from JobKade">
+              <i data-lucide="log-out" width="18" height="18"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+    `;
+  }
+
+  // 2. Render Unified Sidebar
+  if (sidebarContainer) {
+    const isInsideAdmin = currentPath.includes('/admin/');
+    const adminPrefix = isInsideAdmin ? '' : `${rootPath}admin/`;
+
+    const roleMenus = {
+      worker: [
+        { label: 'Dashboard', icon: 'layout-dashboard', href: `${rootPath}worker/dashboard.html` },
+        { label: 'My Profile', icon: 'user', href: `${rootPath}worker/profile-edit.html` },
+        { label: 'Identity and KYC', icon: 'shield-check', href: `${rootPath}worker/kyc.html` },
+        { label: 'My Services', icon: 'briefcase', href: `${rootPath}worker/my-services.html` },
+        { label: 'Customer Jobs', icon: 'file-text', href: `${rootPath}worker/jobs.html` },
+        { label: 'Wallet and Earnings', icon: 'wallet', href: `${rootPath}worker/wallet.html` },
+        { label: 'Subscriptions', icon: 'credit-card', href: `${rootPath}worker/subscription.html` },
+        { label: 'Messages', icon: 'message-square', href: `${rootPath}messages.html` }
+      ],
+      customer: [
+        { label: 'Dashboard', icon: 'layout-dashboard', href: `${rootPath}customer/dashboard.html` },
+        { label: 'Post a Job', icon: 'plus-circle', href: `${rootPath}customer/post-job.html` },
+        { label: 'My Jobs', icon: 'file-text', href: `${rootPath}customer/jobs.html` },
+        { label: 'Saved Workers', icon: 'heart', href: `${rootPath}customer/saved-workers.html` },
+        { label: 'Messages', icon: 'message-square', href: `${rootPath}messages.html` },
+        { label: 'My Profile', icon: 'user', href: `${rootPath}customer/profile.html` }
+      ],
+      admin: [
+        { label: 'Overview', icon: 'layout-dashboard', href: `${adminPrefix}dashboard.html` },
+        { label: 'KYC Moderation', icon: 'shield-check', href: `${adminPrefix}kyc-moderation.html`, badge: 'pendingCounterBadge' },
+        { label: 'Manage Workers', icon: 'users', href: `${adminPrefix}workers.html` },
+        { label: 'Manage Customers', icon: 'user-check', href: `${adminPrefix}customers.html` },
+        { label: 'Job Requests', icon: 'file-text', href: `${adminPrefix}jobs.html` },
+        { label: 'Content Moderation', icon: 'flag', href: `${adminPrefix}moderation.html` },
+        { label: 'Analytics and Reports', icon: 'bar-chart-3', href: `${adminPrefix}analytics.html` }
+      ]
+    };
+
+    const items = roleMenus[role] || roleMenus.customer;
+    const linksHtml = items.map(item => {
+      const active = isItemActive(item, currentPath, currentFile, role);
+      const badgeHtml = item.badge ? ` <span class="badge badge-pending" id="${item.badge}" style="margin-left:auto;font-size:0.7rem;">0</span>` : '';
+      return `<a href="${item.href}" class="sidebar-link ${active ? 'active' : ''}"><i data-lucide="${item.icon}"></i> ${escapeHtml(item.label)}${badgeHtml}</a>`;
+    }).join('\n        ');
+
+    sidebarContainer.innerHTML = `
+      <div class="sidebar-overlay"></div>
+      <aside class="sidebar ${role}">
+        <div class="sidebar-header">
+          <div class="sidebar-user">
+            <div class="avatar avatar-md ${avatarColor}" id="sidebarAvatar">${escapeHtml(userInfo.initials)}</div>
+            <div>
+              <div class="sidebar-user-name" id="${role === 'admin' ? 'adminUserName' : 'sidebarUserName'}">${escapeHtml(userInfo.name)}</div>
+              <div class="sidebar-user-role" id="sidebarUserRole">${escapeHtml(userInfo.roleTitle)}</div>
+            </div>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          ${linksHtml}
+        </nav>
+        <div class="sidebar-footer">
+          <a href="${rootPath}auth/login.html" class="sidebar-link sidebar-logout-btn" id="sidebarLogoutBtn">
+            <i data-lucide="log-out"></i> Logout
+          </a>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+  initSidebar();
+  initLogoutBindings();
+  if (role === 'admin') {
+    updateAdminBadge();
+  }
+}
+
+function updateSharedUserUI(user) {
+  const role = (user && user.role) ? String(user.role).toLowerCase() : getPageRole();
+  const info = getRoleUserInfo(role);
+  if (user && (user.name || user.full_name)) {
+    info.name = user.name || user.full_name;
+    const parts = info.name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      info.initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 0) {
+      info.initials = parts[0].substring(0, 2).toUpperCase();
+    }
+  }
+
+  document.querySelectorAll('#sidebarUserName, #adminUserName, .sidebar-user-name').forEach(el => {
+    el.textContent = info.name;
+  });
+  document.querySelectorAll('#sidebarUserRole, .sidebar-user-role').forEach(el => {
+    el.textContent = info.roleTitle;
+  });
+  document.querySelectorAll('#sidebarAvatar, #navAvatar, #adminNavAvatar, #navbar-user-avatar, .sidebar-user .avatar, .dashboard-nav-right .avatar').forEach(el => {
+    el.textContent = info.initials;
+  });
+}
+
+window.renderSharedComponents = renderSharedComponents;
+window.updateSharedUserUI = updateSharedUserUI;
 
 // ==========================================
 // UI Component Initializers
@@ -100,15 +387,124 @@ function initSidebar() {
   });
 }
 
+function formatNotifTime(dateStr) {
+  if (!dateStr) return 'Just now';
+  try {
+    const d = new Date(dateStr.replace(' ', 'T'));
+    const diffMs = Date.now() - d.getTime();
+    if (isNaN(diffMs) || diffMs < 60000) return 'Just now';
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return days + 'd ago';
+    return d.toLocaleDateString();
+  } catch (e) {
+    return 'Recently';
+  }
+}
+
+async function fetchUserNotifications() {
+  const token = getAuthToken();
+  if (!token) return;
+
+  try {
+    const res = await apiFetch('notifications.php?action=list');
+    if (!res.ok || !res.data || res.data.status !== 'success') return;
+
+    const notifs = res.data.notifications || [];
+    renderNotificationsUI(notifs);
+  } catch (err) {
+    console.warn('Failed to fetch notifications:', err);
+  }
+}
+
+function renderNotificationsUI(notifs) {
+  const unreadCount = notifs.filter(n => !n.is_read || n.is_read === 0).length;
+
+  // Update bell badges across the page
+  document.querySelectorAll('.notif-count, .notif-badge').forEach(badge => {
+    badge.textContent = String(unreadCount);
+    badge.style.display = unreadCount > 0 ? '' : 'none';
+  });
+
+  // Update notification dropdown lists
+  document.querySelectorAll('.notification-list').forEach(listEl => {
+    if (notifs.length === 0) {
+      listEl.innerHTML = '<div class="notification-empty" style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No notifications yet.</div>';
+      return;
+    }
+
+    const itemsHtml = notifs.map(n => {
+      const isUnread = !n.is_read || n.is_read === 0;
+      let icon = 'bell';
+      let iconColor = 'blue';
+
+      if (n.type === 'system') {
+        icon = 'check-circle';
+        iconColor = 'green';
+      } else if (n.type === 'kyc') {
+        const isReject = (n.title && n.title.toLowerCase().includes('reject')) || (n.message && n.message.toLowerCase().includes('reject'));
+        icon = isReject ? 'shield-alert' : 'shield-check';
+        iconColor = isReject ? 'orange' : 'green';
+      } else if (n.type === 'subscription') {
+        icon = 'credit-card';
+        iconColor = 'purple';
+      }
+
+      return `
+        <div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${n.id}">
+          <div class="notification-item-icon ${iconColor}">
+            <i data-lucide="${icon}" width="16" height="16"></i>
+          </div>
+          <div class="notification-item-content">
+            <p style="font-weight: 600; font-size: 0.85rem; margin-bottom: 2px;">${escapeHtml(n.title)}</p>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.35;">${escapeHtml(n.message)}</p>
+            <span class="notif-time">${formatNotifTime(n.created_at)}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.innerHTML = itemsHtml;
+  });
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function markAllNotificationsAsRead() {
+  const token = getAuthToken();
+  if (!token) return;
+
+  try {
+    const res = await apiFetch('notifications.php?action=read-all', { method: 'POST' });
+    if (res.ok && res.data && res.data.status === 'success') {
+      document.querySelectorAll('.notif-count, .notif-badge').forEach(badge => {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+      });
+      document.querySelectorAll('.notification-item.unread').forEach(item => {
+        item.classList.remove('unread');
+      });
+      if (typeof showToast === 'function') {
+        showToast('All notifications marked as read.', 'info');
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to mark notifications as read:', err);
+  }
+}
+
 function initNotifications() {
   const bell = document.querySelector('.notification-bell');
   const dropdown = document.querySelector('.notification-dropdown');
   if (!bell || !dropdown) return;
 
-  bell.addEventListener('click', (e) => {
+  bell.onclick = (e) => {
     e.stopPropagation();
     dropdown.classList.toggle('active');
-  });
+  };
 
   document.addEventListener('click', (e) => {
     if (!dropdown.contains(e.target) && !bell.contains(e.target)) {
@@ -116,23 +512,21 @@ function initNotifications() {
     }
   });
 
-  dropdown.querySelectorAll('a, button').forEach(btn => {
-    if (btn.textContent.toLowerCase().includes('clear')) {
-      btn.addEventListener('click', (e) => {
+  document.querySelectorAll('.notification-dropdown a, .notification-dropdown button').forEach(btn => {
+    const text = btn.textContent.toLowerCase();
+    if (text.includes('mark all') || text.includes('clear')) {
+      btn.onclick = async (e) => {
         e.preventDefault();
-        const badge = bell.querySelector('.notif-badge, .notif-count');
-        if (badge) badge.style.display = 'none';
-
-        dropdown.querySelectorAll('.notification-item, .notif-item').forEach(item => {
-          item.classList.remove('unread');
-          item.style.opacity = '0.6';
-        });
-
-        showToast('All notifications marked as read.', 'info');
-      });
+        await markAllNotificationsAsRead();
+      };
     }
   });
+
+  fetchUserNotifications();
 }
+
+window.fetchUserNotifications = fetchUserNotifications;
+window.markAllNotificationsAsRead = markAllNotificationsAsRead;
 
 function initTabs() {
   document.querySelectorAll('[data-tabs]').forEach(container => {
@@ -203,8 +597,10 @@ function initImageFallbacks() {
 }
 
 function initLogoutBindings() {
-  document.querySelectorAll('a[href="login.html"]').forEach(link => {
-    if (link.textContent.toLowerCase().includes('logout')) {
+  document.querySelectorAll('a[href*="login.html"], .nav-logout-btn, .sidebar-logout-btn, #navLogoutBtn, #sidebarLogoutBtn, #logoutBtn, #adminLogoutBtn, #adminHeaderLogoutBtn').forEach(link => {
+    if (link.dataset.logoutBound) return;
+    if (link.textContent.toLowerCase().includes('logout') || link.classList.contains('nav-logout-btn') || link.classList.contains('sidebar-logout-btn')) {
+      link.dataset.logoutBound = 'true';
       link.addEventListener('click', (e) => {
         e.preventDefault();
         logoutUser();
@@ -316,13 +712,16 @@ function setLoggedInUser(role, name, email) {
   });
 }
 
+let isLoggingOut = false;
 function logoutUser() {
+  if (isLoggingOut) return;
+  isLoggingOut = true;
   ['jobkade_token', 'jodkade_logged_user', 'jobkade_user'].forEach(k => localStorage.removeItem(k));
   showToast('Logged out successfully.', 'info');
-  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.includes(s));
+  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.toLowerCase().includes(s));
   setTimeout(() => {
-    window.location.href = (isSubfolder ? '../' : '') + 'index.html';
-  }, 600);
+    window.location.href = (isSubfolder ? '../' : '') + 'auth/login.html';
+  }, 400);
 }
 
 // ==========================================
@@ -476,6 +875,14 @@ function showToast(message, type = 'info', duration = 4000) {
     container = document.createElement('div');
     container.className = 'toast-container';
     document.body.appendChild(container);
+  }
+
+  // Prevent duplicate toasts with the exact same message appearing simultaneously
+  const existingSpans = container.querySelectorAll('.toast span:not(.toast-close)');
+  for (const span of existingSpans) {
+    if (span.textContent.trim() === String(message).trim()) {
+      return;
+    }
   }
 
   const icons = {

@@ -45,11 +45,17 @@ document.addEventListener('DOMContentLoaded', async function () {
     $id('adminNavAvatar').textContent = (user.name || 'Admin').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
   }
 
-  document.querySelectorAll('#adminLogoutBtn, .nav-logout-btn').forEach(btn => {
+  document.querySelectorAll('#adminLogoutBtn, #sidebarLogoutBtn, .sidebar-logout-btn, .nav-logout-btn').forEach(btn => {
+    if (btn.dataset.logoutBound) return;
+    btn.dataset.logoutBound = 'true';
     btn.addEventListener('click', e => {
       e.preventDefault();
-      ['jobkade_token', 'jodkade_logged_user', 'jobkade_user'].forEach(k => localStorage.removeItem(k));
-      window.location.href = '../auth/login.html';
+      if (typeof logoutUser === 'function') {
+        logoutUser();
+      } else {
+        ['jobkade_token', 'jodkade_logged_user', 'jobkade_user'].forEach(k => localStorage.removeItem(k));
+        window.location.href = '../auth/login.html';
+      }
     });
   });
 

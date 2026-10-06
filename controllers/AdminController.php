@@ -59,6 +59,15 @@ class AdminController {
         ]);
     }
 
+    public function analytics(): void {
+        $this->requireAdmin();
+        $analytics = $this->adminService->getAnalytics();
+        sendJsonResponse(200, [
+            'status'    => 'success',
+            'analytics' => $analytics
+        ]);
+    }
+
     /**
      * Endpoint: GET /api/admin/kyc/pending or ?action=kyc-pending
      */

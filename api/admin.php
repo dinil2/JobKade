@@ -19,6 +19,10 @@ switch ($action) {
         $controller->stats();
         break;
 
+    case 'analytics':
+        $controller->analytics();
+        break;
+
     // KYC Moderation Actions
     case 'kyc/pending':
     case 'kyc-pending':

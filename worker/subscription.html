@@ -12,83 +12,10 @@
   <link rel="stylesheet" href="../css/worker.css">
 </head>
 <body>
-  <nav class="navbar" id="navbar">
-    <div class="container dashboard-nav">
-      <div class="dashboard-nav-left">
-        <button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button>
-        <a href="../index.html" class="nav-logo">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg>
-          Job<span>Kade</span>
-        </a>
-      </div>
-      <div class="dashboard-nav-right">
-        <div class="notification-wrapper">
-          <button class="notification-bell" aria-label="Notifications" title="Notifications">
-            <i data-lucide="bell" width="22" height="22"></i>
-            <span class="notif-count">2</span>
-          </button>
-          <div class="notification-dropdown">
-            <div class="notification-dropdown-header">
-              <h4>Notifications</h4>
-              <a href="#" class="text-sm text-primary-color">Mark all read</a>
-            </div>
-            <div class="notification-list">
-              <div class="notification-item unread">
-                <div class="notification-item-icon green"><i data-lucide="check-circle" width="16" height="16"></i></div>
-                <div class="notification-item-content">
-                  <p>Your worker verification has been approved!</p>
-                  <span class="notif-time">1 hour ago</span>
-                </div>
-              </div>
-              <div class="notification-item unread">
-                <div class="notification-item-icon"><i data-lucide="briefcase" width="16" height="16"></i></div>
-                <div class="notification-item-content">
-                  <p>New AC repair job request in Colombo.</p>
-                  <span class="notif-time">3 hours ago</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <a href="profile-edit.html" style="text-decoration:none;" title="My Profile">
-          <div class="avatar avatar-nav avatar-blue" id="navbar-user-avatar">KP</div>
-        </a>
-        <a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade">
-          <i data-lucide="log-out" width="18" height="18"></i>
-          <span>Logout</span>
-        </a>
-      </div>
-    </div>
-  </nav>
+  <div id="navbar-container"></div>
 
   <div class="dashboard-layout">
-    <div class="sidebar-overlay"></div>
-    <aside class="sidebar worker">
-      <div class="sidebar-header">
-        <div class="sidebar-user">
-          <div class="avatar avatar-md avatar-blue" id="sidebarAvatar">KP</div>
-          <div>
-            <div class="sidebar-user-name" id="sidebarUserName">Kasun Perera</div>
-            <div class="sidebar-user-role">Worker</div>
-          </div>
-        </div>
-      </div>
-      <nav class="sidebar-nav">
-        <div class="sidebar-label">Main</div>
-        <a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-        <a href="profile-edit.html" class="sidebar-link"><i data-lucide="user"></i> My Profile</a>
-        <a href="kyc.html" class="sidebar-link"><i data-lucide="shield-check"></i> Identity & KYC</a>
-        <a href="my-services.html" class="sidebar-link"><i data-lucide="briefcase"></i> My Services</a>
-        <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Customer Jobs</a>
-        <a href="wallet.html" class="sidebar-link"><i data-lucide="wallet"></i> Wallet & Earnings</a>
-        <a href="subscription.html" class="sidebar-link active"><i data-lucide="credit-card"></i> Subscriptions</a>
-        <div class="sidebar-label">Account</div>
-        <a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a>
-      </nav>
-      <div class="sidebar-footer">
-        <a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a>
-      </div>
-    </aside>
+    <div id="sidebar-container"></div>
 
     <main class="dashboard-main">
       <div class="dashboard-header">

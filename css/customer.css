@@ -2,11 +2,7 @@
    JODKADE — Customer Dashboard Styles
    ========================================== */
 
-/* Customer sidebar accent */
-.sidebar.customer .sidebar-link.active {
-  background: var(--primary-light);
-  color: var(--primary);
-}
+
 
 /* Quick Actions */
 .quick-actions {

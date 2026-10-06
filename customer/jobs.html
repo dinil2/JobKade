@@ -12,15 +12,10 @@
   <link rel="stylesheet" href="../css/customer.css">
 </head>
 <body>
-  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span></a></div><div class="dashboard-nav-right"><div class="notification-wrapper"><button class="notification-bell" aria-label="Notifications" title="Notifications"><i data-lucide="bell" width="22" height="22"></i><span class="notif-count">3</span></button><div class="notification-dropdown"><div class="notification-dropdown-header"><h4>Notifications</h4><a href="#" class="text-sm text-primary-color">Mark all read</a></div><div class="notification-list"><div class="notification-item unread"><div class="notification-item-icon green"><i data-lucide="check-circle" width="16" height="16"></i></div><div class="notification-item-content"><p>Your job request was posted successfully.</p><span class="notif-time">2 minutes ago</span></div></div><div class="notification-item unread"><div class="notification-item-icon"><i data-lucide="users" width="16" height="16"></i></div><div class="notification-item-content"><p>New worker matches your plumbing request.</p><span class="notif-time">1 hour ago</span></div></div></div></div></div><a href="profile.html" style="text-decoration:none;" title="My Profile"><div class="avatar avatar-nav avatar-blue">D</div></a><a href="../auth/login.html" class="nav-logout-btn" title="Logout from JobKade"><i data-lucide="log-out" width="18" height="18"></i><span>Logout</span></a></div></div></nav>
+  <div id="navbar-container"></div>
 
   <div class="dashboard-layout">
-    <div class="sidebar-overlay"></div>
-    <aside class="sidebar customer">
-      <div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-blue">D</div><div><div class="sidebar-user-name">Dinil Sandaruwan</div><div class="sidebar-user-role">Customer</div></div></div></div>
-      <nav class="sidebar-nav"><div class="sidebar-label">Main</div><a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Dashboard</a><a href="../workers.html" class="sidebar-link"><i data-lucide="search"></i> Find Workers</a><a href="jobs.html" class="sidebar-link active"><i data-lucide="file-text"></i> My Job Requests</a><a href="post-job.html" class="sidebar-link"><i data-lucide="plus-circle"></i> Post a Job</a><a href="saved-workers.html" class="sidebar-link"><i data-lucide="heart"></i> Saved Workers</a><div class="sidebar-label">Account</div><a href="../messages.html" class="sidebar-link"><i data-lucide="message-square"></i> Messages</a><a href="profile.html" class="sidebar-link"><i data-lucide="user"></i> Profile</a></nav>
-      <div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div>
-    </aside>
+    <div id="sidebar-container"></div>
 
     <main class="dashboard-main">
       <div class="dashboard-header">

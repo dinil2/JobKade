@@ -75,12 +75,17 @@ class AdminService {
         $this->workerRepo->updateVerificationStatus($workerId, $workerStatus);
 
         // 3. Dispatch in-app notification to worker user
-        if (!empty($doc['user_id'])) {
-            $workerUserId = (int)$doc['user_id'];
-            $notifTitle = ($status === 'approved') ? 'KYC Verification Approved 🎉' : 'KYC Verification Update ⚠️';
+        $workerUserId = (int)($doc['user_id'] ?? 0);
+        if ($workerUserId <= 0) {
+            $profile = $this->workerRepo->getProfileById($workerId);
+            $workerUserId = (int)($profile['user_id'] ?? 0);
+        }
+
+        if ($workerUserId > 0) {
+            $notifTitle = ($status === 'approved') ? 'KYC Verification Approved' : 'KYC Verification Rejected';
             $notifMsg = ($status === 'approved') 
                 ? 'Congratulations! Your identity document has been verified. You now have the verified worker badge.'
-                : 'Your KYC submission was rejected by administration. Reason: ' . $notes;
+                : 'Your KYC submission was rejected by administration. Reason: ' . ($notes ?: 'Document could not be verified.');
 
             try {
                 $nStmt = $this->db->prepare("
@@ -141,10 +146,10 @@ class AdminService {
         $profile = $this->workerRepo->getProfileById($workerId);
         if ($profile && !empty($profile['user_id'])) {
             $workerUserId = (int)$profile['user_id'];
-            $notifTitle = ($status === 'approved') ? 'Identity Verification Approved 🎉' : 'Identity Verification Update ⚠️';
+            $notifTitle = ($status === 'approved') ? 'KYC Verification Approved' : 'KYC Verification Rejected';
             $notifMsg = ($status === 'approved')
                 ? 'Congratulations! Your National ID, Police Report, and Live Selfie have all been verified and approved.'
-                : 'Your verification packet was reviewed and rejected. Reason: ' . $notes;
+                : 'Your verification packet was reviewed and rejected. Reason: ' . ($notes ?: 'Documents could not be approved.');
 
             try {
                 $nStmt = $this->db->prepare("
@@ -152,7 +157,9 @@ class AdminService {
                     VALUES (:uid, :title, :msg, 'kyc', 0)
                 ");
                 $nStmt->execute([':uid' => $workerUserId, ':title' => $notifTitle, ':msg' => $notifMsg]);
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+                error_log("Failed to dispatch worker packet KYC notification: " . $e->getMessage());
+            }
         }
 
         return [
@@ -161,6 +168,107 @@ class AdminService {
             'worker_id'     => $workerId,
             'worker_status' => $workerStatus,
             'admin_notes'   => $notes
+        ];
+    }
+
+    /**
+     * Retrieve platform analytics for charts.
+     */
+    public function getAnalytics(): array {
+        $labels = [];
+        $monthsKeys = [];
+        $now = new DateTime('first day of this month');
+
+        for ($i = 7; $i >= 0; $i--) {
+            $dt = clone $now;
+            $dt->modify("-$i month");
+            $ym = $dt->format('Y-m');
+            $monthsKeys[] = $ym;
+            $labels[] = $dt->format('M');
+        }
+
+        $registrations = array_fill_keys($monthsKeys, 0);
+        $jobs = array_fill_keys($monthsKeys, 0);
+        $revenue = array_fill_keys($monthsKeys, 0.0);
+
+        // 1. Worker registrations per month (COUNT of users WHERE role = 'worker', grouped by DATE_FORMAT(created_at, '%Y-%m'))
+        $workerStmt = $this->db->query("
+            SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS count
+            FROM users
+            WHERE role = 'worker'
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ");
+        while ($row = $workerStmt->fetch(PDO::FETCH_ASSOC)) {
+            if (isset($registrations[$row['ym']])) {
+                $registrations[$row['ym']] = (int)$row['count'];
+            }
+        }
+
+        // 2. Job requests per month (COUNT of job_requests grouped the same way)
+        $jobsStmt = $this->db->query("
+            SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS count
+            FROM job_requests
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ");
+        while ($row = $jobsStmt->fetch(PDO::FETCH_ASSOC)) {
+            if (isset($jobs[$row['ym']])) {
+                $jobs[$row['ym']] = (int)$row['count'];
+            }
+        }
+
+        // 3. Revenue per month (SUM of amount from subscription_payments WHERE status = 'completed', grouped the same way)
+        $revStmt = $this->db->query("
+            SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, SUM(amount) AS total
+            FROM subscription_payments
+            WHERE status = 'completed'
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+        ");
+        while ($row = $revStmt->fetch(PDO::FETCH_ASSOC)) {
+            if (isset($revenue[$row['ym']])) {
+                $revenue[$row['ym']] = (float)$row['total'];
+            }
+        }
+
+        // 4. Worker counts per trade category (COUNT from worker_categories joined to categories, grouped by category name)
+        $catStmt = $this->db->query("
+            SELECT c.name, COUNT(wc.worker_id) AS count
+            FROM worker_categories wc
+            JOIN categories c ON wc.category_id = c.id
+            GROUP BY c.name
+            ORDER BY count DESC
+        ");
+        $categoryLabels = [];
+        $categoryCounts = [];
+        $categoryMap = [];
+        while ($row = $catStmt->fetch(PDO::FETCH_ASSOC)) {
+            $categoryLabels[] = $row['name'];
+            $categoryCounts[] = (int)$row['count'];
+            $categoryMap[$row['name']] = (int)$row['count'];
+        }
+
+        if (empty($categoryLabels)) {
+            $allCatStmt = $this->db->query("SELECT name FROM categories ORDER BY id ASC");
+            while ($row = $allCatStmt->fetch(PDO::FETCH_ASSOC)) {
+                $categoryLabels[] = $row['name'];
+                $categoryCounts[] = 0;
+                $categoryMap[$row['name']] = 0;
+            }
+        }
+
+        return [
+            'labels'               => $labels,
+            'worker_registrations' => array_values($registrations),
+            'registrations'        => array_values($registrations),
+            'job_requests'         => array_values($jobs),
+            'jobs'                 => array_values($jobs),
+            'revenue'              => array_values($revenue),
+            'category_counts'      => $categoryMap,
+            'categories'           => [
+                'labels' => $categoryLabels,
+                'data'   => $categoryCounts
+            ],
+            'category_labels'      => $categoryLabels,
+            'category_data'        => $categoryCounts
         ];
     }
 }

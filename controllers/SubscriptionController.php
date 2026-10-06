@@ -2,6 +2,7 @@
 // controllers/SubscriptionController.php
 
 require_once __DIR__ . '/../services/PaymentService.php';
+require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../config/cors.php';
 require_once __DIR__ . '/../config/JWT.php';
 
@@ -29,6 +30,34 @@ class SubscriptionController {
 
         try {
             $res = $this->payService->processPayment((int)$user['worker_id'], $planId, $method);
+
+            // Insert notification for the worker
+            try {
+                $workerUserId = (int)($user['user_id'] ?? $user['id'] ?? 0);
+                if ($workerUserId <= 0) {
+                    $pdo = Database::getConnection();
+                    $wStmt = $pdo->prepare("SELECT user_id FROM worker_profiles WHERE id = :wid LIMIT 1");
+                    $wStmt->execute([':wid' => (int)$user['worker_id']]);
+                    $workerUserId = (int)$wStmt->fetchColumn();
+                }
+
+                if ($workerUserId > 0) {
+                    $planName = $res['plan_name'] ?? 'Membership';
+                    $pdo = Database::getConnection();
+                    $nStmt = $pdo->prepare("
+                        INSERT INTO notifications (user_id, title, message, type, is_read)
+                        VALUES (:uid, :title, :msg, 'subscription', 0)
+                    ");
+                    $nStmt->execute([
+                        ':uid'   => $workerUserId,
+                        ':title' => 'Subscription Activated',
+                        ':msg'   => "Your {$planName} subscription has been activated successfully."
+                    ]);
+                }
+            } catch (Throwable $ne) {
+                error_log("Failed to insert subscription notification: " . $ne->getMessage());
+            }
+
             sendJsonResponse(200, [
                 'status'  => 'success',
                 'message' => 'Subscription payment processed successfully!',

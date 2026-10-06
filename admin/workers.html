@@ -12,25 +12,10 @@
   <link rel="stylesheet" href="../css/admin.css">
 </head>
 <body>
-  <nav class="navbar" id="navbar"><div class="container dashboard-nav"><div class="dashboard-nav-left"><button class="sidebar-toggle"><i data-lucide="menu" width="24" height="24"></i></button><a href="../index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span> <span class="badge badge-pending" style="margin-left:8px;font-size:0.7rem;">ADMIN</span></a></div><div class="dashboard-nav-right"><div class="avatar avatar-sm avatar-purple">AD</div></div></div></nav>
+  <div id="navbar-container"></div>
 
   <div class="dashboard-layout">
-    <div class="sidebar-overlay"></div>
-    <aside class="sidebar admin">
-      <div class="sidebar-header"><div class="sidebar-user"><div class="avatar avatar-md avatar-purple">AD</div><div><div class="sidebar-user-name">System Administrator</div><div class="sidebar-user-role">Platform Admin</div></div></div></div>
-      <nav class="sidebar-nav">
-        <div class="sidebar-label">Management</div>
-        <a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Overview</a>
-        <a href="verification.html" class="sidebar-link"><i data-lucide="shield-check"></i> Worker Verification <span class="badge badge-pending" style="margin-left:auto;font-size:0.7rem;">3</span></a>
-        <a href="workers.html" class="sidebar-link active"><i data-lucide="users"></i> Manage Workers</a>
-        <a href="customers.html" class="sidebar-link"><i data-lucide="user-check"></i> Manage Customers</a>
-        <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Job Requests</a>
-        <a href="moderation.html" class="sidebar-link"><i data-lucide="flag"></i> Moderation</a>
-        <div class="sidebar-label">Insights</div>
-        <a href="analytics.html" class="sidebar-link"><i data-lucide="bar-chart-3"></i> Analytics & Reports</a>
-      </nav>
-      <div class="sidebar-footer"><a href="../auth/login.html" class="sidebar-link"><i data-lucide="log-out"></i> Logout</a></div>
-    </aside>
+    <div id="sidebar-container"></div>
 
     <main class="dashboard-main">
       <div class="dashboard-header">

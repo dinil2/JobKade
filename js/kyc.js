@@ -15,29 +15,33 @@ document.addEventListener('DOMContentLoaded', function () {
   if ($id('navAvatar')) $id('navAvatar').textContent = initials;
 
   const logoutBtn = $id('logoutBtn');
-  if (logoutBtn) {
+  if (logoutBtn && !logoutBtn.dataset.logoutBound) {
+    logoutBtn.dataset.logoutBound = 'true';
     logoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      ['jobkade_token', 'jodkade_logged_user', 'jobkade_user'].forEach(k => localStorage.removeItem(k));
-      window.location.href = '../auth/login.html';
+      if (typeof logoutUser === 'function') {
+        logoutUser();
+      } else {
+        ['jobkade_token', 'jodkade_logged_user', 'jobkade_user'].forEach(k => localStorage.removeItem(k));
+        window.location.href = '../auth/login.html';
+      }
     });
   }
 
   // 2. Constants & State
   const DOC_TYPES = ['nic', 'selfie', 'police_report', 'trade_certificate'];
+  const REQUIRED_DOCS = [
+    { key: 'nic', label: 'National ID (NIC)' },
+    { key: 'selfie', label: 'Live Selfie' },
+    { key: 'police_report', label: 'Police Clearance Report' }
+  ];
+
   const selectedFiles = { nic: null, selfie: null, police_report: null, trade_certificate: null };
   const defaultTitles = {
     nic: 'National Identity Card (NIC)',
     selfie: 'Live Selfie holding NIC',
     police_report: 'Police Clearance Certificate',
     trade_certificate: 'NVQ Trade Qualification Certificate'
-  };
-
-  const actionLabels = {
-    selfie: 'Upload Live Selfie',
-    police_report: 'Upload Police Report',
-    trade_certificate: 'Upload Qualification',
-    nic: 'Upload National ID'
   };
 
   // 3. Helpers
@@ -58,6 +62,24 @@ document.addEventListener('DOMContentLoaded', function () {
     else alert(msg);
   }
 
+  function showSubmitAlert(msg, type = 'error') {
+    const alertBox = $id('submitAlertBox');
+    if (!alertBox) return;
+    alertBox.className = `kyc-submit-alert ${type}`;
+    const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+    alertBox.innerHTML = `<i data-lucide="${icon}" width="18" height="18" style="flex-shrink:0;"></i> <span>${escapeHtml(msg)}</span>`;
+    alertBox.style.display = 'flex';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function hideSubmitAlert() {
+    const alertBox = $id('submitAlertBox');
+    if (alertBox) {
+      alertBox.style.display = 'none';
+      alertBox.innerHTML = '';
+    }
+  }
+
   async function apiCall(endpoint, options = {}) {
     if (typeof apiFetch === 'function') {
       const res = await apiFetch(endpoint, options);
@@ -70,14 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return { ok: rawRes.ok, data: rawData };
   }
 
-  function resetSubmitButton(type) {
-    const btn = $id(`submit_${type}`);
-    if (!btn) return;
-    btn.innerHTML = `<i data-lucide="upload" width="14" height="14"></i> ${actionLabels[type] || 'Upload Document'}`;
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  }
-
-  // 4. File Selection & Dropzone
+  // 4. File Selection & Dropzone (Simplified: file name with checkmark, NO preview image)
   function handleFileSelect(type, file) {
     if (!file) return;
 
@@ -97,30 +112,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const dropzone = $id(`dropzone_${type}`);
     const previewBox = $id(`selectedPreview_${type}`);
-    const thumbImg = $id(`thumb_${type}`);
-    const fileIcon = $id(`fileIcon_${type}`);
     const fileName = $id(`fileName_${type}`);
-    const fileSize = $id(`fileSize_${type}`);
-    const submitBtn = $id(`submit_${type}`);
 
     if (fileName) fileName.textContent = file.name;
-    if (fileSize) fileSize.textContent = formatBytes(file.size);
-
-    if (['png', 'jpg', 'jpeg'].includes(ext)) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        if (thumbImg) { thumbImg.src = e.target.result; thumbImg.style.display = 'block'; }
-        if (fileIcon) fileIcon.style.display = 'none';
-      };
-      reader.readAsDataURL(file);
-    } else {
-      if (thumbImg) thumbImg.style.display = 'none';
-      if (fileIcon) fileIcon.style.display = 'flex';
-    }
-
     if (dropzone) dropzone.style.display = 'none';
     if (previewBox) previewBox.style.display = 'flex';
-    if (submitBtn) submitBtn.innerHTML = '<i data-lucide="check" width="14" height="14"></i> Upload Selected File';
+
+    hideSubmitAlert();
     if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
@@ -131,7 +129,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const previewBox = $id(`selectedPreview_${type}`);
     const removeBtn = $id(`removeFile_${type}`);
     const form = $id(`form_${type}`);
-    const submitBtn = $id(`submit_${type}`);
     const replaceBtn = $id(`replaceBtn_${type}`);
     const uploadedView = $id(`uploadedView_${type}`);
 
@@ -163,7 +160,6 @@ document.addEventListener('DOMContentLoaded', function () {
         fileInput.value = '';
         if (previewBox) previewBox.style.display = 'none';
         if (dropzone) dropzone.style.display = 'flex';
-        resetSubmitButton(type);
       });
     }
 
@@ -176,65 +172,115 @@ document.addEventListener('DOMContentLoaded', function () {
         if (previewBox) previewBox.style.display = 'none';
         selectedFiles[type] = null;
         fileInput.value = '';
-        resetSubmitButton(type);
       });
     }
+  }
 
-    async function triggerUpload() {
-      const file = selectedFiles[type] || (fileInput.files?.length ? fileInput.files[0] : null);
-      if (!file) {
-        showToastMessage(`Please choose a file for ${defaultTitles[type]}.`, 'warning');
-        fileInput.click();
-        return;
-      }
+  DOC_TYPES.forEach(setupCard);
 
+  // 6. Single Submit Documents Handler
+  const submitAllBtn = $id('submitAllKycBtn');
+  if (submitAllBtn) {
+    submitAllBtn.addEventListener('click', handleSubmitAllDocuments);
+  }
+
+  async function handleSubmitAllDocuments() {
+    hideSubmitAlert();
+
+    // The single submit must be blocked unless all 3 required documents (nic, selfie, police_report) have a file selected
+    const missing = REQUIRED_DOCS.filter(doc => !selectedFiles[doc.key]);
+    if (missing.length > 0) {
+      const missingNames = missing.map(doc => doc.label).join(', ');
+      const errorMsg = `Please select all required documents before submitting. Missing: ${missingNames}`;
+      showToastMessage(errorMsg, 'error');
+      showSubmitAlert(errorMsg, 'error');
+      return;
+    }
+
+    // Determine documents to upload (all selected files; optional trade_certificate uploaded if selected)
+    const docsToUpload = DOC_TYPES.filter(type => selectedFiles[type] !== null);
+    if (docsToUpload.length === 0) {
+      showToastMessage('No documents selected for upload.', 'warning');
+      return;
+    }
+
+    const submitBtn = $id('submitAllKycBtn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : 'Submit Documents';
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin" width="18" height="18"></i> <span>Uploading documents...</span>';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    const errors = [];
+
+    // Upload each selected file to api/kyc.php?action=upload one by one
+    for (let i = 0; i < docsToUpload.length; i++) {
+      const type = docsToUpload[i];
+      const file = selectedFiles[type];
       const nameInput = $id(`name_${type}`);
       const docName = nameInput?.value?.trim() || defaultTitles[type];
+
+      if (submitBtn) {
+        submitBtn.innerHTML = `<i data-lucide="loader-2" class="spin" width="18" height="18"></i> <span>Uploading ${defaultTitles[type]} (${i + 1}/${docsToUpload.length})...</span>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
 
       const formData = new FormData();
       formData.append('document_type', type);
       formData.append('document_name', docName);
       formData.append('kyc_file', file);
 
-      const origHtml = submitBtn ? submitBtn.innerHTML : 'Upload';
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin" width="14" height="14"></i> Uploading...';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      }
-
       try {
-        const res = await apiCall('kyc.php?action=upload', { method: 'POST', body: formData });
-        if (res.ok && res.data && res.data.status === 'success') {
-          showToastMessage(res.data.message || `${defaultTitles[type]} uploaded successfully!`, 'success');
-          selectedFiles[type] = null;
-          fileInput.value = '';
-          if (previewBox) previewBox.style.display = 'none';
-          if (dropzone) dropzone.style.display = 'flex';
-          resetSubmitButton(type);
-          await loadKycStatus();
-        } else {
-          showToastMessage(res.data?.message || 'Upload failed. Please check file format and try again.', 'error');
+        const res = await apiCall('kyc.php?action=upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok || !res.data || res.data.status !== 'success') {
+          const msg = res.data?.message || 'Upload failed';
+          errors.push(`${defaultTitles[type]}: ${msg}`);
         }
       } catch (err) {
         console.error(`Upload error (${type}):`, err);
-        showToastMessage('Network error occurred while uploading. Please try again.', 'error');
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = origHtml;
-          if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
+        errors.push(`${defaultTitles[type]}: Network error`);
       }
     }
 
-    if (submitBtn) submitBtn.addEventListener('click', e => { e.preventDefault(); triggerUpload(); });
-    if (form) form.addEventListener('submit', e => { e.preventDefault(); triggerUpload(); });
+    if (errors.length === 0) {
+      // Show one success message
+      showToastMessage('Documents submitted successfully!', 'success');
+      showSubmitAlert('Documents submitted successfully! Your verification credentials are now pending moderation.', 'success');
+
+      // Clear selections and reset forms
+      DOC_TYPES.forEach(type => {
+        selectedFiles[type] = null;
+        const fileInput = $id(`file_${type}`);
+        if (fileInput) fileInput.value = '';
+        const previewBox = $id(`selectedPreview_${type}`);
+        if (previewBox) previewBox.style.display = 'none';
+        const dropzone = $id(`dropzone_${type}`);
+        if (dropzone) dropzone.style.display = 'flex';
+      });
+
+      // Refresh KYC status
+      await loadKycStatus();
+    } else {
+      const errorMsg = 'Errors occurred during upload: ' + errors.join('; ');
+      showToastMessage(errorMsg, 'error');
+      showSubmitAlert(errorMsg, 'error');
+      await loadKycStatus();
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
   }
 
-  DOC_TYPES.forEach(setupCard);
-
-  // 6. Status Loading & UI Population
+  // 7. Status Loading & UI Population
   async function loadKycStatus() {
     try {
       const res = await apiCall('kyc.php?action=status');
@@ -274,8 +320,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const rejectionMsg = $id(`rejectionMsg_${type}`);
       const uploadedTitle = $id(`uploadedTitle_${type}`);
       const uploadedDate = $id(`uploadedDate_${type}`);
-      const uploadedLink = $id(`uploadedLink_${type}`);
-      const uploadedThumb = $id(`uploadedThumb_${type}`);
 
       if (doc) {
         uploadedCount++;
@@ -294,33 +338,21 @@ document.addEventListener('DOMContentLoaded', function () {
           rejectionBox.style.display = 'none';
         }
 
-        const rawPath = doc.file_path || doc.document_path || '#';
-        const fileUrl = rawPath.startsWith('http') ? rawPath : ('../' + rawPath);
-        const ext = fileUrl.split('.').pop().toLowerCase();
-
         if (uploadedTitle) uploadedTitle.textContent = doc.document_name || defaultTitles[type];
         if (uploadedDate) {
           const dateStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recently';
           uploadedDate.textContent = `Uploaded: ${dateStr}`;
         }
-        if (uploadedLink) uploadedLink.href = fileUrl;
 
-        if (uploadedThumb) {
-          uploadedThumb.innerHTML = ['jpg', 'jpeg', 'png', 'webp'].includes(ext)
-            ? `<img src="${fileUrl}" class="kyc-preview-thumb" alt="Document Preview">`
-            : `<div style="width:48px;height:48px;background:#fee2e2;border-radius:6px;display:flex;align-items:center;justify-content:center;">
-                 <i data-lucide="file-text" width="24" height="24" style="color:#dc2626;"></i>
-               </div>`;
-        }
-
+        // Only show uploadedView if worker has not selected a new file
         if (form && !selectedFiles[type]) form.style.display = 'none';
         if (uploadedView && !selectedFiles[type]) uploadedView.style.display = 'flex';
       } else {
         if (card) card.classList.remove('completed');
         if (badge) { badge.className = 'badge badge-unsubmitted'; badge.textContent = 'Not Uploaded'; }
         if (rejectionBox) rejectionBox.style.display = 'none';
-        if (form) form.style.display = 'block';
-        if (uploadedView) uploadedView.style.display = 'none';
+        if (form && !selectedFiles[type]) form.style.display = 'block';
+        if (uploadedView && !selectedFiles[type]) uploadedView.style.display = 'none';
       }
     });
 
@@ -331,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (progressFill) progressFill.style.width = percent + '%';
     if (progressStat) {
       progressStat.textContent = uploadedCount === 4 ? '4 of 4 Documents Uploaded (Complete! 🎉)' : `${uploadedCount} of 4 Documents Uploaded`;
-      progressStat.style.color = uploadedCount === 4 ? '#059669' : '#2563eb';
+      progressStat.style.color = uploadedCount >= 3 ? '#059669' : '#2563eb';
     }
 
     renderStatusCard(data, uploadedCount);
@@ -346,12 +378,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const badge = $id('kycStatusBadge');
     if (!card) return;
 
+    const docs = data.documents || [];
+    const hasNic = docs.some(d => d.document_type === 'nic' || d.document_type === 'driving_license');
+    const hasSelfie = docs.some(d => d.document_type === 'selfie');
+    const hasPolice = docs.some(d => d.document_type === 'police_report');
+    const requiredAllSubmitted = hasNic && hasSelfie && hasPolice;
+
     const states = {
       verified: {
         cls: 'kyc-status-card verified',
         icon: '<i data-lucide="shield-check" width="32" height="32" style="color:#059669;"></i>',
         title: 'Verified Professional Worker ✓',
-        desc: 'All 4 verification credentials have been approved by administrators. You enjoy top marketplace ranking and official badge.',
+        desc: 'All required verification credentials have been approved by administrators. You enjoy top marketplace ranking and official badge.',
         badgeCls: 'badge badge-approved', badgeText: 'Verified'
       },
       rejected: {
@@ -364,29 +402,29 @@ document.addEventListener('DOMContentLoaded', function () {
       allSubmitted: {
         cls: 'kyc-status-card pending',
         icon: '<i data-lucide="clock" width="32" height="32" style="color:#d97706;"></i>',
-        title: 'All 4 Documents Submitted — Under Review ⏳',
-        desc: 'Your complete KYC packet (National ID, Selfie, Police Clearance, and Qualifications) is currently being reviewed by administrators. Verifications typically conclude within 12–24 hours.',
+        title: 'Documents Submitted — Under Review ⏳',
+        desc: 'Your verification packet is currently being reviewed by administrators. Verifications typically conclude within 12–24 hours.',
         badgeCls: 'badge badge-pending', badgeText: 'Under Review'
       },
       partial: {
         cls: 'kyc-status-card unverified',
         icon: '<i data-lucide="shield-alert" width="32" height="32" style="color:#2563eb;"></i>',
         title: `Verification In Progress (${count} of 4 Documents Uploaded)`,
-        desc: 'Please complete uploading all 4 documents (National ID, Live Selfie, Police Report, and Educational Qualifications) so administrators can authenticate your profile.',
+        desc: 'Please ensure all 3 required documents (National ID, Live Selfie, Police Report) are submitted so administrators can authenticate your profile.',
         badgeCls: 'badge badge-pending', badgeText: 'Partially Submitted'
       },
       none: {
         cls: 'kyc-status-card unverified',
         icon: '<i data-lucide="shield-alert" width="32" height="32" style="color:#2563eb;"></i>',
         title: 'Verification Required: Unverified Worker Profile',
-        desc: 'Upload each of your 4 government identity and qualification records below to unlock customer inquiries and high-priority listing.',
+        desc: 'Upload each of your required government identity records below to unlock customer inquiries and high-priority listing.',
         badgeCls: 'badge badge-unsubmitted', badgeText: 'Not Submitted'
       }
     };
 
     const s = data.verify_status === 'verified' ? states.verified
       : data.verify_status === 'rejected' ? states.rejected
-      : count === 4 ? states.allSubmitted
+      : requiredAllSubmitted ? states.allSubmitted
       : count > 0 ? states.partial : states.none;
 
     card.className = s.cls;
@@ -404,9 +442,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!docs || docs.length === 0) {
       table.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align:center;color:#64748b;padding:32px;">
+          <td colspan="5" style="text-align:center;color:#64748b;padding:32px;">
             <i data-lucide="file-question" width="28" height="28" style="display:block;margin:0 auto 8px;opacity:0.5;"></i>
-            No KYC documents submitted yet. Use the 4 upload cards above to submit your credentials.
+            No KYC documents submitted yet. Use the upload cards above to select and submit your credentials.
           </td>
         </tr>`;
       if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -430,18 +468,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const badgeCls = doc.status === 'approved' ? 'badge-approved' : (doc.status === 'rejected' ? 'badge-rejected' : 'badge-pending');
       const statusLabel = doc.status === 'approved' ? 'Approved' : (doc.status === 'rejected' ? 'Rejected' : 'Pending Review');
 
-      const filePath = doc.file_path || doc.document_path || '#';
-      const fileLink = filePath.startsWith('http') ? filePath : ('../' + filePath);
-
       return `
         <tr>
           <td><strong style="color:#0f172a;">${typeLabel}</strong></td>
           <td>${escapeHtml(doc.document_name || '-')}</td>
-          <td>
-            <a href="${fileLink}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" style="font-size:0.75rem;padding:3px 8px;display:inline-flex;align-items:center;gap:4px;">
-              <i data-lucide="external-link" width="12" height="12"></i> View File
-            </a>
-          </td>
           <td style="font-size:0.85rem;color:#64748b;">${dateStr}</td>
           <td><span class="badge ${badgeCls}">${statusLabel}</span></td>
           <td style="font-size:0.85rem;color:${doc.status === 'rejected' ? '#dc2626' : '#64748b'};">

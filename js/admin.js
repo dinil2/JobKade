@@ -96,10 +96,9 @@ document.addEventListener('DOMContentLoaded', function () {
 /* ==========================================
    Chart Initialization
    ========================================== */
-function initAdminCharts() {
+async function initAdminCharts() {
   if (typeof Chart === 'undefined') return;
 
-  const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -127,12 +126,34 @@ function initAdminCharts() {
     });
   }
 
+  let labels = [];
+  let registrationsData = [];
+  let jobsData = [];
+  let revenueData = [];
+  let categoryLabels = [];
+  let categoryData = [];
+
+  try {
+    const res = await apiFetch('admin.php?action=analytics');
+    if (res.ok && res.data?.status === 'success' && res.data?.analytics) {
+      const a = res.data.analytics;
+      labels = a.labels || [];
+      registrationsData = a.worker_registrations || a.registrations || [];
+      jobsData = a.job_requests || a.jobs || [];
+      revenueData = a.revenue || [];
+      categoryLabels = a.categories?.labels || a.category_labels || [];
+      categoryData = a.categories?.data || a.category_data || [];
+    }
+  } catch (err) {
+    console.warn('Failed to load admin analytics:', err);
+  }
+
   // 1. Worker Registrations Line Chart
   createChart('registrations-chart', 'line', {
     labels,
     datasets: [{
       label: 'Worker Registrations',
-      data: [12, 19, 15, 25, 22, 30, 28, 35],
+      data: registrationsData,
       borderColor: '#5996FF',
       backgroundColor: 'rgba(89, 150, 255, 0.1)',
       fill: true,
@@ -148,7 +169,7 @@ function initAdminCharts() {
     labels,
     datasets: [{
       label: 'Job Requests',
-      data: [45, 52, 38, 65, 58, 72, 68, 85],
+      data: jobsData,
       backgroundColor: 'rgba(89, 150, 255, 0.7)',
       borderRadius: 6
     }]
@@ -159,7 +180,7 @@ function initAdminCharts() {
     labels,
     datasets: [{
       label: 'Revenue (Rs.)',
-      data: [25000, 35000, 28000, 42000, 38000, 52000, 48000, 62000],
+      data: revenueData,
       borderColor: '#66BB6A',
       backgroundColor: 'rgba(102, 187, 106, 0.1)',
       fill: true,
@@ -173,13 +194,15 @@ function initAdminCharts() {
   // 4. Category Distribution Doughnut Chart
   const catEl = document.getElementById('category-chart');
   if (catEl) {
+    const defaultColors = ['#5996FF', '#66BB6A', '#FFA726', '#AB47BC', '#26A69A', '#EF5350'];
+    const bgColors = categoryLabels.map((_, i) => defaultColors[i % defaultColors.length]);
     new Chart(catEl.getContext('2d'), {
       type: 'doughnut',
       data: {
-        labels: ['Electrical', 'Plumbing', 'AC Repair', 'Carpentry', 'Painting', 'Cleaning'],
+        labels: categoryLabels,
         datasets: [{
-          data: [30, 22, 18, 12, 10, 8],
-          backgroundColor: ['#5996FF', '#66BB6A', '#FFA726', '#AB47BC', '#26A69A', '#EF5350'],
+          data: categoryData,
+          backgroundColor: bgColors.length ? bgColors : defaultColors,
           borderWidth: 0,
           spacing: 2
         }]
@@ -210,7 +233,13 @@ async function loadAdminStats() {
       if (cards.length >= 4) {
         if (s.verified_workers !== undefined) cards[0].querySelector('h3')?.replaceChildren(document.createTextNode(s.verified_workers));
         if (s.total_users !== undefined) cards[1].querySelector('h3')?.replaceChildren(document.createTextNode(s.total_users));
+        if (s.pending_kyc !== undefined) cards[2].querySelector('h3')?.replaceChildren(document.createTextNode(s.pending_kyc));
         if (s.total_jobs !== undefined) cards[3].querySelector('h3')?.replaceChildren(document.createTextNode(s.total_jobs));
+      }
+      if (s.pending_kyc !== undefined) {
+        document.querySelectorAll('#pendingCounterBadge').forEach(el => {
+          el.textContent = s.pending_kyc;
+        });
       }
     }
   } catch (err) {

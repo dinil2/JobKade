@@ -2,11 +2,7 @@
    JODKADE — Worker Dashboard Styles
    ========================================== */
 
-/* Worker sidebar accent */
-.sidebar.worker .sidebar-link.active {
-  background: var(--primary-light);
-  color: var(--primary);
-}
+
 
 /* Service Gig Management */
 .services-header {

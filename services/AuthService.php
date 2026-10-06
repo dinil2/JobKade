@@ -136,6 +136,21 @@ class AuthService {
             }
 
             $pdo->commit();
+
+            // Insert registration welcome notification
+            try {
+                $notifStmt = $pdo->prepare("
+                    INSERT INTO notifications (user_id, title, message, type, is_read)
+                    VALUES (:uid, :title, :msg, 'system', 0)
+                ");
+                $notifStmt->execute([
+                    ':uid'   => $userId,
+                    ':title' => 'Registration Successful',
+                    ':msg'   => 'Welcome to JobKade! Your account has been created successfully.'
+                ]);
+            } catch (Throwable $ne) {
+                error_log("Failed to insert registration notification: " . $ne->getMessage());
+            }
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
