@@ -1,19 +1,10 @@
 // js/kyc.js — Dedicated 4-Document Worker KYC Verification Client
 
 document.addEventListener('DOMContentLoaded', function () {
-  const token = localStorage.getItem('jobkade_token');
-  let user = null;
-  try {
-    user = JSON.parse(localStorage.getItem('jodkade_logged_user') || localStorage.getItem('jobkade_user') || 'null');
-  } catch (e) {
-    user = null;
-  }
-
-  // Guard: Worker KYC page requires authenticated worker session
-  if (!token || !user || (user.role || '').toLowerCase() !== 'worker') {
-    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('worker/kyc.html');
-    return;
-  }
+  const token = (typeof getAuthToken === 'function') ? getAuthToken() : '';
+  // Shared auth guard (js/main.js): redirects to login unless a worker session exists
+  const user = (typeof requireAuth === 'function') ? requireAuth('worker') : null;
+  if (!user) return;
 
   // Populate user profile info in navbar/sidebar
   const sidebarUserName = document.getElementById('sidebarUserName');

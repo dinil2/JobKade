@@ -7,21 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ---- Sync Worker Identity Across All Worker Pages ----
   function syncWorkerIdentity() {
-    var user = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
-    if (!user && typeof localStorage !== 'undefined') {
-      try {
-        user = JSON.parse(localStorage.getItem('jodkade_logged_user') || 'null');
-      } catch (e) {
-        user = null;
-      }
-    }
-
-    var token = typeof getAuthToken === 'function' ? getAuthToken() : localStorage.getItem('jobkade_token');
-    // Guard: Worker pages must only display an authenticated worker session from database
-    if (!token || !user || (user.role || '').toLowerCase() !== 'worker') {
-      window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('worker/dashboard.html');
-      return false;
-    }
+    // Shared auth guard (js/main.js): redirects to login unless a worker session exists
+    var user = (typeof requireAuth === 'function') ? requireAuth('worker') : null;
+    if (!user) return false;
 
     var workerName = user.name || user.full_name || 'Worker';
     var initials = workerName.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().substring(0, 2) || 'WK';

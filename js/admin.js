@@ -5,13 +5,9 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  // Verify authentic Admin authentication from database session
-  const token = typeof getAuthToken === 'function' ? getAuthToken() : localStorage.getItem('jobkade_token');
-  const user = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
-  if (!token || !user || (user.role || '').toLowerCase() !== 'admin') {
-    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('admin/dashboard.html');
-    return;
-  }
+  // Shared auth guard (js/main.js): redirects to login unless an admin session exists
+  const user = (typeof requireAuth === 'function') ? requireAuth('admin') : null;
+  if (!user) return;
 
   // ---- Fetch Real Stats from Backend ----
   loadAdminStats();
