@@ -27,11 +27,8 @@
 
       <!-- Status Filters -->
       <div class="tabs" data-tabs>
-        <button class="tab active status-filter-btn" data-filter="all">All</button>
-        <button class="tab status-filter-btn" data-filter="open">Open</button>
-        <button class="tab status-filter-btn" data-filter="progress">In Progress</button>
+        <button class="tab active status-filter-btn" data-filter="ongoing">Ongoing</button>
         <button class="tab status-filter-btn" data-filter="completed">Completed</button>
-        <button class="tab status-filter-btn" data-filter="cancelled">Cancelled</button>
       </div>
 
       <!-- Job Cards Container (Loaded dynamically from API) -->
@@ -55,7 +52,7 @@
               
               <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 16px; border: 1px solid var(--border);">
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;">Job Title</div>
-                <div id="pay-inv-job-title" style="font-weight: 600; font-size: 1rem; margin-bottom: 12px;">AC Repair & Gas Refill</div>
+                <div id="pay-inv-job-title" style="font-weight: 600; font-size: 1rem; margin-bottom: 12px;">—</div>
                 
                 <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top: 10px; border-top: 1px dashed var(--border);">
                   <span style="color: var(--text-secondary);">Total Amount Due:</span>
@@ -128,7 +125,7 @@
 
                 <div>
                   <label for="mock-card-name" style="font-size: 0.75rem; color: #cbd5e1; display:block; margin-bottom: 4px; font-weight: 500;">Cardholder Name</label>
-                  <input type="text" id="mock-card-name" class="form-input" value="DINIL SANDARUWAN" style="background: #1e293b; border-color: #334155; color: #f8fafc; font-size: 0.85rem; text-transform: uppercase;">
+                  <input type="text" id="mock-card-name" class="form-input" placeholder="CARDHOLDER NAME" style="background: #1e293b; border-color: #334155; color: #f8fafc; font-size: 0.85rem; text-transform: uppercase;">
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#94a3b8; border-top:1px solid #334155; padding-top:8px; margin-top:2px;">
@@ -183,19 +180,19 @@
             <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px;">
               <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.875rem;">
                 <span style="color:#64748B;">Date & Time</span>
-                <strong style="color:#0F172A;" id="receipt-date">23 Sep 2026, 12:00 PM</strong>
+                <strong style="color:#0F172A;" id="receipt-date">—</strong>
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.875rem;">
                 <span style="color:#64748B;">Service Job</span>
-                <strong style="color:#0F172A;" id="receipt-job-title">Home Service</strong>
+                <strong style="color:#0F172A;" id="receipt-job-title">—</strong>
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.875rem;">
                 <span style="color:#64748B;">Skilled Worker</span>
-                <strong style="color:#0F172A;" id="receipt-worker-name">Verified Worker</strong>
+                <strong style="color:#0F172A;" id="receipt-worker-name">—</strong>
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.875rem;">
                 <span style="color:#64748B;">Customer</span>
-                <strong style="color:#0F172A;" id="receipt-customer-name">Valued Customer</strong>
+                <strong style="color:#0F172A;" id="receipt-customer-name">—</strong>
               </div>
               <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.875rem;">
                 <span style="color:#64748B;">Payment Method</span>
@@ -250,11 +247,11 @@
             <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between;">
               <div>
                 <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:700;">Worker</div>
-                <strong id="review-worker-name-display" style="font-size:1rem; color:#0F172A;">Verified Worker</strong>
+                <strong id="review-worker-name-display" style="font-size:1rem; color:#0F172A;">—</strong>
               </div>
               <div style="text-align:right;">
                 <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:700;">Job</div>
-                <span id="review-job-title-display" style="font-size:0.875rem; color:#334155; font-weight:500;">Service Job</span>
+                <span id="review-job-title-display" style="font-size:0.875rem; color:#334155; font-weight:500;">—</span>
               </div>
             </div>
 
@@ -286,7 +283,7 @@
             <!-- Detailed Comment -->
             <div>
               <label for="review-comment" style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px; color:#1E293B;">Your Review Comments</label>
-              <textarea id="review-comment" name="comment" class="form-textarea" rows="4" placeholder="Describe the quality of work, neatness, and communication..." style="width:100%; border-radius:8px; resize:vertical; font-size:0.875rem;" required>Excellent workmanship, very polite and completed the job promptly. Highly recommend!</textarea>
+              <textarea id="review-comment" name="comment" class="form-textarea" rows="4" placeholder="Describe the quality of work, neatness, and communication..." style="width:100%; border-radius:8px; resize:vertical; font-size:0.875rem;" required></textarea>
             </div>
 
             <div class="modal-footer" style="padding:16px 0 0 0; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0;">

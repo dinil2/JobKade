@@ -3,13 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kasun Perera — Professional Electrician — JobKade</title>
-  <meta name="description" content="View Kasun Perera's profile — verified professional electrician serving Colombo. 4.9 rating, 8+ years experience.">
+  <title>Worker Profile — JobKade</title>
+  <meta name="description" content="View verified skilled professional profiles, customer ratings, and reviews on JobKade.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="js/lucide.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .star-pick {
+      font-size: 30px;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s ease, transform 0.15s ease;
+      display: inline-block;
+    }
+    .star-pick:hover,
+    .star-pick.hovered,
+    .star-pick.active {
+      color: #f59e0b !important;
+      transform: scale(1.12);
+    }
+    .empty-reviews-state {
+      text-align: center;
+      padding: 40px 20px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius-lg);
+      color: #64748b;
+    }
+    .not-found-card {
+      text-align: center;
+      padding: 80px 20px;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .not-found-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      margin: 0 auto 16px;
+    }
+  </style>
 </head>
 <body class="has-navbar">
 
@@ -27,30 +68,42 @@
     <div class="mobile-auth"><a href="auth/login.html" class="btn btn-outline w-full">Login</a><a href="auth/register.html" class="btn btn-primary w-full">Sign Up</a></div>
   </div>
 
+  <!-- Friendly Worker Not Found Message (Hidden by default) -->
+  <div id="workerNotFoundState" class="container not-found-card" style="display:none;">
+    <div class="not-found-icon">
+      <i data-lucide="user-x" width="36" height="36"></i>
+    </div>
+    <h2 style="font-size:1.6rem; font-weight:700; color:#1e293b; margin-bottom:8px;">Worker Not Found</h2>
+    <p style="color:#64748b; margin:0 auto 24px; font-size:0.95rem; line-height:1.6;">
+      The service professional you are looking for does not exist or no worker ID was specified. Please browse our directory to find a verified worker.
+    </p>
+    <a href="workers.html" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px;">
+      <i data-lucide="search" width="16" height="16"></i> Find Available Workers
+    </a>
+  </div>
+
   <!-- Profile Banner -->
-  <div class="profile-banner">
+  <div class="profile-banner" id="profileBanner">
     <div class="container">
       <div class="profile-top">
-        <img src="assets/images/worker-kasun.png" alt="Kasun Perera" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="avatar avatar-xl avatar-blue" style="display:none;width:120px;height:120px;font-size:2.5rem;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">KP</div>
+        <img id="workerAvatarImg" src="assets/images/hero-worker.png" alt="Worker Avatar" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);" onerror="this.style.display='none'; document.getElementById('workerAvatarInitials').style.display='flex';">
+        <div id="workerAvatarInitials" class="avatar avatar-xl avatar-blue" style="display:none;width:120px;height:120px;font-size:2.5rem;border:4px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.1);">W</div>
         <div class="profile-info">
           <h1>
-            Kasun Perera
-            <span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>
+            <span id="workerNameHeading">Loading Worker...</span>
+            <span id="workerVerifiedBadge" class="badge badge-verified" style="display:none;"><i data-lucide="check" width="12" height="12"></i> Verified</span>
           </h1>
-          <div class="profile-profession">Professional Electrician</div>
+          <div class="profile-profession" id="workerProfession">Service Professional</div>
           <div class="profile-meta">
-            <div class="profile-meta-item"><i data-lucide="map-pin"></i> Colombo, Sri Lanka</div>
-            <div class="profile-meta-item"><i data-lucide="briefcase"></i> 8+ years experience</div>
+            <div class="profile-meta-item"><i data-lucide="map-pin"></i> <span id="workerLocationMeta">Sri Lanka</span></div>
+            <div class="profile-meta-item"><i data-lucide="clock"></i> <span id="workerHoursMeta">8:00 AM - 6:00 PM</span></div>
             <div class="profile-meta-item">
               <div class="star-rating">
-                <i data-lucide="star" width="14" height="14"></i>
-                <i data-lucide="star" width="14" height="14"></i>
-                <i data-lucide="star" width="14" height="14"></i>
-                <i data-lucide="star" width="14" height="14"></i>
-                <i data-lucide="star" width="14" height="14"></i>
-                <span class="rating-value">4.9</span>
-                <span class="rating-count">(47 reviews)</span>
+                <span id="workerRatingStars" style="display:inline-flex; gap:2px; color:#f59e0b;">
+                  <i data-lucide="star" width="14" height="14"></i>
+                </span>
+                <span class="rating-value" id="workerRatingValue">0.0</span>
+                <span class="rating-count" id="workerRatingCount">(0 reviews)</span>
               </div>
             </div>
             <div class="profile-meta-item">
@@ -58,9 +111,8 @@
             </div>
           </div>
           <div class="profile-actions">
-            <a id="btn-banner-msg" href="messages.html" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="message-square" width="18" height="18"></i> Message</a>
-            <a href="tel:+94771234567" class="btn btn-call"><i data-lucide="phone" width="18" height="18"></i> Call</a>
-            <a href="https://wa.me/94771234567" class="btn btn-whatsapp"><i data-lucide="message-circle" width="18" height="18"></i> WhatsApp</a>
+            <a id="btn-banner-msg" href="messages.html" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="message-square" width="18" height="18"></i> Chat</a>
+            <a id="btn-banner-call" href="tel:" class="btn btn-call"><i data-lucide="phone" width="18" height="18"></i> Call</a>
             <button class="btn btn-outline save-worker-btn"><i data-lucide="heart" width="18" height="18"></i> Save</button>
           </div>
         </div>
@@ -69,75 +121,52 @@
   </div>
 
   <!-- Profile Body -->
-  <div class="profile-body">
+  <div class="profile-body" id="profileBody">
     <div class="container">
       <!-- Main Content -->
       <div>
         <!-- About -->
         <div class="profile-section">
           <h2>About</h2>
-          <p>I am a professional electrician with over 8 years of experience in residential and commercial electrical work. I specialize in wiring installations, circuit breaker repairs, lighting setups, and electrical fault diagnosis. I take pride in delivering safe, reliable work with clear communication throughout every project.</p>
+          <p id="workerBioText">Professional service provider verified on JobKade.</p>
         </div>
 
         <!-- Services -->
         <div class="profile-section">
           <h2>Services Offered</h2>
-          <div class="profile-services-grid">
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Electrical Installation</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Wiring Repairs</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Circuit Breaker Repair</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Lighting Installation</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Ceiling Fan Installation</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Electrical Fault Finding</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Generator Setup</div>
-            <div class="profile-service-item"><i data-lucide="check-circle"></i> Socket & Switch Replacement</div>
+          <div class="profile-services-grid" id="workerServicesGrid">
+            <div class="profile-service-item"><i data-lucide="check-circle"></i> Skilled Trade Services</div>
           </div>
         </div>
 
         <!-- Service Areas -->
         <div class="profile-section">
           <h2>Service Areas</h2>
-          <p><i data-lucide="map-pin" width="16" height="16" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Serves Colombo, Dehiwala, Mount Lavinia, Nugegoda, and surrounding areas within 15 km.</p>
+          <p id="workerServiceAreasText"><i data-lucide="map-pin" width="16" height="16" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Serves Colombo and surrounding areas.</p>
         </div>
 
-        <!-- Reviews -->
-        <div class="profile-section">
-          <h2>Reviews</h2>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar">DS</div>
-              <div>
-                <div class="review-name">Dinil Sandaruwan</div>
-                <div class="star-rating"><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i></div>
-                <div class="review-date">August 10, 2026</div>
+        <!-- Reviews Section -->
+        <div class="profile-section" id="reviewsSection">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h2 style="margin:0; padding-bottom:0; border-bottom:none;">Customer Reviews (<span id="reviewsCountBadge">0</span>)</h2>
+              <div id="reviewsRatingSub" style="font-size:0.875rem; color:var(--text-muted); margin-top:4px;">
+                Average rating: <strong id="reviewsAvgText">0.0</strong> / 5.0
               </div>
             </div>
-            <p class="review-text">Kasun was very professional and fixed our wiring issue quickly. He explained the problem clearly and charged a fair price. Highly recommend!</p>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span id="alreadyReviewedNotice" class="badge badge-verified" style="display:none; font-size:0.82rem; padding:6px 12px;">
+                <i data-lucide="check" width="14" height="14"></i> You already reviewed this worker
+              </span>
+              <button id="writeReviewBtn" class="btn btn-primary btn-sm" style="display:none; align-items:center; gap:6px;">
+                <i data-lucide="edit-3" width="15" height="15"></i> Write a Review
+              </button>
+            </div>
           </div>
 
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar">MR</div>
-              <div>
-                <div class="review-name">Malini Rajapaksha</div>
-                <div class="star-rating"><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i></div>
-                <div class="review-date">July 28, 2026</div>
-              </div>
-            </div>
-            <p class="review-text">Excellent work installing new lighting in our house. Kasun was punctual, clean, and very experienced. Will definitely call again.</p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar">PW</div>
-              <div>
-                <div class="review-name">Priyantha Wijesinghe</div>
-                <div class="star-rating"><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i><i data-lucide="star" width="12" height="12"></i></div>
-                <div class="review-date">July 15, 2026</div>
-              </div>
-            </div>
-            <p class="review-text">Fixed a tricky circuit breaker issue that another electrician couldn't resolve. Very knowledgeable and affordable. Thank you!</p>
+          <!-- Reviews List Container -->
+          <div id="reviewsListContainer">
+            <p style="color:var(--text-muted); text-align:center; padding:24px;">Loading reviews...</p>
           </div>
         </div>
       </div>
@@ -148,18 +177,17 @@
           <h3>Contact Information</h3>
           <p style="margin-bottom: 16px; font-size: 0.8125rem; color: var(--text-muted);">Contact this worker directly or message in-app.</p>
           <a id="btn-inapp-chat" href="messages.html" class="btn btn-primary w-full mb-1" style="display:flex; align-items:center; justify-content:center; gap:8px;">
-            <i data-lucide="message-square" width="18" height="18"></i> Send In-App Message
+            <i data-lucide="message-square" width="18" height="18"></i> Chat with Worker
           </a>
-          <a href="tel:+94771234567" class="btn btn-call w-full mb-1"><i data-lucide="phone" width="18" height="18"></i> Call Now</a>
-          <a href="https://wa.me/94771234567" class="btn btn-whatsapp w-full"><i data-lucide="message-circle" width="18" height="18"></i> WhatsApp</a>
+          <a id="btn-sidebar-call" href="tel:" class="btn btn-call w-full"><i data-lucide="phone" width="18" height="18"></i> Call Now</a>
         </div>
 
         <div class="profile-sidebar-card">
           <h3>Details</h3>
-          <div class="profile-detail-row"><span class="profile-detail-label">Experience</span><span class="profile-detail-value">8+ years</span></div>
-          <div class="profile-detail-row"><span class="profile-detail-label">Jobs Done</span><span class="profile-detail-value">156</span></div>
-          <div class="profile-detail-row"><span class="profile-detail-label">Response Time</span><span class="profile-detail-value">~30 mins</span></div>
-          <div class="profile-detail-row"><span class="profile-detail-label">Member Since</span><span class="profile-detail-value">Jan 2025</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Rating</span><span class="profile-detail-value" id="sidebarDetailRating">0.0 / 5.0</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Reviews</span><span class="profile-detail-value" id="sidebarDetailReviews">0 reviews</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Working Hours</span><span class="profile-detail-value" id="sidebarDetailHours">8:00 AM - 6:00 PM</span></div>
+          <div class="profile-detail-row"><span class="profile-detail-label">Member Since</span><span class="profile-detail-value" id="sidebarDetailMemberSince">Recent</span></div>
         </div>
 
         <div class="profile-sidebar-card">
@@ -167,11 +195,70 @@
           <div class="info-notice" style="margin-top: 8px;">
             <i data-lucide="shield-check"></i>
             <div>
-              <strong>Verified Worker</strong>
-              <p style="margin-top: 4px;">Verified workers have submitted identity documents that were reviewed by JobKade administrators.</p>
+              <strong id="sidebarVerificationTitle">Verified Worker</strong>
+              <p style="margin-top: 4px;" id="sidebarVerificationText">Identity and credentials reviewed by JobKade administration.</p>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Write a Review Modal -->
+  <div class="modal-overlay" id="reviewModal">
+    <div class="modal" style="max-width: 480px; border-radius: var(--radius-lg); overflow: hidden;">
+      <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+          <i data-lucide="star" width="20" height="20" style="color:#f59e0b; fill:#f59e0b;"></i>
+          Write a Review
+        </h3>
+        <button type="button" class="modal-close" id="closeReviewModalBtn" data-dismiss="modal" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
+          <i data-lucide="x" width="20" height="20"></i>
+        </button>
+      </div>
+
+      <div style="padding: 24px;">
+        <!-- Already reviewed banner -->
+        <div id="alreadyReviewedModalMessage" style="display:none; text-align:center; padding: 24px 12px;">
+          <div style="width:52px; height:52px; border-radius:50%; background:#ecfdf5; color:#10b981; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
+            <i data-lucide="check-circle-2" width="28" height="28"></i>
+          </div>
+          <h4 style="margin:0 0 6px; font-weight:700; color:var(--text-primary); font-size:1.05rem;">You already reviewed this worker</h4>
+          <p style="margin:0; color:var(--text-secondary); font-size:0.875rem;">You have already submitted feedback for this worker. Each customer can review a worker once.</p>
+          <div style="margin-top:20px;">
+            <button type="button" class="btn btn-outline btn-sm" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+
+        <!-- Review Form -->
+        <form id="profileReviewForm">
+          <div style="text-align:center; margin-bottom:20px;">
+            <label style="display:block; font-size:0.875rem; font-weight:600; margin-bottom:10px; color:var(--text-primary);">Your Rating</label>
+            <div id="starPickerContainer" style="display:inline-flex; gap:10px; cursor:pointer; padding:4px 0;">
+              <span class="star-pick" data-val="1" title="1 star">&#9733;</span>
+              <span class="star-pick" data-val="2" title="2 stars">&#9733;</span>
+              <span class="star-pick" data-val="3" title="3 stars">&#9733;</span>
+              <span class="star-pick" data-val="4" title="4 stars">&#9733;</span>
+              <span class="star-pick" data-val="5" title="5 stars">&#9733;</span>
+            </div>
+            <input type="hidden" id="reviewRatingInput" value="0">
+            <div id="starRatingLabel" style="font-size:0.8rem; font-weight:600; color:#f59e0b; margin-top:4px;">Tap a star to rate</div>
+            <div id="starRatingError" style="color:#ef4444; font-size:0.8rem; margin-top:4px; display:none;">Please select a star rating (1-5).</div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <label for="reviewCommentText" style="display:block; font-size:0.875rem; font-weight:600; margin-bottom:6px; color:var(--text-primary);">Your Review / Comment</label>
+            <textarea id="reviewCommentText" rows="4" placeholder="Describe the quality of work, punctuality, and professionalism (minimum 5 characters)..." style="width:100%; border:1px solid var(--border); border-radius:var(--radius-md); padding:10px 12px; font-size:0.875rem; font-family:inherit; resize:vertical; box-sizing:border-box;"></textarea>
+            <div id="commentError" style="color:#ef4444; font-size:0.8rem; margin-top:4px; display:none;">Comment must have at least 5 characters.</div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:12px; border-top:1px solid var(--border-light);">
+            <button type="button" class="btn btn-outline" data-dismiss="modal">Cancel</button>
+            <button type="submit" id="submitReviewBtn" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;">
+              <i data-lucide="send" width="16" height="16"></i> Submit Review
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -193,127 +280,594 @@
   <script>
     document.addEventListener('DOMContentLoaded', async function () {
       const urlParams = new URLSearchParams(window.location.search);
-      const workerId = urlParams.get('id') || '1';
-      let workerUserId = 3; // Default seeded worker user id
+      const workerIdParam = urlParams.get('id');
+      const workerId = workerIdParam ? parseInt(workerIdParam, 10) : 0;
 
-      function navigateToMessages(e) {
+      const notFoundContainer = document.getElementById('workerNotFoundState');
+      const bannerContainer = document.getElementById('profileBanner');
+      const bodyContainer = document.getElementById('profileBody');
+      const reviewModal = document.getElementById('reviewModal');
+
+      // Check if valid worker ID provided in URL
+      if (!workerId || isNaN(workerId) || workerId <= 0) {
+        showNotFoundState();
+        return;
+      }
+
+      let workerUserId = 0;
+      let currentWorker = null;
+      let currentReviews = [];
+      let selectedRating = 0;
+
+      function showNotFoundState() {
+        if (bannerContainer) bannerContainer.style.display = 'none';
+        if (bodyContainer) bodyContainer.style.display = 'none';
+        if (notFoundContainer) notFoundContainer.style.display = 'block';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+
+      function showProfileState() {
+        if (notFoundContainer) notFoundContainer.style.display = 'none';
+        if (bannerContainer) bannerContainer.style.display = 'block';
+        if (bodyContainer) bodyContainer.style.display = 'block';
+      }
+
+      // Format star icons helper
+      function renderStarsHtml(score, size = 14) {
+        const val = Math.min(5, Math.max(0, Math.round(Number(score) || 0)));
+        let html = '';
+        for (let i = 1; i <= 5; i++) {
+          if (i <= val) {
+            html += `<i data-lucide="star" width="${size}" height="${size}" style="color:#f59e0b; fill:#f59e0b;"></i>`;
+          } else {
+            html += `<i data-lucide="star" width="${size}" height="${size}" style="color:#cbd5e1; fill:none;"></i>`;
+          }
+        }
+        return html;
+      }
+
+      // ------------------------------------------------------------------
+      // 1. Load Worker Profile Details
+      // ------------------------------------------------------------------
+      async function loadWorkerProfile() {
+        try {
+          const res = await apiFetch('workers.php?action=profile&id=' + workerId);
+          if (!res.ok || !res.data || res.data.status !== 'success' || !res.data.worker) {
+            showNotFoundState();
+            return false;
+          }
+
+          const w = res.data.worker;
+          currentWorker = w;
+          showProfileState();
+
+          // Document title
+          const professionText = (w.categories && w.categories.length)
+            ? w.categories.map(c => c.name).join(', ')
+            : (w.profession || 'Service Professional');
+          document.title = `${w.full_name || 'Worker'} — ${professionText} — JobKade`;
+
+          // Header & Banner
+          const nameEl = document.getElementById('workerNameHeading');
+          if (nameEl) nameEl.textContent = w.full_name || 'Service Professional';
+
+          const profEl = document.getElementById('workerProfession');
+          if (profEl) profEl.textContent = professionText;
+
+          const locEl = document.getElementById('workerLocationMeta');
+          if (locEl) locEl.textContent = w.address || 'Sri Lanka';
+
+          const hoursEl = document.getElementById('workerHoursMeta');
+          if (hoursEl) hoursEl.textContent = w.working_hours || '8:00 AM - 6:00 PM';
+
+          const isVerified = (w.is_verified == 1 || w.verify_status === 'verified');
+          const badgeEl = document.getElementById('workerVerifiedBadge');
+          if (badgeEl) badgeEl.style.display = isVerified ? 'inline-flex' : 'none';
+
+          // Ratings
+          const avgScore = (parseFloat(w.rating_avg) || 0).toFixed(1);
+          const revCount = parseInt(w.reviews_count || 0, 10);
+
+          const ratingValEl = document.getElementById('workerRatingValue');
+          if (ratingValEl) ratingValEl.textContent = avgScore;
+
+          const ratingCountEl = document.getElementById('workerRatingCount');
+          if (ratingCountEl) ratingCountEl.textContent = `(${revCount} review${revCount === 1 ? '' : 's'})`;
+
+          const starsContainer = document.getElementById('workerRatingStars');
+          if (starsContainer) starsContainer.innerHTML = renderStarsHtml(avgScore, 14);
+
+          // Avatar
+          const initials = (w.full_name || 'W').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          const avatarInitialsEl = document.getElementById('workerAvatarInitials');
+          if (avatarInitialsEl) avatarInitialsEl.textContent = initials;
+
+          // Bio / About
+          const bioEl = document.getElementById('workerBioText');
+          if (bioEl) bioEl.textContent = w.bio || 'Professional service provider registered and verified on JobKade.';
+
+          // Services Offered
+          const servicesGrid = document.getElementById('workerServicesGrid');
+          if (servicesGrid) {
+            if (w.categories && w.categories.length) {
+              servicesGrid.innerHTML = w.categories.map(c => `
+                <div class="profile-service-item"><i data-lucide="check-circle"></i> ${escapeHtml(c.name)}</div>
+              `).join('');
+            } else {
+              servicesGrid.innerHTML = `
+                <div class="profile-service-item"><i data-lucide="check-circle"></i> ${escapeHtml(professionText)}</div>
+              `;
+            }
+          }
+
+          // Service Areas
+          const areasEl = document.getElementById('workerServiceAreasText');
+          if (areasEl) {
+            const radius = w.service_radius_km || 15;
+            areasEl.innerHTML = `<i data-lucide="map-pin" width="16" height="16" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Serves ${escapeHtml(w.address || 'Colombo')} and surrounding areas within ${radius} km.`;
+          }
+
+          // Sidebar details
+          if (document.getElementById('sidebarDetailRating')) {
+            document.getElementById('sidebarDetailRating').textContent = `${avgScore} / 5.0`;
+          }
+          if (document.getElementById('sidebarDetailReviews')) {
+            document.getElementById('sidebarDetailReviews').textContent = `${revCount} review${revCount === 1 ? '' : 's'}`;
+          }
+          if (document.getElementById('sidebarDetailHours')) {
+            document.getElementById('sidebarDetailHours').textContent = w.working_hours || '8:00 AM - 6:00 PM';
+          }
+          if (document.getElementById('sidebarDetailMemberSince') && w.created_at) {
+            document.getElementById('sidebarDetailMemberSince').textContent = new Date(w.created_at).toLocaleDateString(undefined, {
+              month: 'short', year: 'numeric'
+            });
+          }
+
+          // Verification box
+          const verTitle = document.getElementById('sidebarVerificationTitle');
+          const verText = document.getElementById('sidebarVerificationText');
+          if (verTitle) verTitle.textContent = isVerified ? 'Verified Worker' : 'Registered Worker';
+          if (verText) verText.textContent = isVerified
+            ? 'Identity documents, Police Clearance, and NVQ credentials verified by JobKade administration.'
+            : 'Standard registration with phone and profile verification.';
+
+          // User ID for messaging
+          if (w.user_id) {
+            workerUserId = parseInt(w.user_id, 10);
+            const targetUrl = 'messages.html?user_id=' + workerUserId;
+            const bannerMsgBtn = document.getElementById('btn-banner-msg');
+            const inappChatBtn = document.getElementById('btn-inapp-chat');
+            if (bannerMsgBtn) bannerMsgBtn.href = targetUrl;
+            if (inappChatBtn) inappChatBtn.href = targetUrl;
+          }
+
+          // Contact links (Call)
+          if (w.phone) {
+            const callLinks = [document.getElementById('btn-banner-call'), document.getElementById('btn-sidebar-call')];
+            callLinks.forEach(b => { if (b) b.href = 'tel:' + w.phone; });
+          }
+
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          return true;
+        } catch (err) {
+          console.error('Failed to load worker profile:', err);
+          showNotFoundState();
+          return false;
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 2. Load Real Reviews
+      // ------------------------------------------------------------------
+      async function loadReviews() {
+        const container = document.getElementById('reviewsListContainer');
+        const countBadge = document.getElementById('reviewsCountBadge');
+        const avgText = document.getElementById('reviewsAvgText');
+        const ratingSub = document.getElementById('reviewsRatingSub');
+
+        try {
+          const res = await apiFetch(`reviews.php?action=worker&worker_id=${workerId}`);
+          if (res.ok && res.data && res.data.status === 'success') {
+            currentReviews = res.data.reviews || [];
+            const count = currentReviews.length;
+
+            if (countBadge) countBadge.textContent = count;
+
+            // Recalculate average rating if reviews present
+            let computedAvg = '0.0';
+            if (count > 0) {
+              const sum = currentReviews.reduce((acc, r) => acc + Number(r.rating || 0), 0);
+              computedAvg = (sum / count).toFixed(1);
+            } else if (currentWorker && currentWorker.rating_avg) {
+              computedAvg = (parseFloat(currentWorker.rating_avg) || 0).toFixed(1);
+            }
+            if (avgText) avgText.textContent = computedAvg;
+            if (ratingSub) {
+              ratingSub.innerHTML = `Average rating: <strong>${computedAvg}</strong> / 5.0 (${count} review${count === 1 ? '' : 's'})`;
+            }
+
+            // Render reviews or empty state
+            if (count === 0) {
+              if (container) {
+                container.innerHTML = `
+                  <div class="empty-reviews-state">
+                    <i data-lucide="message-square" width="36" height="36" style="margin:0 auto 10px; display:block; opacity:0.5;"></i>
+                    <p style="margin:0; font-size:0.95rem; font-weight:500;">No reviews yet. Be the first to review this worker.</p>
+                  </div>
+                `;
+              }
+            } else if (container) {
+              container.innerHTML = currentReviews.map(r => {
+                const cName = escapeHtml(r.customer_name || 'Verified Customer');
+                const cInitials = escapeHtml((r.customer_name || 'C').substring(0, 2).toUpperCase());
+                const dateStr = r.created_at
+                  ? new Date(r.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                  : 'Recent';
+                const rating = Math.min(5, Math.max(1, parseInt(r.rating || 5, 10)));
+                const commentText = escapeHtml(r.comment || '');
+
+                return `
+                  <div class="review-card">
+                    <div class="review-header">
+                      <div class="review-avatar">${cInitials}</div>
+                      <div>
+                        <div class="review-name">${cName}</div>
+                        <div class="star-rating" style="display:inline-flex; gap:2px; color:#f59e0b; margin:2px 0;">
+                          ${renderStarsHtml(rating, 13)}
+                        </div>
+                        <div class="review-date">${dateStr}</div>
+                      </div>
+                    </div>
+                    <p class="review-text">${commentText}</p>
+                  </div>
+                `;
+              }).join('');
+            }
+
+            // Update Write Review Button visibility & status
+            updateReviewButtonState();
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          } else if (container) {
+            container.innerHTML = `
+              <div class="empty-reviews-state">
+                <p style="margin:0;">No reviews yet. Be the first to review this worker.</p>
+              </div>`;
+          }
+        } catch (err) {
+          console.error('Failed to load reviews:', err);
+          if (container) {
+            container.innerHTML = `
+              <div class="empty-reviews-state">
+                <p style="margin:0; color:#dc2626;">Unable to load reviews right now.</p>
+              </div>`;
+          }
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 3. Write a Review Button Visibility & Logic
+      // ------------------------------------------------------------------
+      function updateReviewButtonState() {
+        const user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+        const token = (typeof getAuthToken === 'function') ? getAuthToken() : '';
+        const writeBtn = document.getElementById('writeReviewBtn');
+        const alreadyNotice = document.getElementById('alreadyReviewedNotice');
+        if (!writeBtn) return;
+
+        const isCustomer = user && token && (user.role || '').toLowerCase() === 'customer';
+
+        if (!isCustomer) {
+          // Hide for guests, workers, and admins
+          writeBtn.style.display = 'none';
+          if (alreadyNotice) alreadyNotice.style.display = 'none';
+          return;
+        }
+
+        // Customer is logged in: Check if they already reviewed this worker
+        const hasReviewed = currentReviews.some(r => Number(r.customer_id) === Number(user.id));
+        if (hasReviewed) {
+          writeBtn.style.display = 'none';
+          if (alreadyNotice) alreadyNotice.style.display = 'inline-flex';
+        } else {
+          writeBtn.style.display = 'inline-flex';
+          if (alreadyNotice) alreadyNotice.style.display = 'none';
+        }
+      }
+
+      // ------------------------------------------------------------------
+      // 4. Review Modal & Star Picker
+      // ------------------------------------------------------------------
+      const writeReviewBtn = document.getElementById('writeReviewBtn');
+      const alreadyModalMsg = document.getElementById('alreadyReviewedModalMessage');
+      const reviewForm = document.getElementById('profileReviewForm');
+      const starRatingInput = document.getElementById('reviewRatingInput');
+      const starRatingLabel = document.getElementById('starRatingLabel');
+      const starRatingError = document.getElementById('starRatingError');
+      const commentInput = document.getElementById('reviewCommentText');
+      const commentError = document.getElementById('commentError');
+      const stars = document.querySelectorAll('#starPickerContainer .star-pick');
+
+      const starLabels = {
+        1: '1 - Poor',
+        2: '2 - Fair',
+        3: '3 - Good',
+        4: '4 - Very Good',
+        5: '5 - Excellent'
+      };
+
+      function updateStarHighlight(val) {
+        stars.forEach(s => {
+          const sVal = parseInt(s.dataset.val, 10);
+          if (sVal <= val) {
+            s.style.color = '#f59e0b';
+          } else {
+            s.style.color = '#cbd5e1';
+          }
+        });
+      }
+
+      function resetStarPicker() {
+        selectedRating = 0;
+        if (starRatingInput) starRatingInput.value = '0';
+        if (starRatingLabel) starRatingLabel.textContent = 'Tap a star to rate';
+        if (starRatingError) starRatingError.style.display = 'none';
+        if (commentError) commentError.style.display = 'none';
+        if (commentInput) commentInput.value = '';
+        updateStarHighlight(0);
+      }
+
+      // Star picker click & hover
+      stars.forEach(star => {
+        star.addEventListener('click', function () {
+          selectedRating = parseInt(this.dataset.val, 10);
+          if (starRatingInput) starRatingInput.value = selectedRating;
+          if (starRatingLabel) starRatingLabel.textContent = starLabels[selectedRating] || `${selectedRating} Stars`;
+          if (starRatingError) starRatingError.style.display = 'none';
+          updateStarHighlight(selectedRating);
+        });
+
+        star.addEventListener('mouseenter', function () {
+          const hoverVal = parseInt(this.dataset.val, 10);
+          updateStarHighlight(hoverVal);
+        });
+      });
+
+      const starContainer = document.getElementById('starPickerContainer');
+      if (starContainer) {
+        starContainer.addEventListener('mouseleave', function () {
+          updateStarHighlight(selectedRating);
+        });
+      }
+
+      function openReviewModal() {
+        const user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+        const token = (typeof getAuthToken === 'function') ? getAuthToken() : '';
+
+        // If guest, send to login page with return redirect
+        if (!user || !token) {
+          window.location.href = 'auth/login.html?redirect=' + encodeURIComponent(window.location.href);
+          return;
+        }
+
+        // Only customers can review
+        if ((user.role || '').toLowerCase() !== 'customer') {
+          if (typeof showToast === 'function') showToast('Only customer accounts can write reviews.', 'warning');
+          return;
+        }
+
+        // Check if customer already reviewed this worker
+        const hasReviewed = currentReviews.some(r => Number(r.customer_id) === Number(user.id));
+        if (hasReviewed) {
+          if (alreadyModalMsg) alreadyModalMsg.style.display = 'block';
+          if (reviewForm) reviewForm.style.display = 'none';
+        } else {
+          if (alreadyModalMsg) alreadyModalMsg.style.display = 'none';
+          if (reviewForm) reviewForm.style.display = 'block';
+          resetStarPicker();
+        }
+
+        if (reviewModal) reviewModal.classList.add('active');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+
+      function closeReviewModal() {
+        if (reviewModal) reviewModal.classList.remove('active');
+      }
+
+      if (writeReviewBtn) {
+        writeReviewBtn.addEventListener('click', openReviewModal);
+      }
+
+      // Close modal bindings
+      document.querySelectorAll('#closeReviewModalBtn, [data-dismiss="modal"]').forEach(b => {
+        b.addEventListener('click', closeReviewModal);
+      });
+      if (reviewModal) {
+        reviewModal.addEventListener('click', function (e) {
+          if (e.target === this) closeReviewModal();
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // 5. Submit Review Form
+      // ------------------------------------------------------------------
+      if (reviewForm) {
+        reviewForm.addEventListener('submit', async function (e) {
+          e.preventDefault();
+
+          const rating = parseInt(starRatingInput?.value || '0', 10);
+          const comment = (commentInput?.value || '').trim();
+
+          let hasError = false;
+
+          // Frontend validation: star rating must be 1-5
+          if (!rating || rating < 1 || rating > 5) {
+            if (starRatingError) starRatingError.style.display = 'block';
+            hasError = true;
+          } else if (starRatingError) {
+            starRatingError.style.display = 'none';
+          }
+
+          // Frontend validation: comment must have at least 5 characters
+          if (!comment || comment.length < 5) {
+            if (commentError) commentError.style.display = 'block';
+            hasError = true;
+          } else if (commentError) {
+            commentError.style.display = 'none';
+          }
+
+          if (hasError) return;
+
+          const submitBtn = document.getElementById('submitReviewBtn');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Submitting...';
+          }
+
+          try {
+            const res = await apiFetch('reviews.php?action=create', {
+              method: 'POST',
+              body: JSON.stringify({
+                worker_id: workerId,
+                rating: rating,
+                comment: comment
+              })
+            });
+
+            if (res.ok && res.data && res.data.status === 'success') {
+              if (typeof showToast === 'function') {
+                showToast('Thank you! Your review has been submitted.', 'success');
+              }
+              closeReviewModal();
+              resetStarPicker();
+
+              // Refresh review list and average rating without reloading page
+              await Promise.all([loadReviews(), loadWorkerProfile()]);
+            } else {
+              const msg = res.data?.message || 'Failed to submit review.';
+              if (typeof showToast === 'function') showToast(msg, 'error');
+              else alert(msg);
+            }
+          } catch (err) {
+            console.error('Submit review error:', err);
+            if (typeof showToast === 'function') showToast('Network error while submitting review.', 'error');
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i data-lucide="send" width="16" height="16"></i> Submit Review';
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+          }
+        });
+      }
+
+      // ------------------------------------------------------------------
+      // 6. Navigation to Messages & Save Worker
+      // ------------------------------------------------------------------
+      async function navigateToMessages(e) {
         if (e) e.preventDefault();
-        const user = getLoggedInUser();
-        const token = getAuthToken();
-        const targetUrl = 'messages.html?user_id=' + workerUserId;
+        const user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+        const token = (typeof getAuthToken === 'function') ? getAuthToken() : '';
+        
+        let targetUid = workerUserId || (currentWorker && currentWorker.user_id);
+        if (!targetUid) {
+          try {
+            const res = await apiFetch('workers.php?action=profile&id=' + workerId);
+            if (res.ok && res.data?.worker?.user_id) {
+              targetUid = parseInt(res.data.worker.user_id, 10);
+            }
+          } catch(err) {}
+        }
+        if (!targetUid) targetUid = workerId;
+
+        const targetUrl = 'messages.html?user_id=' + targetUid;
 
         if (!token || !user) {
-          // If customer not logged in, take them to login with return redirect
           window.location.href = 'auth/login.html?redirect=' + encodeURIComponent(targetUrl);
         } else {
-          // In customer login, directly goto the message interface of webapp
           window.location.href = targetUrl;
         }
       }
 
-      // Pre-bind message buttons
       const bannerMsgBtn = document.getElementById('btn-banner-msg');
       if (bannerMsgBtn) bannerMsgBtn.addEventListener('click', navigateToMessages);
 
       const inappChatBtn = document.getElementById('btn-inapp-chat');
       if (inappChatBtn) inappChatBtn.addEventListener('click', navigateToMessages);
 
-      if (workerId) {
-        try {
-          const res = await apiFetch('workers.php?action=profile&id=' + workerId);
-          if (res.ok && res.data && res.data.status === 'success' && res.data.worker) {
-            const w = res.data.worker;
-            const nameEl = document.querySelector('.profile-header-info h1, h1');
-            if (nameEl && w.full_name) nameEl.textContent = w.full_name;
-            const bioEl = document.querySelector('.profile-card p');
-            if (bioEl && w.bio) bioEl.textContent = w.bio;
-            
-            if (w.user_id) {
-              workerUserId = parseInt(w.user_id, 10);
-              const targetUrl = 'messages.html?user_id=' + workerUserId;
-              if (bannerMsgBtn) bannerMsgBtn.href = targetUrl;
-              if (inappChatBtn) inappChatBtn.href = targetUrl;
-            }
-
-            if (w.phone) {
-              const callBtns = document.querySelectorAll('a.btn-call');
-              callBtns.forEach(b => b.href = 'tel:' + w.phone);
-              const waBtns = document.querySelectorAll('a.btn-whatsapp');
-              const phoneClean = w.phone.replace(/\D/g, '');
-              const waNum = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
-              waBtns.forEach(b => b.href = 'https://wa.me/' + waNum);
-            }
-
-            // Wire save worker button
-            const saveBtn = document.querySelector('.save-worker-btn');
-            if (saveBtn) {
-              const u = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
-              const sKey = (u && u.id) ? ('jobkade_saved_workers_' + u.id) : null;
-              let sList = [];
-              if (sKey) {
-                try { sList = JSON.parse(localStorage.getItem(sKey) || '[]'); } catch (err) { sList = []; }
-              }
-              const isSaved = sList.some(item => String(item.id) === String(w.id));
-              if (isSaved) {
-                saveBtn.classList.add('saved');
-                saveBtn.style.color = 'var(--error)';
-                saveBtn.style.borderColor = 'var(--error)';
-                saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18" fill="currentColor"></i> Saved';
-              }
-
-              saveBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const cur = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
-                if (!cur) {
-                  if (typeof showToast === 'function') showToast('Please login as a customer to save workers.', 'warning');
-                  setTimeout(() => {
-                    window.location.href = 'auth/login.html?redirect=' + encodeURIComponent('worker-profile.html?id=' + workerId);
-                  }, 800);
-                  return;
-                }
-                if (cur.role && cur.role.toLowerCase() !== 'customer') {
-                  if (typeof showToast === 'function') showToast('Only customer accounts can save workers.', 'warning');
-                  return;
-                }
-                const curKey = 'jobkade_saved_workers_' + cur.id;
-                let curSaved = [];
-                try { curSaved = JSON.parse(localStorage.getItem(curKey) || '[]'); } catch (err) { curSaved = []; }
-                const exIdx = curSaved.findIndex(item => String(item.id) === String(w.id));
-                if (exIdx > -1) {
-                  curSaved.splice(exIdx, 1);
-                  localStorage.setItem(curKey, JSON.stringify(curSaved));
-                  saveBtn.classList.remove('saved');
-                  saveBtn.style.color = '';
-                  saveBtn.style.borderColor = '';
-                  saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18"></i> Save';
-                  if (typeof showToast === 'function') showToast('Worker removed from saved list.', 'info');
-                } else {
-                  curSaved.push({
-                    id: w.id,
-                    user_id: w.user_id || w.id,
-                    full_name: w.full_name || 'Skilled Worker',
-                    profession: (w.categories && w.categories[0] && w.categories[0].name) ? w.categories[0].name : (w.profession || 'Service Professional'),
-                    address: w.address || 'Colombo',
-                    rating_avg: w.rating_avg || '4.9',
-                    is_verified: (w.is_verified == 1 || w.verify_status === 'verified'),
-                    phone: w.phone || '',
-                    avatar: 'assets/images/hero-worker.png',
-                    saved_at: new Date().toISOString()
-                  });
-                  localStorage.setItem(curKey, JSON.stringify(curSaved));
-                  saveBtn.classList.add('saved');
-                  saveBtn.style.color = 'var(--error)';
-                  saveBtn.style.borderColor = 'var(--error)';
-                  saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18" fill="currentColor"></i> Saved';
-                  if (typeof showToast === 'function') showToast('Worker saved to your favorites!', 'success');
-                }
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-              });
-            }
-          }
-        } catch (e) {
-          console.warn('Could not load worker profile:', e);
+      // Save worker toggle
+      const saveBtn = document.querySelector('.save-worker-btn');
+      if (saveBtn) {
+        const u = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+        const sKey = (u && u.id) ? ('jobkade_saved_workers_' + u.id) : null;
+        let sList = [];
+        if (sKey) {
+          try { sList = JSON.parse(localStorage.getItem(sKey) || '[]'); } catch (err) { sList = []; }
         }
+        const isSaved = sList.some(item => String(item.id) === String(workerId));
+        if (isSaved) {
+          saveBtn.classList.add('saved');
+          saveBtn.style.color = 'var(--error)';
+          saveBtn.style.borderColor = 'var(--error)';
+          saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18" fill="currentColor"></i> Saved';
+        }
+
+        saveBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const cur = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+          if (!cur) {
+            if (typeof showToast === 'function') showToast('Please login as a customer to save workers.', 'warning');
+            setTimeout(() => {
+              window.location.href = 'auth/login.html?redirect=' + encodeURIComponent('worker-profile.html?id=' + workerId);
+            }, 800);
+            return;
+          }
+          if (cur.role && cur.role.toLowerCase() !== 'customer') {
+            if (typeof showToast === 'function') showToast('Only customer accounts can save workers.', 'warning');
+            return;
+          }
+          const curKey = 'jobkade_saved_workers_' + cur.id;
+          let curSaved = [];
+          try { curSaved = JSON.parse(localStorage.getItem(curKey) || '[]'); } catch (err) { curSaved = []; }
+          const exIdx = curSaved.findIndex(item => String(item.id) === String(workerId));
+          if (exIdx > -1) {
+            curSaved.splice(exIdx, 1);
+            localStorage.setItem(curKey, JSON.stringify(curSaved));
+            saveBtn.classList.remove('saved');
+            saveBtn.style.color = '';
+            saveBtn.style.borderColor = '';
+            saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18"></i> Save';
+            if (typeof showToast === 'function') showToast('Worker removed from saved list.', 'info');
+          } else {
+            curSaved.push({
+              id: workerId,
+              user_id: (currentWorker && currentWorker.user_id) || workerId,
+              full_name: (currentWorker && currentWorker.full_name) || 'Skilled Worker',
+              profession: (currentWorker && currentWorker.categories && currentWorker.categories[0])
+                ? currentWorker.categories[0].name
+                : ((currentWorker && currentWorker.profession) || 'Service Professional'),
+              address: (currentWorker && currentWorker.address) || 'Colombo',
+              rating_avg: (currentWorker && currentWorker.rating_avg) || '0.0',
+              is_verified: (currentWorker && (currentWorker.is_verified == 1 || currentWorker.verify_status === 'verified')),
+              phone: (currentWorker && currentWorker.phone) || '',
+              saved_at: new Date().toISOString()
+            });
+            localStorage.setItem(curKey, JSON.stringify(curSaved));
+            saveBtn.classList.add('saved');
+            saveBtn.style.color = 'var(--error)';
+            saveBtn.style.borderColor = 'var(--error)';
+            saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18" fill="currentColor"></i> Saved';
+            if (typeof showToast === 'function') showToast('Worker saved to your favorites!', 'success');
+          }
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+      }
+
+      // Initial load
+      const loaded = await loadWorkerProfile();
+      if (loaded) {
+        await loadReviews();
       }
     });
   </script>

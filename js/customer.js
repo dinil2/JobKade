@@ -461,11 +461,7 @@ const confirmCancelBtn = $('#cancel-job-modal .btn-danger');
 confirmCancelBtn?.addEventListener('click', () => {
   if (activeJobCard) {
     activeJobCard.setAttribute('data-status', 'cancelled');
-    const badge = activeJobCard.querySelector('.badge');
-    if (badge) {
-      badge.className = 'badge badge-cancelled';
-      badge.textContent = 'Cancelled';
-    }
+    activeJobCard.style.display = 'none';
     showToast('Job request marked as cancelled.', 'info');
     closeModal('cancel-job-modal');
   }
@@ -474,16 +470,57 @@ confirmCancelBtn?.addEventListener('click', () => {
 // ==========================================
 // 3. Status Filters & Customer Jobs List
 // ==========================================
+function applyJobFilter(filter = 'ongoing') {
+  const cards = $$('#customer-jobs-container .job-card');
+  let visibleCount = 0;
+  cards.forEach(job => {
+    const status = (job.dataset.status || '').toLowerCase();
+    if (status === 'cancelled') {
+      job.style.display = 'none';
+      return;
+    }
+    let shouldShow = false;
+    if (filter === 'ongoing') {
+      shouldShow = (status === 'open' || status === 'in_progress');
+    } else if (filter === 'completed') {
+      shouldShow = (status === 'completed');
+    }
+    job.style.display = shouldShow ? '' : 'none';
+    if (shouldShow) visibleCount++;
+  });
+
+  let emptyMsg = $id('customer-jobs-tab-empty');
+  if (cards.length > 0) {
+    if (visibleCount === 0) {
+      if (!emptyMsg) {
+        emptyMsg = document.createElement('div');
+        emptyMsg.id = 'customer-jobs-tab-empty';
+        emptyMsg.className = 'empty-state';
+        emptyMsg.style.cssText = 'text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);';
+        const container = $id('customer-jobs-container');
+        if (container) container.appendChild(emptyMsg);
+      }
+      emptyMsg.style.display = 'block';
+      const label = filter === 'completed' ? 'completed' : 'ongoing';
+      emptyMsg.innerHTML = `
+        <i data-lucide="file-text" style="width: 40px; height: 40px; color: var(--text-muted); margin: 0 auto 12px; display:block;"></i>
+        <h4 style="margin-bottom: 6px;">No ${label} jobs</h4>
+        <p style="color: var(--text-secondary); margin: 0;">You have no ${label} job requests at this moment.</p>`;
+      refreshIcons();
+    } else if (emptyMsg) {
+      emptyMsg.style.display = 'none';
+    }
+  }
+}
+
 function initJobStatusFilters() {
   const filters = $$('.status-filter-btn');
   filters.forEach(btn => {
     btn.addEventListener('click', () => {
       filters.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const filter = btn.dataset.filter;
-      $$('#customer-jobs-container .job-card').forEach(job => {
-        job.style.display = (filter === 'all' || job.dataset.status === filter) ? '' : 'none';
-      });
+      const filter = btn.dataset.filter || 'ongoing';
+      applyJobFilter(filter);
     });
   });
 }
@@ -503,8 +540,12 @@ async function loadCustomerJobs() {
       invRes.data.invoices.forEach(inv => { invoicesByJobId[inv.job_id] = inv; });
     }
 
-    if (jobsRes.ok && jobsRes.data?.status === 'success' && jobsRes.data.jobs?.length > 0) {
-      container.innerHTML = jobsRes.data.jobs.map(j => {
+    const allJobs = (jobsRes.ok && jobsRes.data?.status === 'success' && Array.isArray(jobsRes.data.jobs))
+      ? jobsRes.data.jobs.filter(j => (j.status || '').toLowerCase() !== 'cancelled')
+      : [];
+
+    if (allJobs.length > 0) {
+      container.innerHTML = allJobs.map(j => {
         const status = (j.status || 'open').toLowerCase();
         const statusBadgeMap = {
           completed: ['badge-completed', 'Completed'],
@@ -590,6 +631,10 @@ async function loadCustomerJobs() {
             </div>
           </div>`;
       }).join('');
+
+      const activeFilterBtn = $('.status-filter-btn.active');
+      const currentFilter = activeFilterBtn?.dataset.filter || 'ongoing';
+      applyJobFilter(currentFilter);
     } else {
       container.innerHTML = `
         <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">

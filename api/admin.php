@@ -35,6 +35,11 @@ switch ($action) {
         $controller->kycList();
         break;
 
+    case 'kyc/counts':
+    case 'kyc-counts':
+        $controller->kycCounts();
+        break;
+
     case 'kyc/verify':
     case 'kyc-verify':
     case 'review-kyc':

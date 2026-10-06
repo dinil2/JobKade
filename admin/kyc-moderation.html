@@ -46,6 +46,21 @@
       background: rgba(239, 68, 68, 0.12);
       color: #dc2626;
     }
+    .badge-approved {
+      background: rgba(16, 185, 129, 0.12);
+      color: #059669;
+      font-weight: 600;
+    }
+    .badge-rejected {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+      font-weight: 600;
+    }
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.12);
+      color: #d97706;
+      font-weight: 600;
+    }
     .btn-approve {
       background: #10b981;
       color: white;
@@ -299,8 +314,8 @@
       <!-- Moderation Table Tabs -->
       <div class="tabs" id="kycTabs">
         <button class="tab active" data-status="pending">Pending Review (<span id="tabPendingCount">0</span>)</button>
-        <button class="tab" data-status="approved">Approved & Verified</button>
-        <button class="tab" data-status="rejected">Rejected Submissions</button>
+        <button class="tab" data-status="approved">Approved & Verified (<span id="tabApprovedCount">0</span>)</button>
+        <button class="tab" data-status="rejected">Rejected Submissions (<span id="tabRejectedCount">0</span>)</button>
       </div>
 
       <div class="table-card">
@@ -316,7 +331,7 @@
 
         <div class="table-wrapper">
           <table class="data-table">
-            <thead>
+            <thead id="kycTableHead">
               <tr>
                 <th>Worker</th>
                 <th>Trade Category</th>

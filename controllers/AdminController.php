@@ -44,6 +44,8 @@ class AdminController {
         $verifiedWorkers = (int)$db->query("SELECT COUNT(*) FROM worker_profiles WHERE is_verified = 1")->fetchColumn();
         $totalJobs = (int)$db->query("SELECT COUNT(*) FROM job_requests")->fetchColumn();
         $pendingKyc = (int)$db->query("SELECT COUNT(*) FROM kyc_documents WHERE status = 'pending'")->fetchColumn();
+        $approvedKyc = (int)$db->query("SELECT COUNT(*) FROM kyc_documents WHERE status = 'approved'")->fetchColumn();
+        $rejectedKyc = (int)$db->query("SELECT COUNT(*) FROM kyc_documents WHERE status = 'rejected'")->fetchColumn();
         $totalRevenue = (float)$db->query("SELECT COALESCE(SUM(amount), 0) FROM subscription_payments WHERE status = 'completed'")->fetchColumn();
 
         sendJsonResponse(200, [
@@ -54,6 +56,8 @@ class AdminController {
                 'verified_workers' => $verifiedWorkers,
                 'total_jobs'       => $totalJobs,
                 'pending_kyc'      => $pendingKyc,
+                'approved_kyc'     => $approvedKyc,
+                'rejected_kyc'     => $rejectedKyc,
                 'total_revenue_lkr'=> $totalRevenue
             ]
         ]);
@@ -86,6 +90,26 @@ class AdminController {
      */
     public function kycQueue(): void {
         $this->kycPending();
+    }
+
+    /**
+     * Endpoint: GET /api/admin/kyc/counts or ?action=kyc-counts
+     */
+    public function kycCounts(): void {
+        $this->requireAdmin();
+        $db = Database::getConnection();
+        $pending = (int)$db->query("SELECT COUNT(*) FROM kyc_documents WHERE status = 'pending'")->fetchColumn();
+        $approved = (int)$db->query("SELECT COUNT(*) FROM kyc_documents WHERE status = 'approved'")->fetchColumn();
+        $rejected = (int)$db->query("SELECT COUNT(*) FROM kyc_documents WHERE status = 'rejected'")->fetchColumn();
+
+        sendJsonResponse(200, [
+            'status'   => 'success',
+            'counts'   => [
+                'pending'  => $pending,
+                'approved' => $approved,
+                'rejected' => $rejected
+            ]
+        ]);
     }
 
     /**

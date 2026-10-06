@@ -16,3 +16,9 @@ desktop.ini
 *.log
 scratch/
 tmp/
+
+# Uploaded assets
+uploads/*/*
+!uploads/**/.gitkeep
+!uploads/**/sample_*
+!uploads/.gitkeep

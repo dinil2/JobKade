@@ -33,14 +33,14 @@
           <div class="form-group">
             <label class="form-label">Category <span>*</span></label>
             <select id="job-category" name="job-category" class="form-select" required>
-              <option value="">Select a category</option>
-              <option value="1">Electrical</option><option value="2">Plumbing</option><option value="3" selected>AC Repair</option><option value="4">Painting</option><option value="5">Carpentry</option><option value="6">Masonry</option><option value="7">Cleaning</option><option value="8">Appliance Repair</option><option value="9">Other</option>
+              <option value="" selected disabled>Select a category</option>
+              <option value="1">Electrical</option><option value="2">Plumbing</option><option value="3">AC Repair</option><option value="4">Painting</option><option value="5">Carpentry</option><option value="6">Masonry</option><option value="7">Cleaning</option><option value="8">Appliance Repair</option><option value="9">Other</option>
             </select>
           </div>
 
           <div class="form-group">
             <label class="form-label">Description <span>*</span></label>
-            <textarea id="job-description" name="job-description" class="form-textarea" placeholder="Describe the problem or job in detail..." required>My AC is leaking water from the indoor unit. I need someone to inspect and repair it.</textarea>
+            <textarea id="job-description" name="job-description" class="form-textarea" placeholder="Describe the problem or job in detail..." required></textarea>
           </div>
 
           <div class="form-group">
@@ -51,7 +51,7 @@
               </button>
             </div>
             <div style="position:relative;">
-              <input type="text" id="job-location-address" class="form-input" placeholder="e.g. Colombo 05, Havelock Road" value="Colombo 05" required>
+              <input type="text" id="job-location-address" class="form-input" placeholder="e.g. Colombo 05, Havelock Road" required>
               <span id="geo-status-indicator" style="display:none; position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:0.75rem; color:var(--primary); font-weight:500;">
                 <i data-lucide="loader" width="14" height="14" class="spin" style="display:inline; vertical-align:middle;"></i> Locating...
               </span>

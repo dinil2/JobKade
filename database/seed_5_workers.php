@@ -99,8 +99,10 @@ try {
     $db->exec("DELETE FROM reviews;");
     $db->exec("DELETE FROM job_applications;");
     $db->exec("DELETE FROM job_invoices;");
+    $db->exec("DELETE FROM job_requests;");
     $db->exec("DELETE FROM wallet_payout_requests;");
     $db->exec("DELETE FROM promotions;");
+    $db->exec("DELETE FROM messages;");
     $db->exec("DELETE FROM worker_profiles;");
 
     // Delete existing worker users (keep admin user 1 and customer user 2)
@@ -494,55 +496,7 @@ try {
         ]);
     }
 
-    // 5. Seed Clean In-App Messages between Customer (User ID 2) and the 5 Workers
-    $db->exec("DELETE FROM messages;");
-    $stmtMsg = $db->prepare("
-        INSERT INTO messages (job_id, sender_id, receiver_id, message_text, is_read, created_at)
-        VALUES (NULL, :sender, :receiver, :text, :is_read, :created_at)
-    ");
-
-    $conversations = [
-        // Sunil (Electrician)
-        [
-            ['sender' => 2, 'receiver' => 3, 'text' => 'Hello Sunil, are you available tomorrow morning for a main trip switch inspection in Kollupitiya?', 'read' => 1, 'time' => '2026-10-04 10:15:00'],
-            ['sender' => 3, 'receiver' => 2, 'text' => 'Hi Dinil, yes certainly! I have an opening at 9:30 AM. Please share the exact apartment location.', 'read' => 1, 'time' => '2026-10-04 10:20:00'],
-            ['sender' => 2, 'receiver' => 3, 'text' => 'Great, it is No. 42 Marine Drive, Kollupitiya. See you at 9:30 AM.', 'read' => 0, 'time' => '2026-10-04 10:25:00']
-        ],
-        // Kamal (Plumber)
-        [
-            ['sender' => 2, 'receiver' => 4, 'text' => 'Hi Kamal, can you check our overhead water tank float valve and pressure pump?', 'read' => 1, 'time' => '2026-10-03 14:10:00'],
-            ['sender' => 4, 'receiver' => 2, 'text' => 'Hello! Yes, I can visit today around 4:30 PM on my way from Bambalapitiya.', 'read' => 1, 'time' => '2026-10-03 14:25:00']
-        ],
-        // Nimal (AC Tech)
-        [
-            ['sender' => 2, 'receiver' => 5, 'text' => 'Hi Nimal, our master bedroom Panasonic inverter AC is leaking water and not cooling enough.', 'read' => 1, 'time' => '2026-10-02 11:00:00'],
-            ['sender' => 5, 'receiver' => 2, 'text' => 'Hello Dinil! That sounds like a choked drain line and dirty indoor evaporator coil. A full chemical service will fix it completely.', 'read' => 1, 'time' => '2026-10-02 11:15:00']
-        ],
-        // Tharindu (Carpenter)
-        [
-            ['sender' => 2, 'receiver' => 6, 'text' => 'Hello Tharindu, do you do teak wood pantry cupboard hinge repairs?', 'read' => 1, 'time' => '2026-10-01 16:30:00'],
-            ['sender' => 6, 'receiver' => 2, 'text' => 'Yes Dinil, I specialize in pantry hinges, drawer channels, and wood alignment. Happy to help.', 'read' => 1, 'time' => '2026-10-01 16:45:00']
-        ],
-        // Ruwan (Painter)
-        [
-            ['sender' => 2, 'receiver' => 7, 'text' => 'Hi Ruwan, looking for a quote to paint two bedrooms with weather-shield exterior touch up.', 'read' => 1, 'time' => '2026-09-30 09:00:00'],
-            ['sender' => 7, 'receiver' => 2, 'text' => 'Good morning! I can do a free site visit to take measurements and provide an itemized quote.', 'read' => 1, 'time' => '2026-09-30 09:20:00']
-        ]
-    ];
-
-    foreach ($conversations as $conv) {
-        foreach ($conv as $m) {
-            $stmtMsg->execute([
-                ':sender'     => $m['sender'],
-                ':receiver'   => $m['receiver'],
-                ':text'       => $m['text'],
-                ':is_read'    => $m['read'],
-                ':created_at' => $m['time']
-            ]);
-        }
-    }
-
-    // 6. Re-enable foreign key checks
+    // 5. Re-enable foreign key checks
     $db->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
     echo "\n=== Database successfully seeded with EXACTLY 5 workers! ===\n";

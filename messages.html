@@ -12,6 +12,36 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/customer.css">
   <link rel="stylesheet" href="css/messages.css">
+  <style>
+    /* Prevent guest flash before authentication verification */
+    body.messages-page {
+      display: none;
+    }
+  </style>
+  <script>
+    (function () {
+      try {
+        var token = localStorage.getItem('jobkade_token');
+        var userStr = localStorage.getItem('jobkade_user');
+        if (!token || !userStr) {
+          var returnUrl = 'messages.html' + window.location.search;
+          window.location.replace('auth/login.html?redirect=' + encodeURIComponent(returnUrl));
+          return;
+        }
+        var user = JSON.parse(userStr);
+        if (user && user.role && user.role.toLowerCase() === 'admin') {
+          window.location.replace('admin/dashboard.html');
+          return;
+        }
+        // Valid worker or customer session
+        document.addEventListener('DOMContentLoaded', function () {
+          document.body.style.display = 'block';
+        });
+      } catch (e) {
+        window.location.replace('auth/login.html?redirect=' + encodeURIComponent('messages.html' + window.location.search));
+      }
+    })();
+  </script>
 </head>
 <body class="messages-page">
   <div id="navbar-container"></div>
@@ -73,8 +103,8 @@
           <div class="chat-messages" id="chat-messages">
             <div class="chat-empty-state">
               <div class="chat-empty-icon"><i data-lucide="message-square" width="32" height="32"></i></div>
-              <h3>Your In-App Messenger</h3>
-              <p>Select any contact on the left to view message history, discuss quotes, and coordinate jobs.</p>
+              <h3>No conversations yet</h3>
+              <p>Find a worker and start chatting.</p>
             </div>
           </div>
 

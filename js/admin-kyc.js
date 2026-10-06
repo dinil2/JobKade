@@ -64,7 +64,9 @@ document.addEventListener('DOMContentLoaded', async function () {
       document.querySelectorAll('#kycTabs .tab').forEach(t => t.classList.remove('active'));
       this.classList.add('active');
       currentTab = this.getAttribute('data-status') || 'pending';
+      // Clicking any tab must always re-fetch fresh data and counts from server
       loadKycQueue();
+      loadStats();
     });
   });
 
@@ -92,11 +94,19 @@ async function loadStats() {
   try {
     const { ok, data } = await adminApi('action=stats');
     if (ok && data.status === 'success' && data.stats) {
-      const pCount = data.stats.pending_kyc || 0;
+      const pCount = Number(data.stats.pending_kyc ?? 0);
+      const aCount = Number(data.stats.approved_kyc ?? data.stats.verified_workers ?? 0);
+      const rCount = Number(data.stats.rejected_kyc ?? 0);
+
       if ($id('statPendingCount')) $id('statPendingCount').textContent = pCount;
-      if ($id('statApprovedCount')) $id('statApprovedCount').textContent = data.stats.verified_workers || 0;
-      if ($id('pendingCounterBadge')) $id('pendingCounterBadge').textContent = pCount;
+      if ($id('statApprovedCount')) $id('statApprovedCount').textContent = aCount;
+      if ($id('statRejectedCount')) $id('statRejectedCount').textContent = rCount;
+
       if ($id('tabPendingCount')) $id('tabPendingCount').textContent = pCount;
+      if ($id('tabApprovedCount')) $id('tabApprovedCount').textContent = aCount;
+      if ($id('tabRejectedCount')) $id('tabRejectedCount').textContent = rCount;
+
+      if ($id('pendingCounterBadge')) $id('pendingCounterBadge').textContent = pCount;
     }
   } catch (err) {
     console.error('Failed to load admin stats:', err);
@@ -113,12 +123,22 @@ async function loadKycQueue() {
 
     if (ok && data.status === 'success') {
       allDocuments = data.pending_kyc || data.documents || [];
+      const count = allDocuments.length;
+
+      // Ensure tab and stat counts stay accurately synchronized with server count
       if (currentTab === 'pending') {
         pendingDocuments = allDocuments;
-        ['tabPendingCount', 'statPendingCount', 'pendingCounterBadge'].forEach(id => {
-          if ($id(id)) $id(id).textContent = allDocuments.length;
-        });
+        if ($id('tabPendingCount')) $id('tabPendingCount').textContent = count;
+        if ($id('statPendingCount')) $id('statPendingCount').textContent = count;
+        if ($id('pendingCounterBadge')) $id('pendingCounterBadge').textContent = count;
+      } else if (currentTab === 'approved') {
+        if ($id('tabApprovedCount')) $id('tabApprovedCount').textContent = count;
+        if ($id('statApprovedCount')) $id('statApprovedCount').textContent = count;
+      } else if (currentTab === 'rejected') {
+        if ($id('tabRejectedCount')) $id('tabRejectedCount').textContent = count;
+        if ($id('statRejectedCount')) $id('statRejectedCount').textContent = count;
       }
+
       filterAndRenderTable($id('kycSearchInput')?.value?.toLowerCase()?.trim() || '');
     } else if (tbody) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#dc2626;">Failed to load records.</td></tr>';
@@ -130,6 +150,33 @@ async function loadKycQueue() {
 }
 
 function filterAndRenderTable(query) {
+  const thead = $id('kycTableHead');
+  if (thead) {
+    if (currentTab === 'pending') {
+      thead.innerHTML = `
+        <tr>
+          <th>Worker</th>
+          <th>Trade Category</th>
+          <th>Document Type</th>
+          <th>Document Title / Ref</th>
+          <th>Submitted</th>
+          <th>Document File</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>`;
+    } else {
+      thead.innerHTML = `
+        <tr>
+          <th>Worker & Contact</th>
+          <th>Document Type</th>
+          <th>Document Title / Ref</th>
+          <th>Submitted Date</th>
+          <th>Reviewed Date</th>
+          <th>Status</th>
+          <th>Admin Notes / Rejection Reason</th>
+        </tr>`;
+    }
+  }
+
   const tbody = $id('kycTableBody');
   if (!tbody) return;
 
@@ -160,64 +207,76 @@ function filterAndRenderTable(query) {
   tbody.innerHTML = docs.map(doc => {
     const kycId = doc.kyc_id || doc.id;
     const workerId = doc.worker_id;
-    const dateStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString(undefined, {
+    const submittedDateStr = doc.created_at ? new Date(doc.created_at).toLocaleDateString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : '-';
+    const reviewedDateStr = doc.reviewed_at ? new Date(doc.reviewed_at).toLocaleDateString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     }) : '-';
     const typeLabel = typeLabels[doc.document_type] || (doc.document_type || '').toUpperCase();
     const rawPath = doc.file_path || doc.document_path || '#';
     const cleanFilePath = rawPath.startsWith('http') ? rawPath : ('../' + rawPath);
     const workerNameEsc = escapeHtml(doc.worker_name || 'Worker #' + workerId);
-
-    let actionsHtml = '';
-    if (currentTab === 'pending') {
-      actionsHtml = `
-        <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-          <button class="btn-packet" onclick="openWorkerDossier(${workerId}, '${workerNameEsc}')" title="Inspect Police Report, Selfie & ID together">
-            <i data-lucide="shield-check" width="14" height="14"></i> Review Packet
-          </button>
-          <button class="btn-approve" onclick="handleApprove(${kycId}, '${workerNameEsc}')">
-            <i data-lucide="check" width="14" height="14"></i> Approve
-          </button>
-          <button class="btn-reject" onclick="openRejectModal(${kycId}, '${workerNameEsc}')">
-            <i data-lucide="x" width="14" height="14"></i> Reject
-          </button>
-        </div>`;
-    } else {
-      const isApproved = doc.status === 'approved';
-      const badgeCls = isApproved ? 'badge-approved' : 'badge-rejected';
-      const badgeText = isApproved ? '✓ Verified' : '✗ Rejected';
-      const badgeTitle = isApproved ? '' : `title="${escapeHtml(doc.admin_notes || 'No reason specified')}" style="cursor:help;"`;
-
-      actionsHtml = `
-        <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-          <button class="btn btn-sm btn-outline" onclick="openWorkerDossier(${workerId}, '${workerNameEsc}')" title="View complete verification dossier" style="font-size:0.75rem;padding:3px 8px;display:inline-flex;align-items:center;gap:4px;">
-            <i data-lucide="shield-check" width="13" height="13"></i> Dossier
-          </button>
-          <span class="badge ${badgeCls}" ${badgeTitle}>${badgeText}</span>
-        </div>`;
-    }
+    const workerContactHtml = `
+      <div style="font-weight:600;color:#0f172a;">${workerNameEsc}</div>
+      <div style="font-size:0.75rem;color:#64748b;">
+        ${escapeHtml(doc.worker_phone || '')}${doc.worker_phone && doc.worker_email ? ' &bull; ' : ''}${escapeHtml(doc.worker_email || '')}
+      </div>`;
 
     const docIcon = doc.document_type === 'selfie' ? '<i data-lucide="camera" width="14" height="14" style="color:#2563eb;"></i>'
       : doc.document_type === 'police_report' ? '<i data-lucide="file-check-2" width="14" height="14" style="color:#059669;"></i>'
       : doc.document_type === 'nic' ? '<i data-lucide="id-card" width="14" height="14" style="color:#0284c7;"></i>' : '';
 
-    return `
-      <tr>
-        <td>
-          <div style="font-weight:600;color:#0f172a;">${workerNameEsc}</div>
-          <div style="font-size:0.75rem;color:#64748b;">${escapeHtml(doc.worker_phone || '')} &bull; ${escapeHtml(doc.worker_email || '')}</div>
-        </td>
-        <td><span style="font-size:0.8rem;background:#f1f5f9;padding:3px 8px;border-radius:4px;color:#334155;">${escapeHtml(doc.categories || 'General')}</span></td>
-        <td><span style="font-weight:600;font-size:0.85rem;color:#1e293b;display:inline-flex;align-items:center;gap:5px;">${docIcon} ${typeLabel}</span></td>
-        <td style="font-size:0.85rem;color:#475569;">${escapeHtml(doc.document_name || '-')}</td>
-        <td style="font-size:0.8rem;color:#64748b;">${dateStr}</td>
-        <td>
-          <button class="btn btn-sm btn-outline" onclick="openViewerModal('${cleanFilePath}', '${workerNameEsc}', '${typeLabel}', '${dateStr}')" style="font-size:0.75rem;padding:4px 8px;display:inline-flex;align-items:center;gap:4px;">
-            <i data-lucide="eye" width="14" height="14"></i> View File
-          </button>
-        </td>
-        <td style="text-align:right;">${actionsHtml}</td>
-      </tr>`;
+    if (currentTab === 'pending') {
+      return `
+        <tr>
+          <td>${workerContactHtml}</td>
+          <td><span style="font-size:0.8rem;background:#f1f5f9;padding:3px 8px;border-radius:4px;color:#334155;">${escapeHtml(doc.categories || 'General')}</span></td>
+          <td><span style="font-weight:600;font-size:0.85rem;color:#1e293b;display:inline-flex;align-items:center;gap:5px;">${docIcon} ${typeLabel}</span></td>
+          <td style="font-size:0.85rem;color:#475569;">${escapeHtml(doc.document_name || '-')}</td>
+          <td style="font-size:0.8rem;color:#64748b;">${submittedDateStr}</td>
+          <td>
+            <button class="btn btn-sm btn-outline" onclick="openViewerModal('${cleanFilePath}', '${workerNameEsc}', '${typeLabel}', '${submittedDateStr}')" style="font-size:0.75rem;padding:4px 8px;display:inline-flex;align-items:center;gap:4px;">
+              <i data-lucide="eye" width="14" height="14"></i> View File
+            </button>
+          </td>
+          <td style="text-align:right;">
+            <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+              <button class="btn-packet" onclick="openWorkerDossier(${workerId}, '${workerNameEsc}')" title="Inspect Police Report, Selfie & ID together">
+                <i data-lucide="shield-check" width="14" height="14"></i> Review Packet
+              </button>
+              <button class="btn-approve" onclick="handleApprove(${kycId}, '${workerNameEsc}')">
+                <i data-lucide="check" width="14" height="14"></i> Approve
+              </button>
+              <button class="btn-reject" onclick="openRejectModal(${kycId}, '${workerNameEsc}')">
+                <i data-lucide="x" width="14" height="14"></i> Reject
+              </button>
+            </div>
+          </td>
+        </tr>`;
+    } else {
+      // Approved and Rejected tabs show details only: each row must display only information, no documents and no buttons.
+      const isApproved = doc.status === 'approved';
+      const badgeCls = isApproved ? 'badge-approved' : 'badge-rejected';
+      const badgeIcon = isApproved ? 'check-circle' : 'x-circle';
+      const badgeText = isApproved ? 'Approved & Verified' : 'Rejected';
+      const adminNotesEsc = escapeHtml(doc.admin_notes || '-');
+
+      return `
+        <tr>
+          <td>${workerContactHtml}</td>
+          <td><span style="font-weight:600;font-size:0.85rem;color:#1e293b;display:inline-flex;align-items:center;gap:5px;">${docIcon} ${typeLabel}</span></td>
+          <td style="font-size:0.85rem;color:#475569;">${escapeHtml(doc.document_name || '-')}</td>
+          <td style="font-size:0.8rem;color:#64748b;">${submittedDateStr}</td>
+          <td style="font-size:0.8rem;color:#64748b;">${reviewedDateStr}</td>
+          <td>
+            <span class="badge ${badgeCls}" style="display:inline-flex;align-items:center;gap:4px;">
+              <i data-lucide="${badgeIcon}" width="13" height="13"></i> ${badgeText}
+            </span>
+          </td>
+          <td style="font-size:0.85rem;color:#475569;max-width:260px;line-height:1.4;">${adminNotesEsc}</td>
+        </tr>`;
+    }
   }).join('');
 
   if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -231,6 +290,12 @@ async function handleApprove(kycId, workerName) {
     return;
   }
 
+  // Instantly remove row from Pending tab for immediate UI feedback
+  if (currentTab === 'pending') {
+    allDocuments = allDocuments.filter(d => (d.kyc_id || d.id) !== kycId);
+    filterAndRenderTable($id('kycSearchInput')?.value?.toLowerCase()?.trim() || '');
+  }
+
   try {
     const { ok, data } = await adminApi('action=kyc/verify', {
       method: 'POST',
@@ -239,13 +304,14 @@ async function handleApprove(kycId, workerName) {
 
     if (ok && data.status === 'success') {
       showToastMessage(`KYC approved for ${workerName}! Worker status updated to Verified.`, 'success');
-      loadStats();
-      loadKycQueue();
+      await Promise.all([loadStats(), loadKycQueue()]);
     } else {
       showToastMessage(data.message || 'Failed to approve KYC.', 'error');
+      await Promise.all([loadStats(), loadKycQueue()]);
     }
   } catch (err) {
     showToastMessage('Network error occurred while approving document.', 'error');
+    await Promise.all([loadStats(), loadKycQueue()]);
   }
 }
 
@@ -264,7 +330,8 @@ function closeRejectModal() {
 }
 
 async function handleRejectConfirm() {
-  const kycId = $id('rejectKycId')?.value;
+  const kycIdStr = $id('rejectKycId')?.value;
+  const kycId = parseInt(kycIdStr, 10);
   const reason = $id('rejectionReasonInput')?.value?.trim();
 
   if (!reason) {
@@ -275,22 +342,29 @@ async function handleRejectConfirm() {
   const confirmBtn = $id('confirmRejectBtn');
   if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.innerHTML = 'Submitting...'; }
 
+  // Instantly remove row from Pending tab for immediate UI feedback
+  if (currentTab === 'pending') {
+    allDocuments = allDocuments.filter(d => (d.kyc_id || d.id) !== kycId);
+    filterAndRenderTable($id('kycSearchInput')?.value?.toLowerCase()?.trim() || '');
+  }
+
   try {
     const { ok, data } = await adminApi('action=kyc/verify', {
       method: 'POST',
-      body: JSON.stringify({ kyc_id: parseInt(kycId, 10), status: 'rejected', notes: reason })
+      body: JSON.stringify({ kyc_id: kycId, status: 'rejected', notes: reason })
     });
 
     if (ok && data.status === 'success') {
       showToastMessage('KYC submission marked as Rejected with feedback.', 'info');
       closeRejectModal();
-      loadStats();
-      loadKycQueue();
+      await Promise.all([loadStats(), loadKycQueue()]);
     } else {
       showToastMessage(data.message || 'Failed to reject KYC document.', 'error');
+      await Promise.all([loadStats(), loadKycQueue()]);
     }
   } catch (err) {
     showToastMessage('Network error occurred while rejecting document.', 'error');
+    await Promise.all([loadStats(), loadKycQueue()]);
   } finally {
     if (confirmBtn) {
       confirmBtn.disabled = false;
@@ -466,7 +540,8 @@ function populateDossierCard(type, doc, defaultTitle) {
 }
 
 async function handleDossierApprove() {
-  const workerId = $id('dossierWorkerId')?.value;
+  const workerIdStr = $id('dossierWorkerId')?.value;
+  const workerId = parseInt(workerIdStr, 10);
   const notes = $id('dossierAdminNotes')?.value?.trim();
   if (!workerId) return;
 
@@ -477,11 +552,17 @@ async function handleDossierApprove() {
   const approveBtn = $id('dossierApproveBtn');
   if (approveBtn) { approveBtn.disabled = true; approveBtn.innerHTML = 'Verifying & Approving...'; }
 
+  // Instantly remove worker's documents from Pending tab if currently viewing Pending
+  if (currentTab === 'pending') {
+    allDocuments = allDocuments.filter(d => parseInt(d.worker_id, 10) !== workerId);
+    filterAndRenderTable($id('kycSearchInput')?.value?.toLowerCase()?.trim() || '');
+  }
+
   try {
     const { ok, data } = await adminApi('action=kyc/verify', {
       method: 'POST',
       body: JSON.stringify({
-        worker_id: parseInt(workerId, 10),
+        worker_id: workerId,
         verify_packet: true,
         status: 'approved',
         notes: notes || 'National ID, Police report, and Live selfie all verified and approved.'
@@ -491,13 +572,14 @@ async function handleDossierApprove() {
     if (ok && data.status === 'success') {
       showToastMessage('Worker verification packet approved! Verified Worker badge awarded.', 'success');
       closeDossierModal();
-      loadStats();
-      loadKycQueue();
+      await Promise.all([loadStats(), loadKycQueue()]);
     } else {
       showToastMessage(data.message || 'Failed to approve verification packet.', 'error');
+      await Promise.all([loadStats(), loadKycQueue()]);
     }
   } catch (err) {
     showToastMessage('Network error occurred while approving packet.', 'error');
+    await Promise.all([loadStats(), loadKycQueue()]);
   } finally {
     if (approveBtn) {
       approveBtn.disabled = false;
@@ -508,7 +590,8 @@ async function handleDossierApprove() {
 }
 
 async function handleDossierReject() {
-  const workerId = $id('dossierWorkerId')?.value;
+  const workerIdStr = $id('dossierWorkerId')?.value;
+  const workerId = parseInt(workerIdStr, 10);
   let notes = $id('dossierAdminNotes')?.value?.trim();
   if (!workerId) return;
 
@@ -520,11 +603,17 @@ async function handleDossierReject() {
   const rejectBtn = $id('dossierRejectBtn');
   if (rejectBtn) { rejectBtn.disabled = true; rejectBtn.innerHTML = 'Rejecting...'; }
 
+  // Instantly remove worker's documents from Pending tab if currently viewing Pending
+  if (currentTab === 'pending') {
+    allDocuments = allDocuments.filter(d => parseInt(d.worker_id, 10) !== workerId);
+    filterAndRenderTable($id('kycSearchInput')?.value?.toLowerCase()?.trim() || '');
+  }
+
   try {
     const { ok, data } = await adminApi('action=kyc/verify', {
       method: 'POST',
       body: JSON.stringify({
-        worker_id: parseInt(workerId, 10),
+        worker_id: workerId,
         verify_packet: true,
         status: 'rejected',
         notes: notes
@@ -534,13 +623,14 @@ async function handleDossierReject() {
     if (ok && data.status === 'success') {
       showToastMessage('Worker verification packet rejected with feedback.', 'info');
       closeDossierModal();
-      loadStats();
-      loadKycQueue();
+      await Promise.all([loadStats(), loadKycQueue()]);
     } else {
       showToastMessage(data.message || 'Failed to reject verification packet.', 'error');
+      await Promise.all([loadStats(), loadKycQueue()]);
     }
   } catch (err) {
     showToastMessage('Network error occurred while rejecting packet.', 'error');
+    await Promise.all([loadStats(), loadKycQueue()]);
   } finally {
     if (rejectBtn) {
       rejectBtn.disabled = false;

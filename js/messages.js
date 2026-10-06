@@ -20,27 +20,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 1. Authentication Check
   if (!token || !user) {
-    if (conversationsList) {
-      conversationsList.innerHTML = `
-        <div style="padding: 30px 16px; text-align: center; color: var(--text-muted);">
-          <i data-lucide="lock" width="32" height="32" style="margin: 0 auto 10px; display: block; color: var(--text-muted);"></i>
-          <p style="font-weight: 600; margin-bottom: 4px;">Login Required</p>
-          <p style="font-size: 0.8rem; margin-bottom: 12px;">Please log in to view your conversations.</p>
-          <a href="auth/login.html" class="btn btn-primary btn-sm">Sign In</a>
-        </div>`;
-    }
-    if (chatMessages) {
-      chatMessages.innerHTML = `
-        <div class="chat-empty-state">
-          <div class="chat-empty-icon"><i data-lucide="lock" width="32" height="32"></i></div>
-          <h3>Authentication Required</h3>
-          <p>You need an active session to send and receive direct messages.</p>
-          <a href="auth/login.html" class="btn btn-primary" style="margin-top: 12px; display: inline-block;">Go to Login</a>
-        </div>`;
-    }
-    if (chatInput) chatInput.disabled = true;
-    if (btnSend) btnSend.disabled = true;
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    const returnUrl = 'messages.html' + window.location.search;
+    window.location.replace('auth/login.html?redirect=' + encodeURIComponent(returnUrl));
+    return;
+  }
+
+  // Admins do not need chat
+  if (user.role && user.role.toLowerCase() === 'admin') {
+    window.location.replace('admin/dashboard.html');
     return;
   }
 
@@ -139,12 +126,43 @@ document.addEventListener('DOMContentLoaded', function () {
         selectConversation(targetUserIdToSelect, activeJobId);
       } else if (!activeUserId && allConversations.length > 0 && window.innerWidth > 820) {
         selectConversation(allConversations[0].other_user_id, null, allConversations[0]);
+      } else if (!activeUserId && allConversations.length === 0) {
+        renderEmptyChatWindow();
       }
     } catch (err) {
       console.error('Error loading conversations from API:', err);
       allConversations = [];
       renderConversationsList(allConversations);
+      if (!activeUserId) renderEmptyChatWindow();
     }
+  }
+
+  function renderEmptyChatWindow() {
+    if (chatMessages) {
+      chatMessages.innerHTML = `
+        <div class="chat-empty-state">
+          <div class="chat-empty-icon"><i data-lucide="message-square" width="36" height="36"></i></div>
+          <h3>No conversations yet</h3>
+          <p>Find a worker and start chatting.</p>
+          ${(user && user.role === 'customer') ? '<a href="workers.html" class="btn btn-primary btn-sm" style="margin-top:14px; display:inline-flex; align-items:center; gap:6px;"><i data-lucide="search" width="16" height="16"></i> Find Workers</a>' : ''}
+        </div>`;
+    }
+    if (chatHeaderUser) {
+      chatHeaderUser.innerHTML = `
+        <div class="avatar avatar-sm avatar-blue">?</div>
+        <div>
+          <div class="chat-header-name">No active conversation</div>
+          <div class="chat-header-status" style="color:var(--text-muted);">Pick a contact from the left</div>
+        </div>`;
+    }
+    if (chatHeaderActions) chatHeaderActions.innerHTML = '';
+    if (chatJobBanner) chatJobBanner.style.display = 'none';
+    if (chatInput) {
+      chatInput.disabled = true;
+      chatInput.placeholder = 'Select a conversation to start typing...';
+    }
+    if (btnSend) btnSend.disabled = true;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
   function renderConversationsList(list) {
@@ -153,10 +171,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!list || list.length === 0) {
       conversationsList.innerHTML = `
-        <div style="padding: 30px 16px; text-align: center; color: var(--text-muted); font-size: 0.8125rem;">
-          <i data-lucide="message-square-off" width="32" height="32" style="margin: 0 auto 10px; color: var(--text-muted); display: block;"></i>
-          <p style="margin:0 0 6px; font-weight: 600;">No conversations yet</p>
-          <p style="margin:0; font-size: 0.75rem;">Contact a verified worker or customer to begin messaging.</p>
+        <div style="padding: 36px 16px; text-align: center; color: var(--text-muted); font-size: 0.8125rem;">
+          <i data-lucide="message-square" width="36" height="36" style="margin: 0 auto 12px; color: var(--text-muted); display: block; opacity: 0.6;"></i>
+          <p style="margin:0 0 6px; font-weight: 600; font-size: 0.9375rem; color: var(--text);">No conversations yet</p>
+          <p style="margin:0; font-size: 0.8125rem; line-height: 1.4; color: var(--text-muted);">Find a worker and start chatting.</p>
         </div>`;
       if (typeof lucide !== 'undefined') lucide.createIcons();
       return;
@@ -236,14 +254,19 @@ document.addEventListener('DOMContentLoaded', function () {
     renderChatHeader(activeContact);
     lastMessageCount = -1;
 
+    if (chatInput) {
+      chatInput.disabled = false;
+      chatInput.placeholder = 'Type a message here... (Press Enter to send)';
+      chatInput.focus();
+    }
+    if (btnSend) btnSend.disabled = false;
+
     triggerMarkAsRead(activeUserId);
     await loadThreadMessages(true);
 
     if (chatInput) {
-      chatInput.disabled = false;
       chatInput.focus();
     }
-    if (btnSend) btnSend.disabled = false;
   }
 
   async function triggerMarkAsRead(senderId) {
@@ -284,14 +307,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (chatHeaderActions) {
       const phone = contact?.phone || contact?.other_user_phone || '';
       if (phone) {
-        const phoneClean = phone.replace(/\D/g, '');
-        const waNum = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
         chatHeaderActions.innerHTML = `
           <a href="tel:${escapeHtml(phone)}" class="btn btn-call btn-sm btn-icon-sm" title="Call directly">
             <i data-lucide="phone" width="16" height="16"></i>
-          </a>
-          <a href="https://wa.me/${waNum}" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="Open WhatsApp">
-            <i data-lucide="message-circle" width="16" height="16"></i>
           </a>`;
       } else {
         chatHeaderActions.innerHTML = '';

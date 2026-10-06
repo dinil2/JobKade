@@ -321,7 +321,6 @@
               <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
               <a href="messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
               <a href="tel:+94771234567" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
-              <a href="https://wa.me/94771234567" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
             </div>
           </div>
         </div>
@@ -347,7 +346,6 @@
               <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
               <a href="messages.html?user_id=4" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
               <a href="tel:+94772345678" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
-              <a href="https://wa.me/94772345678" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
             </div>
           </div>
         </div>
@@ -373,7 +371,6 @@
               <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
               <a href="messages.html?user_id=5" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
               <a href="tel:+94773456789" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
-              <a href="https://wa.me/94773456789" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
             </div>
           </div>
         </div>
@@ -399,7 +396,6 @@
               <a href="worker-profile.html" class="btn btn-outline btn-sm">View Profile</a>
               <a href="messages.html?user_id=3" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>
               <a href="tel:+94774567890" class="btn btn-call btn-sm btn-icon-sm"><i data-lucide="phone" width="16" height="16"></i></a>
-              <a href="https://wa.me/94774567890" class="btn btn-whatsapp btn-sm btn-icon-sm"><i data-lucide="message-circle" width="16" height="16"></i></a>
             </div>
           </div>
         </div>
@@ -573,8 +569,6 @@
               const apiHtml = workers.slice(0, 3).map(function (w) {
                 const catName = (w.categories && w.categories[0]) ? w.categories[0].name : 'Service Professional';
                 const rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
-                const phoneClean = (w.phone || '0771234567').replace(/\D/g, '');
-                const waNumber = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
 
                 return '<div class="worker-card">' +
                   '<img src="assets/images/hero-worker.png" alt="' + w.full_name + '" style="width:100%;height:200px;object-fit:cover;border-radius:12px 12px 0 0;" onerror="this.src=\'assets/images/worker-kasun.png\'">' +
@@ -595,7 +589,6 @@
                       '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
                       '<a href="messages.html?user_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm" title="Message Worker"><i data-lucide="message-square" width="16" height="16"></i></a>' +
                       '<a href="tel:' + (w.phone || '') + '" class="btn btn-call btn-sm btn-icon-sm" title="Call"><i data-lucide="phone" width="16" height="16"></i></a>' +
-                      '<a href="https://wa.me/' + waNumber + '" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="WhatsApp"><i data-lucide="message-circle" width="16" height="16"></i></a>' +
                     '</div>' +
                   '</div>' +
                 '</div>';
