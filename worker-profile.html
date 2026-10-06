@@ -243,6 +243,73 @@
               const waNum = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
               waBtns.forEach(b => b.href = 'https://wa.me/' + waNum);
             }
+
+            // Wire save worker button
+            const saveBtn = document.querySelector('.save-worker-btn');
+            if (saveBtn) {
+              const u = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+              const sKey = (u && u.id) ? ('jobkade_saved_workers_' + u.id) : null;
+              let sList = [];
+              if (sKey) {
+                try { sList = JSON.parse(localStorage.getItem(sKey) || '[]'); } catch (err) { sList = []; }
+              }
+              const isSaved = sList.some(item => String(item.id) === String(w.id));
+              if (isSaved) {
+                saveBtn.classList.add('saved');
+                saveBtn.style.color = 'var(--error)';
+                saveBtn.style.borderColor = 'var(--error)';
+                saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18" fill="currentColor"></i> Saved';
+              }
+
+              saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const cur = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+                if (!cur) {
+                  if (typeof showToast === 'function') showToast('Please login as a customer to save workers.', 'warning');
+                  setTimeout(() => {
+                    window.location.href = 'auth/login.html?redirect=' + encodeURIComponent('worker-profile.html?id=' + workerId);
+                  }, 800);
+                  return;
+                }
+                if (cur.role && cur.role.toLowerCase() !== 'customer') {
+                  if (typeof showToast === 'function') showToast('Only customer accounts can save workers.', 'warning');
+                  return;
+                }
+                const curKey = 'jobkade_saved_workers_' + cur.id;
+                let curSaved = [];
+                try { curSaved = JSON.parse(localStorage.getItem(curKey) || '[]'); } catch (err) { curSaved = []; }
+                const exIdx = curSaved.findIndex(item => String(item.id) === String(w.id));
+                if (exIdx > -1) {
+                  curSaved.splice(exIdx, 1);
+                  localStorage.setItem(curKey, JSON.stringify(curSaved));
+                  saveBtn.classList.remove('saved');
+                  saveBtn.style.color = '';
+                  saveBtn.style.borderColor = '';
+                  saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18"></i> Save';
+                  if (typeof showToast === 'function') showToast('Worker removed from saved list.', 'info');
+                } else {
+                  curSaved.push({
+                    id: w.id,
+                    user_id: w.user_id || w.id,
+                    full_name: w.full_name || 'Skilled Worker',
+                    profession: (w.categories && w.categories[0] && w.categories[0].name) ? w.categories[0].name : (w.profession || 'Service Professional'),
+                    address: w.address || 'Colombo',
+                    rating_avg: w.rating_avg || '4.9',
+                    is_verified: (w.is_verified == 1 || w.verify_status === 'verified'),
+                    phone: w.phone || '',
+                    avatar: 'assets/images/hero-worker.png',
+                    saved_at: new Date().toISOString()
+                  });
+                  localStorage.setItem(curKey, JSON.stringify(curSaved));
+                  saveBtn.classList.add('saved');
+                  saveBtn.style.color = 'var(--error)';
+                  saveBtn.style.borderColor = 'var(--error)';
+                  saveBtn.innerHTML = '<i data-lucide="heart" width="18" height="18" fill="currentColor"></i> Saved';
+                  if (typeof showToast === 'function') showToast('Worker saved to your favorites!', 'success');
+                }
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+              });
+            }
           }
         } catch (e) {
           console.warn('Could not load worker profile:', e);

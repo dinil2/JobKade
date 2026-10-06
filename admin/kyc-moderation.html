@@ -148,11 +148,16 @@
     }
     .dossier-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 20px;
     }
-    @media (max-width: 860px) {
+    @media (max-width: 1024px) {
+      .dossier-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 640px) {
       .dossier-grid {
         grid-template-columns: 1fr;
       }
@@ -378,7 +383,7 @@
             Worker Identity & KYC Verification Dossier
           </h4>
           <p id="dossierWorkerSub" style="margin:4px 0 0;font-size:0.82rem;color:#64748b;">
-            Review National ID, Police Report, and Live Selfie side-by-side to authenticate worker.
+            Review National ID, Police Report, Live Selfie, and Educational / NVQ Qualifications side-by-side to authenticate worker.
           </p>
         </div>
         <button type="button" class="btn-close" onclick="closeDossierModal()" style="background:none;border:none;cursor:pointer;color:#64748b;">
@@ -401,16 +406,16 @@
           <div style="font-size:0.8rem;color:#15803d;display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:8px;">
             <div>• <strong>Facial Match:</strong> Confirm the face on the Live Selfie matches the National ID photograph.</div>
             <div>• <strong>Police Clearance:</strong> Verify certificate authenticity, stamp/seal, and clean record status.</div>
-            <div>• <strong>Name Verification:</strong> Ensure full legal name is identical on all submitted credentials.</div>
+            <div>• <strong>Qualifications:</strong> Verify NVQ/Trade certificate matches worker's designated trade category.</div>
           </div>
         </div>
 
-        <!-- 3-Column Document Inspection Grid -->
+        <!-- 4-Column Document Inspection Grid -->
         <div class="dossier-grid">
           <!-- 1. National Identity Card -->
           <div class="dossier-card" id="dossierCardNic">
             <div class="dossier-card-header">
-              <h5><i data-lucide="id-card" width="16" height="16" style="color:#0284c7;"></i> 1. National Identity / ID</h5>
+              <h5><i data-lucide="id-card" width="16" height="16" style="color:#0284c7;"></i> 1. National ID</h5>
               <span id="badgeNicStatus" class="badge badge-pending">Pending</span>
             </div>
             <div class="dossier-card-body" id="dossierBodyNic">
@@ -440,7 +445,7 @@
           <!-- 3. Live Verification Selfie -->
           <div class="dossier-card active-match" id="dossierCardSelfie">
             <div class="dossier-card-header" style="background:#eff6ff;">
-              <h5 style="color:#1d4ed8;"><i data-lucide="camera" width="16" height="16" style="color:#2563eb;"></i> 3. Live Selfie (Face Match)</h5>
+              <h5 style="color:#1d4ed8;"><i data-lucide="camera" width="16" height="16" style="color:#2563eb;"></i> 3. Live Selfie</h5>
               <span id="badgeSelfieStatus" class="badge badge-pending">Pending</span>
             </div>
             <div class="dossier-card-body" id="dossierBodySelfie">
@@ -449,6 +454,21 @@
             <div class="dossier-card-footer" id="dossierFooterSelfie">
               <span id="dossierTitleSelfie" style="font-weight:600;color:#334155;">Verification Selfie</span>
               <button type="button" class="btn btn-sm btn-outline" id="dossierZoomSelfie" style="padding:2px 8px;font-size:0.75rem;">Zoom</button>
+            </div>
+          </div>
+
+          <!-- 4. Educational & Trade Qualifications -->
+          <div class="dossier-card" id="dossierCardEdu">
+            <div class="dossier-card-header">
+              <h5><i data-lucide="graduation-cap" width="16" height="16" style="color:#d97706;"></i> 4. Qualifications</h5>
+              <span id="badgeEduStatus" class="badge badge-pending">Pending</span>
+            </div>
+            <div class="dossier-card-body" id="dossierBodyEdu">
+              <span style="color:#94a3b8;">Loading Qualifications...</span>
+            </div>
+            <div class="dossier-card-footer" id="dossierFooterEdu">
+              <span id="dossierTitleEdu" style="font-weight:600;color:#334155;">Educational Qualification</span>
+              <button type="button" class="btn btn-sm btn-outline" id="dossierZoomEdu" style="padding:2px 8px;font-size:0.75rem;">Zoom</button>
             </div>
           </div>
         </div>

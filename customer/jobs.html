@@ -218,12 +218,89 @@
             </div>
           </div>
 
-          <div class="modal-footer" style="padding:16px 24px; display:flex; justify-content:space-between; background:#F8FAFC; border-top:1px solid #E2E8F0;">
+          <div class="modal-footer" style="padding:16px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#F8FAFC; border-top:1px solid #E2E8F0;">
             <button type="button" class="btn btn-outline" onclick="window.print()" style="display:inline-flex; align-items:center; gap:6px;">
               <i data-lucide="printer" width="16" height="16"></i> Print Receipt
             </button>
-            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="button" class="btn btn-primary" id="btn-receipt-leave-review" style="display:inline-flex; align-items:center; gap:6px; font-weight:600; background:#F59E0B; border-color:#F59E0B; color:#ffffff;">
+                <i data-lucide="star" width="16" height="16" style="fill:#ffffff;"></i> Rate & Review
+              </button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Customer Review & Rating Modal -->
+      <div class="modal-overlay" id="review-worker-modal">
+        <div class="modal" style="max-width: 500px; border-radius: 16px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color: #FFFFFF; padding: 20px 24px; display:flex; justify-content: space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:36px; height:36px; border-radius:10px; background:rgba(245, 158, 11, 0.2); display:flex; align-items:center; justify-content:center; color:#F59E0B;">
+                <i data-lucide="star" width="20" height="20" style="fill:#F59E0B;"></i>
+              </div>
+              <div>
+                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#FFFFFF;">Rate & Review Worker</h3>
+                <span style="font-size:0.75rem; color:#94A3B8;" id="review-modal-subtitle">Share your experience with this service</span>
+              </div>
+            </div>
+            <button class="modal-close" data-dismiss="modal" style="background:none; border:none; color:#FFFFFF; cursor:pointer;"><i data-lucide="x" width="20" height="20"></i></button>
+          </div>
+
+          <form id="customer-review-form" style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
+            <input type="hidden" id="review-worker-id" name="worker_id" value="">
+            <input type="hidden" id="review-job-id" name="job_id" value="">
+
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:700;">Worker</div>
+                <strong id="review-worker-name-display" style="font-size:1rem; color:#0F172A;">Verified Worker</strong>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.75rem; color:#64748B; text-transform:uppercase; font-weight:700;">Job</div>
+                <span id="review-job-title-display" style="font-size:0.875rem; color:#334155; font-weight:500;">Service Job</span>
+              </div>
+            </div>
+
+            <!-- Star Rating Selection -->
+            <div style="text-align:center; padding: 12px 0;">
+              <label style="display:block; font-size:0.875rem; font-weight:600; margin-bottom:10px; color:#1E293B;">How was the overall service?</label>
+              <div class="star-rating-widget" id="star-rating-container" style="display:inline-flex; gap:8px; cursor:pointer; align-items:center;">
+                <span class="star-btn active" data-rating="1" style="font-size:32px; color:#F59E0B; transition:transform 0.15s ease;">&#9733;</span>
+                <span class="star-btn active" data-rating="2" style="font-size:32px; color:#F59E0B; transition:transform 0.15s ease;">&#9733;</span>
+                <span class="star-btn active" data-rating="3" style="font-size:32px; color:#F59E0B; transition:transform 0.15s ease;">&#9733;</span>
+                <span class="star-btn active" data-rating="4" style="font-size:32px; color:#F59E0B; transition:transform 0.15s ease;">&#9733;</span>
+                <span class="star-btn active" data-rating="5" style="font-size:32px; color:#F59E0B; transition:transform 0.15s ease;">&#9733;</span>
+              </div>
+              <input type="hidden" id="review-rating-value" name="rating" value="5">
+              <div id="star-rating-label" style="font-size:0.85rem; font-weight:700; color:#F59E0B; margin-top:4px;">5 - Excellent Service</div>
+            </div>
+
+            <!-- Quick Compliment Tags -->
+            <div>
+              <label style="display:block; font-size:0.8rem; font-weight:600; margin-bottom:8px; color:#475569;">Quick Feedback Tags (Click to include)</label>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;" id="review-quick-tags">
+                <button type="button" class="btn-tag" data-tag="Punctual & On Time" style="padding:5px 12px; border-radius:20px; font-size:0.78rem; border:1px solid #CBD5E1; background:#FFFFFF; cursor:pointer; transition:all 0.2s;">+ Punctual</button>
+                <button type="button" class="btn-tag" data-tag="High Quality Work" style="padding:5px 12px; border-radius:20px; font-size:0.78rem; border:1px solid #CBD5E1; background:#FFFFFF; cursor:pointer; transition:all 0.2s;">+ High Quality</button>
+                <button type="button" class="btn-tag" data-tag="Fair & Honest Pricing" style="padding:5px 12px; border-radius:20px; font-size:0.78rem; border:1px solid #CBD5E1; background:#FFFFFF; cursor:pointer; transition:all 0.2s;">+ Fair Price</button>
+                <button type="button" class="btn-tag" data-tag="Polite & Respectful" style="padding:5px 12px; border-radius:20px; font-size:0.78rem; border:1px solid #CBD5E1; background:#FFFFFF; cursor:pointer; transition:all 0.2s;">+ Polite & Friendly</button>
+              </div>
+            </div>
+
+            <!-- Detailed Comment -->
+            <div>
+              <label for="review-comment" style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:6px; color:#1E293B;">Your Review Comments</label>
+              <textarea id="review-comment" name="comment" class="form-textarea" rows="4" placeholder="Describe the quality of work, neatness, and communication..." style="width:100%; border-radius:8px; resize:vertical; font-size:0.875rem;" required>Excellent workmanship, very polite and completed the job promptly. Highly recommend!</textarea>
+            </div>
+
+            <div class="modal-footer" style="padding:16px 0 0 0; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #E2E8F0;">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="submit" id="btn-submit-review" class="btn btn-primary" style="background:#F59E0B; border-color:#F59E0B; color:#ffffff; font-weight:700;">
+                <i data-lucide="send" width="16" height="16"></i> Submit Review
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </main>

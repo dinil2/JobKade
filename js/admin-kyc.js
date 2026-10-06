@@ -418,10 +418,10 @@ async function openWorkerDossier(workerId, workerName) {
 
   workerNameElem.innerHTML = `<i data-lucide="shield-check" width="22" height="22" style="color:#4f46e5;"></i> Verification Dossier: ${escapeHtml(workerName)}`;
   profileBar.innerHTML = `<span style="color:#64748b;">Loading worker verification profile and documents...</span>`;
-  notesInput.value = 'National ID, Police Clearance report, and Live Verification selfie verified. Identity matches government records.';
+  notesInput.value = 'National ID, Police Clearance report, Live selfie, and Educational qualifications verified. Credentials match records.';
 
   // Show loading placeholders in cards
-  ['Nic', 'Police', 'Selfie'].forEach(type => {
+  ['Nic', 'Police', 'Selfie', 'Edu'].forEach(type => {
     document.getElementById(`dossierBody${type}`).innerHTML = `<span style="color:#94a3b8;font-size:0.85rem;">Fetching document...</span>`;
     document.getElementById(`badge${type}Status`).className = 'badge badge-pending';
     document.getElementById(`badge${type}Status`).textContent = 'Loading';
@@ -474,10 +474,12 @@ async function openWorkerDossier(workerId, workerName) {
     const nicDoc = currentDossierDocs.find(d => d.document_type === 'nic' || d.document_type === 'driving_license');
     const policeDoc = currentDossierDocs.find(d => d.document_type === 'police_report');
     const selfieDoc = currentDossierDocs.find(d => d.document_type === 'selfie');
+    const eduDoc = currentDossierDocs.find(d => d.document_type === 'trade_certificate');
 
     populateDossierCard('Nic', nicDoc, 'National ID / Driving License');
     populateDossierCard('Police', policeDoc, 'Police Clearance Report');
     populateDossierCard('Selfie', selfieDoc, 'Live Verification Selfie');
+    populateDossierCard('Edu', eduDoc, 'Educational / NVQ Qualification');
 
     if (typeof lucide !== 'undefined') lucide.createIcons();
   } catch (err) {

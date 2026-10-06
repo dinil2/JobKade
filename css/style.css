@@ -586,6 +586,25 @@ body.has-navbar {
   border-radius: var(--radius-sm);
 }
 
+.btn-save-worker {
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  border-color: var(--border);
+  background: var(--white);
+}
+
+.btn-save-worker:hover {
+  color: var(--error);
+  border-color: var(--error);
+  background: #FEF2F2;
+}
+
+.btn-save-worker.saved {
+  color: var(--error) !important;
+  border-color: #FCA5A5 !important;
+  background: #FEF2F2 !important;
+}
+
 .btn-group {
   display: flex;
   gap: 12px;

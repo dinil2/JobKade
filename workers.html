@@ -500,6 +500,16 @@
           'assets/images/hero-worker.png'
         ];
 
+        var loggedInUser = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+        var userSavedList = [];
+        if (loggedInUser && loggedInUser.id) {
+          try {
+            userSavedList = JSON.parse(localStorage.getItem('jobkade_saved_workers_' + loggedInUser.id) || '[]');
+          } catch (e) {
+            userSavedList = [];
+          }
+        }
+
         var html = workers.map(function (w, index) {
           var catList = w.categories || [];
           var catSlug = (catList.length > 0 && catList[0].slug) ? catList[0].slug : 'tradesman';
@@ -508,11 +518,10 @@
           if (!allCats) allCats = catSlug + ' ' + catName.toLowerCase();
 
           var rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
-          var phoneClean = (w.phone || '0771234567').replace(/\D/g, '');
-          var waNumber = phoneClean.startsWith('0') ? ('94' + phoneClean.substring(1)) : phoneClean;
           var isVerified = (w.is_verified == 1 || w.verify_status === 'verified');
           var avatarImg = workerAvatars[index % workerAvatars.length];
           var locationText = w.address || 'Colombo';
+          var isSaved = userSavedList.some(function (item) { return String(item.id) === String(w.id); });
 
           return '<div class="worker-card" data-category="' + allCats + '" data-location="' + locationText.toLowerCase() + '" data-rating="' + rating + '" data-verified="' + (isVerified ? 'true' : 'false') + '" data-available="true" data-name="' + (w.full_name || '').toLowerCase() + '">' +
             '<img src="' + avatarImg + '" alt="' + (w.full_name || 'Worker') + '" class="worker-card-img" onerror="this.src=\'assets/images/hero-worker.png\'">' +
@@ -534,7 +543,7 @@
                 '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
                 '<a href="messages.html?user_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm btn-card-msg" title="Message Worker" data-user-id="' + (w.user_id || w.id) + '"><i data-lucide="message-square" width="16" height="16"></i></a>' +
                 '<a href="tel:' + (w.phone || '') + '" class="btn btn-call btn-sm btn-icon-sm" title="Call"><i data-lucide="phone" width="16" height="16"></i></a>' +
-                '<a href="https://wa.me/' + waNumber + '" target="_blank" class="btn btn-whatsapp btn-sm btn-icon-sm" title="WhatsApp"><i data-lucide="message-circle" width="16" height="16"></i></a>' +
+                '<button type="button" class="btn btn-outline btn-sm btn-icon-sm btn-save-worker' + (isSaved ? ' saved' : '') + '" title="' + (isSaved ? 'Remove from Saved' : 'Save Worker') + '" data-worker-index="' + index + '"' + (isSaved ? ' style="color:var(--error);border-color:var(--error);"' : '') + '><i data-lucide="heart" width="16" height="16"' + (isSaved ? ' fill="currentColor"' : '') + '></i></button>' +
               '</div>' +
             '</div>' +
           '</div>';
@@ -555,6 +564,82 @@
             } else {
               window.location.href = targetUrl;
             }
+          });
+        });
+
+        // Save worker favorite toggle handler
+        grid.querySelectorAll('.btn-save-worker').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var user = typeof getLoggedInUser === 'function' ? getLoggedInUser() : null;
+            if (!user) {
+              if (typeof showToast === 'function') {
+                showToast('Please login as a customer to save workers.', 'warning');
+              }
+              setTimeout(function () {
+                window.location.href = 'auth/login.html?redirect=' + encodeURIComponent('workers.html');
+              }, 800);
+              return;
+            }
+
+            if (user.role && user.role.toLowerCase() !== 'customer') {
+              if (typeof showToast === 'function') {
+                showToast('Only customer accounts can save workers.', 'warning');
+              }
+              return;
+            }
+
+            var idx = parseInt(this.getAttribute('data-worker-index'), 10);
+            var w = workers[idx];
+            if (!w) return;
+
+            var key = 'jobkade_saved_workers_' + user.id;
+            var currentSaved = [];
+            try {
+              currentSaved = JSON.parse(localStorage.getItem(key) || '[]');
+            } catch (err) {
+              currentSaved = [];
+            }
+
+            var existingIdx = currentSaved.findIndex(function (item) {
+              return String(item.id) === String(w.id);
+            });
+
+            if (existingIdx > -1) {
+              currentSaved.splice(existingIdx, 1);
+              localStorage.setItem(key, JSON.stringify(currentSaved));
+              this.classList.remove('saved');
+              this.style.color = '';
+              this.style.borderColor = '';
+              this.setAttribute('title', 'Save Worker');
+              this.innerHTML = '<i data-lucide="heart" width="16" height="16"></i>';
+              if (typeof showToast === 'function') showToast('Worker removed from saved list.', 'info');
+            } else {
+              var catList = w.categories || [];
+              var catName = (catList.length > 0 && catList[0].name) ? catList[0].name : (w.profession || 'Service Professional');
+              var workerToSave = {
+                id: w.id,
+                user_id: w.user_id || w.id,
+                full_name: w.full_name || 'Skilled Worker',
+                profession: catName,
+                address: w.address || 'Colombo',
+                rating_avg: w.rating_avg || '4.9',
+                is_verified: (w.is_verified == 1 || w.verify_status === 'verified'),
+                phone: w.phone || '',
+                avatar: workerAvatars[idx % workerAvatars.length],
+                saved_at: new Date().toISOString()
+              };
+              currentSaved.push(workerToSave);
+              localStorage.setItem(key, JSON.stringify(currentSaved));
+              this.classList.add('saved');
+              this.style.color = 'var(--error)';
+              this.style.borderColor = 'var(--error)';
+              this.setAttribute('title', 'Remove from Saved');
+              this.innerHTML = '<i data-lucide="heart" width="16" height="16" fill="currentColor"></i>';
+              if (typeof showToast === 'function') showToast('Worker saved to your favorites!', 'success');
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
           });
         });
 
