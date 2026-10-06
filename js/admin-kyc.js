@@ -5,20 +5,9 @@ let allDocuments = [];
 let pendingDocuments = [];
 
 document.addEventListener('DOMContentLoaded', async function () {
-  let token = localStorage.getItem('jobkade_token');
-  let user = null;
-
-  try {
-    user = JSON.parse(localStorage.getItem('jodkade_logged_user') || localStorage.getItem('jobkade_user') || 'null');
-  } catch (e) {
-    user = null;
-  }
-
-  // Verify authentic Admin authentication from database session
-  if (!token || !user || (user.role || '').toLowerCase() !== 'admin') {
-    window.location.href = '../auth/login.html?redirect=' + encodeURIComponent('admin/kyc.html');
-    return;
-  }
+  // Shared auth guard (js/main.js): redirects to login unless an admin session exists
+  let user = (typeof requireAuth === 'function') ? requireAuth('admin') : null;
+  if (!user) return;
 
   // Admin user info in header and sidebar
   const adminUserName = document.getElementById('adminUserName');
