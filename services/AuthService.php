@@ -73,12 +73,23 @@ class AuthService {
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             $userId = $this->userRepo->create($fullName, $username, $email, $passwordHash, $role, $phone);
 
+            $workerProfileId = null;
             if ($role === 'worker') {
+                $district = trim((string)($data['district'] ?? $data['location'] ?? $data['address'] ?? 'Colombo'));
+                if (empty($district)) {
+                    $district = 'Colombo';
+                }
+
                 $workerProfileId = $this->workerRepo->createProfile($userId, [
                     'bio'           => $data['bio'] ?? 'Skilled service professional.',
-                    'address'       => $data['address'] ?? $data['location'] ?? 'Colombo',
+                    'address'       => $district,
+                    'district'      => $district,
                     'working_hours' => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
                 ]);
+
+                try {
+                    $pdo->prepare("UPDATE users SET address = :addr WHERE id = :uid")->execute([':addr' => $district, ':uid' => $userId]);
+                } catch (Throwable $e) {}
 
                 // Assign category by ID or name
                 $catMap = [
@@ -89,10 +100,46 @@ class AuthService {
                 $catId = (int)($data['category_id'] ?? 0);
                 if ($catId <= 0 && !empty($data['service'])) {
                     $slug = strtolower(trim((string)$data['service']));
-                    $catId = $catMap[$slug] ?? 1;
+                    $catId = $catMap[$slug] ?? (is_numeric($data['service']) ? (int)$data['service'] : 1);
                 }
-                if ($catId > 0) {
-                    $this->workerRepo->setWorkerCategories($workerProfileId, [$catId]);
+                if ($catId <= 0) {
+                    $catId = 1;
+                }
+                $this->workerRepo->setWorkerCategories($workerProfileId, [$catId]);
+
+                // Create an actual service record in worker_services using selected category and district
+                $catName = 'General Service';
+                try {
+                    $cStmt = $pdo->prepare("SELECT name FROM categories WHERE id = :cid LIMIT 1");
+                    $cStmt->execute([':cid' => $catId]);
+                    $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+                    if ($cRow && !empty($cRow['name'])) {
+                        $catName = $cRow['name'];
+                    }
+                } catch (Throwable $ce) {}
+
+                $srvTitle = $catName;
+                $srvDesc = "Professional {$catName} services in {$district} and surrounding areas.";
+                $srvPrice = 0.00;
+
+                try {
+                    $srvStmt = $pdo->prepare("
+                        INSERT INTO worker_services 
+                        (worker_id, category_id, title, description, price, pricing_type, location, district, is_available, created_at)
+                        VALUES 
+                        (:wid, :cid, :title, :desc, :price, 'fixed', :loc, :dist, 1, NOW())
+                    ");
+                    $srvStmt->execute([
+                        ':wid'   => $workerProfileId,
+                        ':cid'   => $catId,
+                        ':title' => $srvTitle,
+                        ':desc'  => $srvDesc,
+                        ':price' => $srvPrice,
+                        ':loc'   => $district,
+                        ':dist'  => $district
+                    ]);
+                } catch (Throwable $se) {
+                    error_log("Failed to auto-create worker service: " . $se->getMessage());
                 }
 
                 $hasUploadedDocs = false;

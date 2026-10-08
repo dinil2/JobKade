@@ -21,6 +21,7 @@ class WorkerRepository {
         $profile = $stmt->fetch();
         if ($profile) {
             $profile['categories'] = $this->getWorkerCategories($profile['id']);
+            $profile['services'] = $this->getWorkerServices($profile['id']);
         }
         return $profile ?: null;
     }
@@ -44,33 +45,38 @@ class WorkerRepository {
         $profile = $stmt->fetch();
         if ($profile) {
             $profile['categories'] = $this->getWorkerCategories($profile['id']);
+            $profile['services'] = $this->getWorkerServices($profile['id']);
         }
         return $profile ?: null;
     }
 
     public function createProfile(int $userId, array $data): int {
+        $district = $data['district'] ?? $data['address'] ?? 'Colombo';
         $stmt = $this->db->prepare("
-            INSERT INTO worker_profiles (user_id, bio, address, working_hours, verify_status)
-            VALUES (:user_id, :bio, :address, :working_hours, 'unverified')
+            INSERT INTO worker_profiles (user_id, bio, address, district, working_hours, verify_status)
+            VALUES (:user_id, :bio, :address, :district, :working_hours, 'unverified')
         ");
         $stmt->execute([
             ':user_id'           => $userId,
             ':bio'               => $data['bio'] ?? '',
-            ':address'           => $data['address'] ?? 'Colombo',
+            ':address'           => $data['address'] ?? $district,
+            ':district'          => $district,
             ':working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
         ]);
         return (int)$this->db->lastInsertId();
     }
 
     public function updateProfile(int $workerId, array $data): bool {
+        $district = $data['district'] ?? ($data['address'] ?? null);
         $stmt = $this->db->prepare("
             UPDATE worker_profiles 
-            SET bio = :bio, address = :address, working_hours = :working_hours
+            SET bio = :bio, address = :address, district = COALESCE(:district, district), working_hours = :working_hours
             WHERE id = :id
         ");
         $res = $stmt->execute([
             ':bio'               => $data['bio'] ?? '',
             ':address'           => $data['address'] ?? 'Colombo',
+            ':district'          => $district,
             ':working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM',
             ':id'                => $workerId
         ]);
@@ -147,6 +153,47 @@ class WorkerRepository {
         }
     }
 
+    public function getWorkerServices(int $workerId): array {
+        $stmt = $this->db->prepare("
+            SELECT ws.id, ws.worker_id, ws.category_id, ws.title, ws.description, 
+                   ws.price, ws.pricing_type, ws.location, ws.is_available,
+                   COALESCE(c.name, 'General Services') AS category,
+                   COALESCE(c.name, 'General Services') AS category_name,
+                   c.slug AS category_slug, c.icon AS category_icon
+            FROM worker_services ws
+            LEFT JOIN categories c ON ws.category_id = c.id
+            WHERE ws.worker_id = :worker_id AND ws.is_available = 1
+            ORDER BY ws.id DESC
+        ");
+        $stmt->execute([':worker_id' => $workerId]);
+        return $stmt->fetchAll();
+    }
+
+    public function addCategoryIfNotExists(int $workerId, int $categoryId): bool {
+        if ($workerId <= 0 || $categoryId <= 0) {
+            return false;
+        }
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM worker_categories WHERE worker_id = :wid AND category_id = :cid");
+        $stmt->execute([':wid' => $workerId, ':cid' => $categoryId]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            $ins = $this->db->prepare("INSERT INTO worker_categories (worker_id, category_id) VALUES (:wid, :cid)");
+            return $ins->execute([':wid' => $workerId, ':cid' => $categoryId]);
+        }
+        return true;
+    }
+
+    public function getCategoryIdBySlugOrName(string $nameOrSlug): ?int {
+        $term = strtolower(trim($nameOrSlug));
+        $stmt = $this->db->prepare("
+            SELECT id FROM categories 
+            WHERE LOWER(slug) = :term OR LOWER(name) = :term 
+            LIMIT 1
+        ");
+        $stmt->execute([':term' => $term]);
+        $row = $stmt->fetch();
+        return $row ? (int)$row['id'] : null;
+    }
+
     /**
      * Search verified workers with optional trade category.
      * Coordinates/distance calculations are ignored.
@@ -157,7 +204,7 @@ class WorkerRepository {
      * @param int|null $categoryId
      * @return array
      */
-    public function searchWorkers(?float $lat = null, ?float $lng = null, ?int $categoryId = null): array {
+    public function searchWorkers(?float $lat = null, ?float $lng = null, ?int $categoryId = null, ?string $district = null): array {
         $params = [];
 
         $sql = "
@@ -172,7 +219,26 @@ class WorkerRepository {
             $params[':cat_id'] = $categoryId;
         }
 
-        $sql .= " ORDER BY wp.rating_avg DESC, wp.is_verified DESC";
+        if (!empty($district)) {
+            $cleanDistrict = trim($district);
+            $sql .= " ORDER BY (CASE WHEN (
+                wp.district = :dist_exact1 
+                OR wp.address LIKE :dist_pattern1 
+                OR u.address LIKE :dist_pattern2
+                OR EXISTS (
+                    SELECT 1 FROM worker_services ws 
+                    WHERE ws.worker_id = wp.id 
+                    AND (ws.district = :dist_exact2 OR ws.location LIKE :dist_pattern3)
+                )
+            ) THEN 1 ELSE 0 END) DESC, wp.rating_avg DESC, wp.is_verified DESC";
+            $params[':dist_exact1'] = $cleanDistrict;
+            $params[':dist_exact2'] = $cleanDistrict;
+            $params[':dist_pattern1'] = "%" . $cleanDistrict . "%";
+            $params[':dist_pattern2'] = "%" . $cleanDistrict . "%";
+            $params[':dist_pattern3'] = "%" . $cleanDistrict . "%";
+        } else {
+            $sql .= " ORDER BY wp.rating_avg DESC, wp.is_verified DESC";
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -180,6 +246,23 @@ class WorkerRepository {
 
         foreach ($workers as &$worker) {
             $worker['categories'] = $this->getWorkerCategories($worker['id']);
+            $worker['services'] = $this->getWorkerServices($worker['id']);
+            if (!empty($district)) {
+                $dLow = strtolower(trim($district));
+                $workerDistLow = strtolower(trim($worker['district'] ?? ''));
+                $workerAddrLow = strtolower(trim($worker['address'] ?? ''));
+                $match = ($workerDistLow === $dLow || str_contains($workerAddrLow, $dLow));
+                if (!$match && !empty($worker['services'])) {
+                    foreach ($worker['services'] as $s) {
+                        if (strtolower(trim($s['district'] ?? '')) === $dLow || str_contains(strtolower($s['location'] ?? ''), $dLow)) {
+                            $match = true;
+                            break;
+                        }
+                    }
+                }
+                $worker['is_suggested'] = $match;
+                $worker['is_district_match'] = $match;
+            }
         }
 
         return $workers;

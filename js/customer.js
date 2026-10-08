@@ -119,6 +119,18 @@ function initJobPostPage() {
     });
   }
 
+  const SRI_LANKA_DISTRICTS = {
+    'Colombo': [6.9271, 79.8612], 'Gampaha': [7.0840, 80.0098], 'Kalutara': [6.5854, 79.9607],
+    'Kandy': [7.2906, 80.6337], 'Matale': [7.4675, 80.6234], 'Nuwara Eliya': [6.9497, 80.7891],
+    'Galle': [6.0535, 80.2210], 'Matara': [5.9549, 80.5550], 'Hambantota': [6.1429, 81.1212],
+    'Jaffna': [9.6615, 80.0255], 'Kilinochchi': [9.3803, 80.3770], 'Mannar': [8.9810, 79.9044],
+    'Vavuniya': [8.7542, 80.4982], 'Mullaitivu': [9.2671, 80.8142], 'Batticaloa': [7.7310, 81.6747],
+    'Ampara': [7.2912, 81.6724], 'Trincomalee': [8.5874, 81.2152], 'Kurunegala': [7.4863, 80.3623],
+    'Puttalam': [8.0408, 79.8394], 'Anuradhapura': [8.3114, 80.4037], 'Polonnaruwa': [7.9403, 81.0188],
+    'Badulla': [6.9934, 81.0550], 'Moneragala': [6.8728, 81.3507], 'Ratnapura': [6.6828, 80.3992],
+    'Kegalle': [7.2513, 80.3464]
+  };
+
   let curLat = 6.9271;
   let curLng = 79.8612;
   let jobMap = null;
@@ -227,6 +239,17 @@ function initJobPostPage() {
         }
       }
     });
+
+    const districtSelect = $id('job-district-select');
+    districtSelect?.addEventListener('change', () => {
+      const dist = districtSelect.value;
+      if (dist && SRI_LANKA_DISTRICTS[dist]) {
+        const [dLat, dLng] = SRI_LANKA_DISTRICTS[dist];
+        setCoords(dLat, dLng, false);
+        jobMap?.setView([dLat, dLng], 12);
+        jobMarker?.openPopup();
+      }
+    });
   }
 
   if (form) {
@@ -247,9 +270,13 @@ function initJobPostPage() {
       const finalLat = latInput ? parseFloat(latInput.value) : curLat;
       const finalLng = lngInput ? parseFloat(lngInput.value) : curLng;
 
+      const districtSelect = $id('job-district-select');
+      const district = districtSelect?.value || 'Colombo';
+
       let firstInvalid = null;
       if (!title || title.length < 3 || title.length > 150) { showFieldError(titleInput, 'Job title is required (3–150 characters).'); firstInvalid = firstInvalid || titleInput; }
       if (!catSelect?.value) { showFieldError(catSelect, 'Please select a service category.'); firstInvalid = firstInvalid || catSelect; }
+      if (districtSelect && !districtSelect.value) { showFieldError(districtSelect, 'Please select a district.'); firstInvalid = firstInvalid || districtSelect; }
       if (!desc || desc.length < 10 || desc.length > 3000) { showFieldError(descInput, 'Please provide a detailed description (10–3,000 characters).'); firstInvalid = firstInvalid || descInput; }
       if (!location || location.length < 2) { showFieldError(locInput, 'Please provide a valid location/address.'); firstInvalid = firstInvalid || locInput; }
       if (isNaN(finalLat) || finalLat < -90 || finalLat > 90 || isNaN(finalLng) || finalLng < -180 || finalLng > 180) {
@@ -275,7 +302,7 @@ function initJobPostPage() {
         try {
           const res = await apiFetch('jobs.php?action=create', {
             method: 'POST',
-            body: JSON.stringify({ title, description: desc, category_id: catId, address: location, latitude: finalLat, longitude: finalLng })
+            body: JSON.stringify({ title, description: desc, category_id: catId, address: location, district, latitude: finalLat, longitude: finalLng })
           });
 
           if (res.ok && res.data?.status === 'success') {

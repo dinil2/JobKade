@@ -10,6 +10,9 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/worker.css">
+  <!-- Leaflet.js Map CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <div id="navbar-container"></div>
@@ -22,31 +25,101 @@
 
       <div class="service-form-card">
         <form id="service-form">
-          <div class="form-group"><label class="form-label">Service Title <span>*</span></label><input type="text" id="service-title-input" name="service-title" class="form-input" placeholder="e.g. Home Electrical Repairs" required></div>
-          <div class="form-group"><label class="form-label">Category <span>*</span></label><select id="service-category-input" class="form-select" required><option value="">Select category</option><option value="1" selected>Electrical</option><option value="2">Plumbing</option><option value="3">AC Repair</option><option value="4">Painting</option><option value="5">Carpentry</option><option value="6">Masonry & Tiling</option><option value="7">Cleaning</option><option value="8">Appliance Repair</option><option value="9">Other</option></select></div>
-          <div class="form-group"><label class="form-label">Description <span>*</span></label><textarea id="service-desc-input" class="form-textarea" placeholder="Describe this service in detail..." required></textarea></div>
-          <div class="form-row">
-            <div class="form-group"><label class="form-label">Starting Service Price (Rs.) <span>*</span></label><input type="number" id="service-price-input" class="form-input" placeholder="e.g. 2500" min="100" required></div>
-            <div class="form-group"><label class="form-label">Pricing Model</label><select id="service-pricing-type-input" class="form-select"><option value="fixed" selected>Per Job (Fixed Rate)</option><option value="starting_at">Starting From (Final Price on Completion)</option></select></div>
-          </div>
-          <div class="form-group"><label class="form-label">Service Location</label><input type="text" id="service-location-input" class="form-input" placeholder="e.g. Colombo, Dehiwala, Mount Lavinia"></div>
           <div class="form-group">
-            <label class="form-label">Service Images</label>
-            <label class="file-upload">
-              <div class="file-upload-icon-circle">
-                <i data-lucide="image" width="24" height="24"></i>
-              </div>
-              <p class="file-upload-title">Click to upload photos of your work</p>
-              <span class="file-types">JPG or PNG (Up to 5 images &bull; max 5MB each)</span>
-              <input type="file" id="service-images" accept=".jpg,.jpeg,.png" multiple>
-            </label>
-            <div id="service-preview-grid" class="image-preview-grid"></div>
+            <label class="form-label">Service Title <span>*</span></label>
+            <input type="text" id="service-title-input" name="service-title" class="form-input" placeholder="e.g. Home Electrical Repairs" required>
           </div>
+
+          <div class="form-group">
+            <label class="form-label">Category <span>*</span></label>
+            <select id="service-category-input" class="form-select" required>
+              <option value="" disabled selected>Select category *</option>
+              <option value="1">Electrical</option>
+              <option value="2">Plumbing</option>
+              <option value="3">AC Repair</option>
+              <option value="4">Painting</option>
+              <option value="5">Carpentry</option>
+              <option value="6">Masonry & Tiling</option>
+              <option value="7">Cleaning</option>
+              <option value="8">Appliance Repair</option>
+              <option value="9">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description <span>*</span></label>
+            <textarea id="service-desc-input" class="form-textarea" placeholder="Describe this service in detail..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Starting Service Price (Rs.) <span>*</span></label>
+            <input type="number" id="service-price-input" class="form-input" placeholder="e.g. 2500" min="100" required>
+          </div>
+
+          <!-- Service Location: District Dropdown -->
+          <div class="form-group">
+            <label class="form-label">Service District <span>*</span></label>
+            <select id="service-district-input" name="service-district" class="form-select" required>
+              <option value="" disabled selected>Select District *</option>
+              <option value="Colombo">Colombo</option>
+              <option value="Gampaha">Gampaha</option>
+              <option value="Kalutara">Kalutara</option>
+              <option value="Kandy">Kandy</option>
+              <option value="Matale">Matale</option>
+              <option value="Nuwara Eliya">Nuwara Eliya</option>
+              <option value="Galle">Galle</option>
+              <option value="Matara">Matara</option>
+              <option value="Hambantota">Hambantota</option>
+              <option value="Jaffna">Jaffna</option>
+              <option value="Kilinochchi">Kilinochchi</option>
+              <option value="Mannar">Mannar</option>
+              <option value="Vavuniya">Vavuniya</option>
+              <option value="Mullaitivu">Mullaitivu</option>
+              <option value="Batticaloa">Batticaloa</option>
+              <option value="Ampara">Ampara</option>
+              <option value="Trincomalee">Trincomalee</option>
+              <option value="Kurunegala">Kurunegala</option>
+              <option value="Puttalam">Puttalam</option>
+              <option value="Anuradhapura">Anuradhapura</option>
+              <option value="Polonnaruwa">Polonnaruwa</option>
+              <option value="Badulla">Badulla</option>
+              <option value="Moneragala">Moneragala</option>
+              <option value="Ratnapura">Ratnapura</option>
+              <option value="Kegalle">Kegalle</option>
+            </select>
+          </div>
+
+          <!-- Service Location: Map Pin Picker -->
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">Precise Service Location Pin</label>
+              <button type="button" id="btn-service-current-loc" class="btn btn-outline btn-sm" style="padding:4px 10px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                <i data-lucide="crosshair" width="14" height="14"></i> Use My Current Location
+              </button>
+            </div>
+            <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+              <div id="service-location-map" style="height: 250px; width: 100%; background: #e2e8f0; z-index: 1;"></div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-light); border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-secondary);">
+                <span><i data-lucide="map-pin" width="12" height="12" style="display:inline; vertical-align:middle; color:var(--primary);"></i> Click map or drag marker to set exact service location</span>
+                <span id="service-coord-display" style="font-family: monospace; font-weight: 600; color: var(--text);">6.92710° N, 79.86120° E</span>
+              </div>
+            </div>
+            <input type="hidden" id="service-latitude" name="latitude" value="6.9271000">
+            <input type="hidden" id="service-longitude" name="longitude" value="79.8612000">
+          </div>
+
           <div class="form-group">
             <label class="form-label">Availability</label>
-            <select id="service-avail-input" class="form-select"><option value="1" selected>Available</option><option value="0">Temporarily Unavailable</option></select>
+            <select id="service-avail-input" class="form-select">
+              <option value="1" selected>Available</option>
+              <option value="0">Temporarily Unavailable</option>
+            </select>
           </div>
-          <div class="btn-group"><button type="submit" id="btn-save-service" class="btn btn-primary"><i data-lucide="save" width="18" height="18"></i> Save Service</button><a href="my-services.html" class="btn btn-secondary">Cancel</a></div>
+
+          <div class="btn-group">
+            <button type="submit" id="btn-save-service" class="btn btn-primary"><i data-lucide="save" width="18" height="18"></i> Save Service</button>
+            <a href="my-services.html" class="btn btn-secondary">Cancel</a>
+          </div>
         </form>
       </div>
     </main>

@@ -52,7 +52,8 @@ class JobController {
         }
 
         $catId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
-        $jobs = $this->jobService->getOpenJobs($catId);
+        $district = isset($_GET['district']) && $_GET['district'] !== '' ? trim((string)$_GET['district']) : null;
+        $jobs = $this->jobService->getOpenJobs($catId, $district);
 
         // If worker does not have active access/subscription, mask direct contact numbers
         if (!$hasAccess) {

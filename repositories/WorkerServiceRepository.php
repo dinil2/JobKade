@@ -18,13 +18,14 @@ class WorkerServiceRepository {
         float $price,
         string $pricingType = 'hourly',
         string $location = 'Colombo',
-        ?string $images = null
+        ?string $images = null,
+        string $district = 'Colombo'
     ): int {
         $stmt = $this->db->prepare("
             INSERT INTO worker_services 
-            (worker_id, category_id, title, description, price, pricing_type, location, is_available, images, created_at)
+            (worker_id, category_id, title, description, price, pricing_type, location, district, is_available, images, created_at)
             VALUES 
-            (:worker_id, :category_id, :title, :description, :price, :pricing_type, :location, 1, :images, NOW())
+            (:worker_id, :category_id, :title, :description, :price, :pricing_type, :location, :district, 1, :images, NOW())
         ");
         $stmt->execute([
             ':worker_id'    => $workerId,
@@ -34,6 +35,7 @@ class WorkerServiceRepository {
             ':price'        => $price,
             ':pricing_type' => $pricingType,
             ':location'     => $location,
+            ':district'     => $district,
             ':images'       => $images
         ]);
         return (int)$this->db->lastInsertId();

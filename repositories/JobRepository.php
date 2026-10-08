@@ -10,10 +10,20 @@ class JobRepository {
         $this->db = Database::getConnection();
     }
 
-    public function create(int $customerId, int $categoryId, string $title, string $description, float $lat, float $lng, string $address, ?string $photoPath = null): int {
+    public function create(
+        int $customerId,
+        int $categoryId,
+        string $title,
+        string $description,
+        float $lat,
+        float $lng,
+        string $address,
+        ?string $photoPath = null,
+        string $district = 'Colombo'
+    ): int {
         $stmt = $this->db->prepare("
-            INSERT INTO job_requests (customer_id, category_id, title, description, latitude, longitude, address, photo_path, status)
-            VALUES (:customer_id, :category_id, :title, :description, :lat, :lng, :address, :photo_path, 'open')
+            INSERT INTO job_requests (customer_id, category_id, title, description, latitude, longitude, address, district, photo_path, status)
+            VALUES (:customer_id, :category_id, :title, :description, :lat, :lng, :address, :district, :photo_path, 'open')
         ");
         $stmt->execute([
             ':customer_id' => $customerId,
@@ -23,12 +33,13 @@ class JobRepository {
             ':lat'         => $lat,
             ':lng'         => $lng,
             ':address'     => $address,
+            ':district'    => $district,
             ':photo_path'  => $photoPath
         ]);
         return (int)$this->db->lastInsertId();
     }
 
-    public function getOpenJobs(?int $categoryId = null): array {
+    public function getOpenJobs(?int $categoryId = null, ?string $district = null): array {
         $sql = "
             SELECT jr.*, c.name AS category_name, c.icon AS category_icon, u.full_name AS customer_name, u.phone AS customer_phone
             FROM job_requests jr
@@ -41,7 +52,13 @@ class JobRepository {
             $sql .= " AND jr.category_id = :cat_id";
             $params[':cat_id'] = $categoryId;
         }
-        $sql .= " ORDER BY jr.created_at DESC";
+        if (!empty($district)) {
+            $sql .= " ORDER BY (CASE WHEN (jr.district = :dist_exact OR jr.address LIKE :dist_pattern) THEN 1 ELSE 0 END) DESC, jr.created_at DESC";
+            $params[':dist_exact'] = trim($district);
+            $params[':dist_pattern'] = "%" . trim($district) . "%";
+        } else {
+            $sql .= " ORDER BY jr.created_at DESC";
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

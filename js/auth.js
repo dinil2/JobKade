@@ -200,6 +200,7 @@ function initRegisterForms() {
       if (isWorker) {
         baseRules.push(
           { name: 'service', test: v => Boolean(v), message: 'Please select your primary service.' },
+          { name: 'district', test: v => Boolean(v), message: 'Please select your service location district.' },
           { name: 'nic', test: v => Boolean(v), message: 'NIC number is required for worker verification.' }
         );
       }
@@ -212,10 +213,11 @@ function initRegisterForms() {
       const email = (emailInput?.value || '').trim();
       const password = form.querySelector('[name="password"]')?.value || '';
       const phone = (form.querySelector('[name="phone"]')?.value || '').trim();
-      const location = (form.querySelector('[name="location"]')?.value || '').trim() || 'Colombo';
+      const districtVal = form.querySelector('[name="district"]')?.value || '';
+      const location = districtVal || (form.querySelector('[name="location"]')?.value || '').trim() || 'Colombo';
 
       if (isWorker) {
-        await handleWorkerRegistration(form, { fullName, email, password, phone, location, emailInput });
+        await handleWorkerRegistration(form, { fullName, email, password, phone, location, district: districtVal || location, emailInput });
       } else {
         await handleCustomerRegistration(form, { fullName, email, password, phone, location, emailInput });
       }
@@ -226,8 +228,10 @@ function initRegisterForms() {
 async function handleWorkerRegistration(form, data) {
   const serviceInput = form.querySelector('[name="service"]');
   const nicInput = form.querySelector('[name="nic"]');
+  const districtInput = form.querySelector('[name="district"]');
   const serviceVal = serviceInput ? serviceInput.value : '';
   const nic = nicInput ? nicInput.value.trim() : '';
+  const district = (districtInput?.value || data.district || data.location || 'Colombo').trim();
 
   const formData = new FormData();
   formData.append('full_name', data.fullName);
@@ -236,8 +240,9 @@ async function handleWorkerRegistration(form, data) {
   formData.append('password', data.password);
   formData.append('phone', data.phone);
   formData.append('role', 'worker');
-  formData.append('address', data.location);
-  formData.append('location', data.location);
+  formData.append('district', district);
+  formData.append('address', district);
+  formData.append('location', district);
   formData.append('service', serviceVal);
   formData.append('category_id', parseInt(serviceVal, 10) || 1);
   formData.append('nic', nic);

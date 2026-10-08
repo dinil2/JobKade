@@ -66,6 +66,35 @@ function syncWorkerIdentity(user) {
 // 1. Service Management & Deletion
 // ==========================================
 
+// Sri Lankan District Coordinates Lookup for Map Centering
+const SRI_LANKA_DISTRICTS = {
+  'Colombo': [6.9271, 79.8612],
+  'Gampaha': [7.0840, 80.0098],
+  'Kalutara': [6.5854, 79.9607],
+  'Kandy': [7.2906, 80.6337],
+  'Matale': [7.4675, 80.6234],
+  'Nuwara Eliya': [6.9497, 80.7891],
+  'Galle': [6.0535, 80.2210],
+  'Matara': [5.9549, 80.5550],
+  'Hambantota': [6.1429, 81.1212],
+  'Jaffna': [9.6615, 80.0255],
+  'Kilinochchi': [9.3803, 80.3770],
+  'Mannar': [8.9810, 79.9044],
+  'Vavuniya': [8.7542, 80.4982],
+  'Mullaitivu': [9.2671, 80.8142],
+  'Batticaloa': [7.7310, 81.6747],
+  'Ampara': [7.2912, 81.6724],
+  'Trincomalee': [8.5874, 81.2152],
+  'Kurunegala': [7.4863, 80.3623],
+  'Puttalam': [8.0408, 79.8394],
+  'Anuradhapura': [8.3114, 80.4037],
+  'Polonnaruwa': [7.9403, 81.0188],
+  'Badulla': [6.9934, 81.0550],
+  'Moneragala': [6.8728, 81.3507],
+  'Ratnapura': [6.6828, 80.3992],
+  'Kegalle': [7.2513, 80.3464]
+};
+
 function initServiceManagement() {
   let activeServiceCard = null;
   let activeServiceId = null;
@@ -102,6 +131,93 @@ function initServiceManagement() {
     }
   });
 
+  // Initialize Map Pin Picker for Add Service
+  const mapContainer = $id('service-location-map');
+  let serviceMap = null;
+  let serviceMarker = null;
+  let curLat = 6.9271;
+  let curLng = 79.8612;
+
+  function updateServiceCoords(lat, lng) {
+    curLat = parseFloat(lat);
+    curLng = parseFloat(lng);
+    const latInput = $id('service-latitude');
+    const lngInput = $id('service-longitude');
+    const coordDisplay = $id('service-coord-display');
+
+    if (latInput) latInput.value = curLat.toFixed(7);
+    if (lngInput) lngInput.value = curLng.toFixed(7);
+    if (coordDisplay) {
+      coordDisplay.textContent = `Coordinates: ${Math.abs(curLat).toFixed(4)}° ${curLat >= 0 ? 'N' : 'S'}, ${Math.abs(curLng).toFixed(4)}° ${curLng >= 0 ? 'E' : 'W'}`;
+    }
+    if (serviceMarker) serviceMarker.setLatLng([curLat, curLng]);
+  }
+
+  if (mapContainer && typeof L !== 'undefined') {
+    try {
+      serviceMap = L.map('service-location-map').setView([curLat, curLng], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(serviceMap);
+
+      serviceMarker = L.marker([curLat, curLng], { draggable: true }).addTo(serviceMap);
+      serviceMarker.bindPopup('<b>Service Location Pin</b><br>Drag pin or click map').openPopup();
+
+      serviceMarker.on('dragend', (e) => {
+        const pos = e.target.getLatLng();
+        updateServiceCoords(pos.lat, pos.lng);
+      });
+
+      serviceMap.on('click', (e) => {
+        updateServiceCoords(e.latlng.lat, e.latlng.lng);
+        serviceMarker.openPopup();
+      });
+
+      setTimeout(() => serviceMap?.invalidateSize(), 300);
+    } catch (err) {
+      console.warn('Service Leaflet map init error:', err);
+    }
+
+    // Geolocation crosshair button
+    const btnCurLoc = $id('btn-service-current-loc');
+    btnCurLoc?.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by your browser.', 'error');
+        return;
+      }
+      btnCurLoc.disabled = true;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          updateServiceCoords(latitude, longitude);
+          serviceMap?.setView([latitude, longitude], 15);
+          serviceMarker?.openPopup();
+          showToast('Location updated to your GPS coordinates!', 'success');
+          btnCurLoc.disabled = false;
+        },
+        (err) => {
+          console.warn('Geolocation error:', err);
+          showToast('Could not access GPS. Please click on the map to set location.', 'warning');
+          btnCurLoc.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    });
+
+    // District select change centers the map
+    const districtSelect = $id('service-district-input');
+    districtSelect?.addEventListener('change', () => {
+      const dist = districtSelect.value;
+      if (dist && SRI_LANKA_DISTRICTS[dist]) {
+        const [dLat, dLng] = SRI_LANKA_DISTRICTS[dist];
+        updateServiceCoords(dLat, dLng);
+        serviceMap?.setView([dLat, dLng], 12);
+        serviceMarker?.openPopup();
+      }
+    });
+  }
+
   const serviceForm = $id('service-form');
   if (serviceForm) {
     serviceForm.addEventListener('submit', async function (e) {
@@ -112,23 +228,29 @@ function initServiceManagement() {
       const catSelect = $id('service-category-input') || this.querySelector('select');
       const descInput = $id('service-desc-input') || this.querySelector('textarea');
       const priceInput = $id('service-price-input') || this.querySelector('input[type="number"]');
-      const pricingTypeSelect = $id('service-pricing-type-input');
-      const locInput = $id('service-location-input');
+      const districtSelect = $id('service-district-input');
+      const latInput = $id('service-latitude');
+      const lngInput = $id('service-longitude');
 
       const title = titleInput?.value.trim() || '';
       const price = parseFloat(priceInput?.value || 0);
+      const district = districtSelect?.value || '';
 
       let isValid = true;
       if (!title || title.length < 3) {
         showFieldError(titleInput, 'Service title is required (at least 3 characters).');
         isValid = false;
       }
-      if (isNaN(price) || price < 100) {
-        showFieldError(priceInput, 'Please specify a valid price (minimum Rs. 100).');
+      if (isNaN(price) || price < 0) {
+        showFieldError(priceInput, 'Please specify a valid starting price (minimum 0).');
         isValid = false;
       }
       if (catSelect && !catSelect.value) {
         showFieldError(catSelect, 'Please select a service category.');
+        isValid = false;
+      }
+      if (districtSelect && !district) {
+        showFieldError(districtSelect, 'Please select a service location district.');
         isValid = false;
       }
       if (!isValid) {
@@ -146,8 +268,11 @@ function initServiceManagement() {
               category_id: catSelect ? parseInt(catSelect.value, 10) : null,
               description: descInput?.value.trim() || title,
               price,
-              pricing_type: pricingTypeSelect?.value || 'fixed',
-              location: locInput?.value.trim() || 'Colombo'
+              pricing_type: 'starting_at',
+              district: district || 'Colombo',
+              location: district || 'Colombo',
+              latitude: latInput?.value ? parseFloat(latInput.value) : curLat,
+              longitude: lngInput?.value ? parseFloat(lngInput.value) : curLng
             })
           });
 
@@ -165,7 +290,7 @@ function initServiceManagement() {
     });
   }
 
-  // Image Upload Validation
+  // Optional image preview if element present
   const imgUpload = $id('service-images');
   const previewGrid = $id('service-preview-grid');
   if (imgUpload && previewGrid) {
@@ -939,9 +1064,11 @@ async function loadMyServicesForWorker() {
     const res = await apiFetch('workers.php?action=my-services');
     if (res.ok && res.data?.status === 'success' && res.data.services?.length > 0) {
       container.innerHTML = res.data.services.map(s => {
-        const priceFormatted = formatLKR(s.price || 0).replace('Rs. ', '');
-        const pricingUnit = (s.pricing_type === 'starting_at') ? ' (Starting)' : ' (Job Rate)';
+        const priceVal = parseFloat(s.price || 0);
+        const priceFormatted = priceVal > 0 ? formatLKR(priceVal).replace('Rs. ', '') : '0.00';
+        const pricingUnit = (priceVal === 0) ? ' (To be updated)' : ((s.pricing_type === 'starting_at') ? ' (Starting)' : ' (Job Rate)');
         const catName = s.category_name || 'General';
+        const displayLocation = s.district || s.location || 'Colombo';
 
         return `
           <div class="service-manage-card" data-service-id="${s.id}" style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; display:flex; flex-direction:column; justify-content:space-between; position:relative;">
@@ -953,7 +1080,7 @@ async function loadMyServicesForWorker() {
               <h3 style="margin:0 0 8px; font-size:1.15rem; color:var(--text-primary);">${s.title}</h3>
               <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:16px; line-height:1.5;">${s.description || 'No description provided.'}</p>
               <div style="display:flex; gap:12px; font-size:0.85rem; color:var(--text-muted); margin-bottom:16px;">
-                <span><i data-lucide="map-pin" width="14" height="14" style="display:inline;vertical-align:middle;"></i> ${s.location || 'Colombo'}</span>
+                <span><i data-lucide="map-pin" width="14" height="14" style="display:inline;vertical-align:middle;"></i> ${displayLocation}</span>
                 <span><i data-lucide="check-circle" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--success);"></i> Active</span>
               </div>
             </div>

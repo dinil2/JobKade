@@ -117,6 +117,39 @@
                 <label class="filter-option"><input type="checkbox" id="filter-available"> Available now only</label>
               </div>
 
+              <!-- District Filter -->
+              <div class="filter-group">
+                <h4>District</h4>
+                <select id="filter-district" class="form-select" style="width:100%;font-size:0.875rem;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);">
+                  <option value="">All Districts</option>
+                  <option value="Colombo">Colombo</option>
+                  <option value="Gampaha">Gampaha</option>
+                  <option value="Kalutara">Kalutara</option>
+                  <option value="Kandy">Kandy</option>
+                  <option value="Matale">Matale</option>
+                  <option value="Nuwara Eliya">Nuwara Eliya</option>
+                  <option value="Galle">Galle</option>
+                  <option value="Matara">Matara</option>
+                  <option value="Hambantota">Hambantota</option>
+                  <option value="Jaffna">Jaffna</option>
+                  <option value="Kilinochchi">Kilinochchi</option>
+                  <option value="Mannar">Mannar</option>
+                  <option value="Vavuniya">Vavuniya</option>
+                  <option value="Mullaitivu">Mullaitivu</option>
+                  <option value="Batticaloa">Batticaloa</option>
+                  <option value="Ampara">Ampara</option>
+                  <option value="Trincomalee">Trincomalee</option>
+                  <option value="Kurunegala">Kurunegala</option>
+                  <option value="Puttalam">Puttalam</option>
+                  <option value="Anuradhapura">Anuradhapura</option>
+                  <option value="Polonnaruwa">Polonnaruwa</option>
+                  <option value="Badulla">Badulla</option>
+                  <option value="Moneragala">Moneragala</option>
+                  <option value="Ratnapura">Ratnapura</option>
+                  <option value="Kegalle">Kegalle</option>
+                </select>
+              </div>
+
               <button id="apply-filters-btn" class="btn btn-primary w-full btn-sm mt-2">Apply Filters</button>
             </div>
           </div>
@@ -186,12 +219,14 @@
       var clearLink = document.getElementById('clear-filters-link');
       var searchBtnHeader = document.getElementById('btn-header-search');
       var sortSelect = document.getElementById('sort-select');
+      var districtSelect = document.getElementById('filter-district');
 
-      // Check URL query parameters (e.g. ?cat=electrical or ?rating=4.5 or ?q=electrician)
+      // Check URL query parameters (e.g. ?cat=electrical or ?rating=4.5 or ?q=electrician or ?district=Colombo)
       var urlParams = new URLSearchParams(window.location.search);
       var initialCat = urlParams.get('cat');
       var initialRating = urlParams.get('rating');
       var initialQuery = urlParams.get('q') || urlParams.get('search');
+      var initialDistrict = urlParams.get('district');
 
       if (initialCat) {
         catCheckboxes.forEach(function(cb) {
@@ -203,6 +238,10 @@
         ratingRadios.forEach(function(rb) {
           if (rb.value === initialRating) rb.checked = true;
         });
+      }
+
+      if (initialDistrict && districtSelect) {
+        districtSelect.value = initialDistrict;
       }
 
       if (initialQuery && serviceInput) {
@@ -236,6 +275,7 @@
 
           var verifiedOnly = verifiedCheckbox ? verifiedCheckbox.checked : false;
           var availableOnly = availableCheckbox ? availableCheckbox.checked : false;
+          var selectedDistrict = districtSelect ? districtSelect.value.trim().toLowerCase() : '';
 
           var serviceQuery = serviceInput ? serviceInput.value.trim().toLowerCase() : '';
 
@@ -257,6 +297,7 @@
             var cardVerified = card.getAttribute('data-verified') === 'true';
             var cardAvailable = card.getAttribute('data-available') === 'true';
             var cardName = (card.getAttribute('data-name') || '').toLowerCase();
+            var cardDistrict = (card.getAttribute('data-district') || card.getAttribute('data-location') || '').toLowerCase();
             var cardText = card.textContent.toLowerCase();
 
             // 1. Category Filter matching (supports category synonyms like electrical -> electrician)
@@ -287,7 +328,10 @@
             // 5. Availability Match
             var availableMatch = !availableOnly || cardAvailable;
 
-            if (catMatch && ratingMatch && serviceMatch && verifiedMatch && availableMatch) {
+            // 6. District Match
+            var districtMatch = !selectedDistrict || cardDistrict.includes(selectedDistrict);
+
+            if (catMatch && ratingMatch && serviceMatch && verifiedMatch && availableMatch && districtMatch) {
               card.style.display = '';
               // Smooth stagger animation
               card.classList.remove('card-revealing');
@@ -489,9 +533,17 @@
         var html = workers.map(function (w, index) {
           var catList = w.categories || [];
           var catSlug = (catList.length > 0 && catList[0].slug) ? catList[0].slug : 'tradesman';
-          var catName = (catList.length > 0 && catList[0].name) ? catList[0].name : 'Service Professional';
+          var catName = (catList.length > 0)
+            ? catList.map(function (c) { return c.name; }).join(', ')
+            : 'Service Professional';
           var allCats = catList.map(function (c) { return c.slug + ' ' + (c.name || '').toLowerCase(); }).join(' ');
           if (!allCats) allCats = catSlug + ' ' + catName.toLowerCase();
+
+          var servicesList = w.services || [];
+          var servicesSearchText = servicesList.map(function (s) {
+            return (s.category || '') + ' ' + (s.category_slug || '') + ' ' + (s.title || '');
+          }).join(' ').toLowerCase();
+          allCats = (allCats + ' ' + servicesSearchText).trim();
 
           var rating = parseFloat(w.rating_avg || '4.9').toFixed(1);
           var isVerified = (w.is_verified == 1 || w.verify_status === 'verified');
@@ -499,7 +551,44 @@
           var locationText = w.address || 'Colombo';
           var isSaved = userSavedList.some(function (item) { return String(item.id) === String(w.id); });
 
-          return '<div class="worker-card" data-category="' + allCats + '" data-location="' + locationText.toLowerCase() + '" data-rating="' + rating + '" data-verified="' + (isVerified ? 'true' : 'false') + '" data-available="true" data-name="' + (w.full_name || '').toLowerCase() + '">' +
+          var servicesHtml = '';
+          if (servicesList.length > 0) {
+            var displayedServices = servicesList.slice(0, 2);
+            var itemsHtml = displayedServices.map(function (s) {
+              var sPrice = (s.price !== undefined && s.price !== null)
+                ? 'Rs. ' + Number(s.price).toLocaleString()
+                : '';
+              var sPricing = s.pricing_type === 'hourly' ? '/hr' : (s.pricing_type === 'starting_at' ? 'starting' : '');
+              var sCatBadge = s.category ? '<span style="font-size:0.68rem;background:#f1f5f9;color:#475569;padding:1px 6px;border-radius:4px;margin-left:5px;font-weight:500;">' + escapeHtml(s.category) + '</span>' : '';
+              return '<div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:5px 8px;border-radius:6px;font-size:0.775rem;border:1px solid #e2e8f0;margin-bottom:4px;">' +
+                '<span style="font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%;" title="' + escapeHtml(s.title) + '">' +
+                  '<i data-lucide="check" width="11" height="11" style="display:inline;vertical-align:middle;color:var(--primary);margin-right:3px;"></i>' + escapeHtml(s.title) + sCatBadge +
+                '</span>' +
+                '<span style="font-weight:700;color:var(--primary);font-size:0.775rem;white-space:nowrap;">' +
+                  sPrice + (sPricing ? ' <span style="font-size:0.68rem;font-weight:normal;color:var(--text-secondary);">' + sPricing + '</span>' : '') +
+                '</span>' +
+              '</div>';
+            }).join('');
+
+            var extraCount = servicesList.length - 2;
+            var extraHtml = extraCount > 0
+              ? '<div style="font-size:0.72rem;color:var(--text-muted);text-align:right;margin-top:2px;">+' + extraCount + ' more service' + (extraCount > 1 ? 's' : '') + '</div>'
+              : '';
+
+            servicesHtml = '<div class="worker-card-services" style="margin:8px 0 10px;">' +
+              '<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px;display:flex;align-items:center;gap:4px;">' +
+                '<i data-lucide="briefcase" width="11" height="11"></i> Services (' + servicesList.length + ')' +
+              '</div>' +
+              itemsHtml + extraHtml +
+            '</div>';
+          }
+
+          var isSuggested = (w.is_suggested || w.is_district_match);
+          var suggestedBadge = isSuggested
+            ? '<span class="badge badge-suggested" style="background:rgba(16,185,129,0.12);color:#059669;border:1px solid rgba(16,185,129,0.25);font-size:0.75rem;padding:2px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;"><i data-lucide="sparkles" width="12" height="12"></i> Suggested</span>'
+            : '';
+
+          return '<div class="worker-card' + (isSuggested ? ' worker-card-suggested' : '') + '" data-category="' + allCats + '" data-location="' + locationText.toLowerCase() + '" data-district="' + (w.district || locationText).toLowerCase() + '" data-rating="' + rating + '" data-verified="' + (isVerified ? 'true' : 'false') + '" data-available="true" data-name="' + (w.full_name || '').toLowerCase() + '">' +
             '<img src="' + avatarImg + '" alt="' + (w.full_name || 'Worker') + '" class="worker-card-img" onerror="this.src=\'assets/images/hero-worker.png\'">' +
             '<div class="worker-card-body">' +
               '<div class="worker-card-header">' +
@@ -507,7 +596,10 @@
                   '<div class="worker-card-name">' + (w.full_name || 'Skilled Worker') + '</div>' +
                   '<div class="worker-card-profession">' + catName + '</div>' +
                 '</div>' +
-                (isVerified ? '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' : '') +
+                '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
+                  (isVerified ? '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' : '') +
+                  suggestedBadge +
+                '</div>' +
               '</div>' +
               '<div class="worker-card-meta">' +
                 '<span><i data-lucide="map-pin"></i> ' + locationText + '</span>' +
@@ -515,6 +607,7 @@
                 '<span class="availability-badge available"><span class="status-dot status-available"></span> Available</span>' +
               '</div>' +
               '<p class="worker-card-desc">' + (w.bio || 'Verified skilled service professional ready for quality repairs and installations.') + '</p>' +
+              servicesHtml +
               '<div class="worker-card-footer">' +
                 '<a href="worker-profile.html?id=' + w.id + '" class="btn btn-outline btn-sm">View Profile</a>' +
                 '<a href="messages.html?user_id=' + (w.user_id || w.id) + '" class="btn btn-primary btn-sm btn-icon-sm btn-card-msg" title="Message Worker" data-user-id="' + (w.user_id || w.id) + '"><i data-lucide="message-square" width="16" height="16"></i></a>' +
@@ -628,7 +721,9 @@
         var grid = document.getElementById('workers-grid');
         if (!grid) return;
         try {
-          var res = await apiFetch('workers.php?action=search');
+          var dist = districtSelect ? districtSelect.value.trim() : (urlParams.get('district') || '');
+          var searchUrl = 'workers.php?action=search' + (dist ? '&district=' + encodeURIComponent(dist) : '');
+          var res = await apiFetch(searchUrl);
           if (res.ok && res.data && res.data.status === 'success' && Array.isArray(res.data.workers)) {
             if (res.data.workers.length > 0) {
               // API returns success with non-empty workers -> render API workers
@@ -657,6 +752,13 @@
             '</div>';
           if (typeof lucide !== 'undefined') lucide.createIcons();
         }
+      }
+
+      // Wire district filter change to reload from API
+      if (districtSelect) {
+        districtSelect.addEventListener('change', function () {
+          loadApiWorkers();
+        });
       }
 
       // Initial Workers Fetch

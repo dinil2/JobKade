@@ -14,12 +14,29 @@ class WorkerService {
         $lat = isset($params['lat']) ? (float)$params['lat'] : null;
         $lng = isset($params['lng']) ? (float)$params['lng'] : null;
         $catId = isset($params['category_id']) && $params['category_id'] !== '' ? (int)$params['category_id'] : null;
+        $district = isset($params['district']) && $params['district'] !== '' ? trim((string)$params['district']) : null;
 
-        return $this->workerRepo->searchWorkers($lat, $lng, $catId);
+        if ($catId === null && !empty($params['category'])) {
+            $catId = $this->workerRepo->getCategoryIdBySlugOrName((string)$params['category']);
+        }
+
+        $workers = $this->workerRepo->searchWorkers($lat, $lng, $catId, $district);
+
+        foreach ($workers as &$worker) {
+            if (!isset($worker['services'])) {
+                $worker['services'] = $this->workerRepo->getWorkerServices((int)$worker['id']);
+            }
+        }
+
+        return $workers;
     }
 
     public function getProfile(int $workerId): ?array {
-        return $this->workerRepo->getProfileById($workerId);
+        $profile = $this->workerRepo->getProfileById($workerId);
+        if ($profile && !isset($profile['services'])) {
+            $profile['services'] = $this->workerRepo->getWorkerServices((int)$profile['id']);
+        }
+        return $profile;
     }
 
     public function updateProfile(int $workerId, array $data): bool {
@@ -103,19 +120,52 @@ class WorkerService {
             throw new InvalidArgumentException("Price must be at least Rs. 100.");
         }
 
-        $pricingType = strtolower((string)($data['pricing_type'] ?? 'hourly'));
+        $pricingType = strtolower((string)($data['pricing_type'] ?? 'fixed'));
         if (!in_array($pricingType, ['hourly', 'fixed', 'starting_at'], true)) {
-            $pricingType = 'hourly';
+            $pricingType = 'fixed';
         }
 
         $catId = !empty($data['category_id']) ? (int)$data['category_id'] : null;
-        $location = trim(strip_tags((string)($data['location'] ?? 'Colombo')));
+        if (!$catId && !empty($data['category'])) {
+            if (is_numeric($data['category'])) {
+                $catId = (int)$data['category'];
+            } else {
+                $catId = $this->workerRepo->getCategoryIdBySlugOrName((string)$data['category']);
+            }
+        }
+
+        $district = trim(strip_tags((string)($data['district'] ?? '')));
+        $coords = trim(strip_tags((string)($data['coordinates'] ?? $data['coords'] ?? '')));
+        if (empty($coords) && !empty($data['latitude']) && !empty($data['longitude'])) {
+            $coords = $data['latitude'] . ', ' . $data['longitude'];
+        }
+        $rawLoc = trim(strip_tags((string)($data['location'] ?? '')));
+
+        if (empty($district)) {
+            $district = !empty($rawLoc) ? $rawLoc : 'Colombo';
+        }
+
+        if (!empty($coords)) {
+            $location = (!empty($district) ? $district . " (" . $coords . ")" : $coords);
+        } else {
+            $location = !empty($rawLoc) ? $rawLoc : $district;
+        }
+
         $images = isset($data['images']) ? (is_array($data['images']) ? json_encode($data['images']) : (string)$data['images']) : null;
 
-        $profile = $this->workerRepo->findByUserId($workerId);
+        $profile = $this->workerRepo->findById($workerId);
+        if (!$profile) {
+            $profile = $this->workerRepo->findByUserId($workerId);
+        }
         $profileId = $profile ? (int)$profile['id'] : $workerId;
 
-        $serviceId = $serviceRepo->create($profileId, $catId, $title, $description, $price, $pricingType, $location, $images);
+        $serviceId = $serviceRepo->create($profileId, $catId, $title, $description, $price, $pricingType, $location, $images, $district);
+
+        // After saving the service, insert the service's category_id into worker_categories for that worker if it is not already there
+        if ($catId !== null && $catId > 0) {
+            $this->workerRepo->addCategoryIfNotExists($profileId, $catId);
+        }
+
         return [
             'status'     => 'success',
             'message'    => 'Service created successfully.',
@@ -126,7 +176,10 @@ class WorkerService {
     public function getMyServices(int $workerId): array {
         require_once __DIR__ . '/../repositories/WorkerServiceRepository.php';
         $serviceRepo = new WorkerServiceRepository();
-        $profile = $this->workerRepo->findByUserId($workerId);
+        $profile = $this->workerRepo->findById($workerId);
+        if (!$profile) {
+            $profile = $this->workerRepo->findByUserId($workerId);
+        }
         $profileId = $profile ? (int)$profile['id'] : $workerId;
         return [
             'status' => 'success',

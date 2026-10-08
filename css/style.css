@@ -1006,6 +1006,18 @@ body.has-navbar {
   color: var(--success);
 }
 
+.badge-suggested {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-weight: 600;
+}
+
+.worker-card-suggested {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.08) !important;
+}
+
 .badge-pending {
   background: var(--warning-light);
   color: var(--warning);

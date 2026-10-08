@@ -69,7 +69,8 @@ class WorkerController {
         }
 
         $list = $this->workerService->getMyServices((int)$user['worker_id']);
-        sendJsonResponse(200, ['status' => 'success', 'services' => $list]);
+        $services = isset($list['services']) ? $list['services'] : $list;
+        sendJsonResponse(200, ['status' => 'success', 'services' => $services]);
     }
 
     public function deleteService(): void {

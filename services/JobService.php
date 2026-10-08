@@ -51,7 +51,12 @@ class JobService {
             throw new InvalidArgumentException("Geographic coordinates are out of valid range.");
         }
 
-        $jobId = $this->jobRepo->create($customerId, $categoryId, $title, $description, $lat, $lng, $address, $photo);
+        $district = trim(strip_tags((string)($data['district'] ?? 'Colombo')));
+        if (empty($district)) {
+            $district = 'Colombo';
+        }
+
+        $jobId = $this->jobRepo->create($customerId, $categoryId, $title, $description, $lat, $lng, $address, $photo, $district);
 
         return [
             'status'  => 'success',
@@ -60,8 +65,8 @@ class JobService {
         ];
     }
 
-    public function getOpenJobs(?int $categoryId = null): array {
-        return $this->jobRepo->getOpenJobs($categoryId);
+    public function getOpenJobs(?int $categoryId = null, ?string $district = null): array {
+        return $this->jobRepo->getOpenJobs($categoryId, $district);
     }
 
     public function getWorkerJobs(int $workerId): array {
