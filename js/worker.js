@@ -155,11 +155,11 @@ function initServiceManagement() {
             showToast('Service saved successfully!', 'success');
             setTimeout(() => { window.location.href = 'my-services.html'; }, 1000);
           } else {
-            showToast(res.data?.message || 'Could not save service.', 'error');
+            showToast(res.data?.message || 'Could not save service. Please try again.', 'error');
           }
         } catch (err) {
-          showToast('Service saved!', 'success');
-          setTimeout(() => { window.location.href = 'my-services.html'; }, 1000);
+          console.error('Failed to save service:', err);
+          showToast('Could not save service. Please try again.', 'error');
         }
       });
     });
@@ -311,38 +311,116 @@ async function initWorkerProfilePage() {
   if (!form || !window.location.pathname.includes('profile-edit.html')) return;
 
   const user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
-  const savedAvatar = user?.profile_picture || user?.avatar || localStorage.getItem('jobkade_worker_avatar');
   const avatarImg = $id('worker-avatar-img');
   const avatarInitials = $id('worker-avatar-initials');
+  const nameHeading = $id('worker-profile-display-name');
+  const verifyBadge = $id('worker-profile-verify-badge');
 
   const isSubfolder = ['/worker/', '/customer/', '/admin/'].some(s => window.location.pathname.includes(s));
   const rootPath = isSubfolder ? '../' : '';
 
-  if (savedAvatar && avatarImg) {
-    avatarImg.src = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(savedAvatar, rootPath) : rootPath + savedAvatar;
-    avatarImg.style.display = 'block';
-    if (avatarInitials) avatarInitials.style.display = 'none';
+  function setInitials(fullName) {
+    if (!fullName) return;
+    const parts = fullName.trim().split(/\s+/);
+    let inits = 'WK';
+    if (parts.length >= 2) {
+      inits = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 0) {
+      inits = parts[0].substring(0, 2).toUpperCase();
+    }
+    if (avatarInitials) avatarInitials.textContent = inits;
+    if (avatarImg) avatarImg.alt = fullName;
   }
 
+  // 1. Immediately fill from cached session if available
+  if (user) {
+    const cachedName = user.name || user.full_name || '';
+    if (cachedName) {
+      const nameInput = form.querySelector('[name="full-name"]');
+      if (nameInput) nameInput.value = cachedName;
+      if (nameHeading) nameHeading.textContent = cachedName;
+      setInitials(cachedName);
+    }
+    if (user.phone) {
+      const phoneInput = form.querySelector('[name="phone"]');
+      if (phoneInput) phoneInput.value = user.phone;
+    }
+    if (user.email) {
+      const emailInput = form.querySelector('[name="email"]');
+      if (emailInput) emailInput.value = user.email;
+    }
+    const savedAvatar = user.profile_picture || user.avatar || localStorage.getItem('jobkade_worker_avatar');
+    if (savedAvatar && avatarImg) {
+      avatarImg.src = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(savedAvatar, rootPath) : rootPath + savedAvatar;
+      avatarImg.style.display = 'block';
+      if (avatarInitials) avatarInitials.style.display = 'none';
+    }
+  }
+
+  // 2. Fetch fresh real profile from backend
   try {
     const res = await apiFetch('auth.php?action=me');
     if (res.ok && res.data?.user) {
       const u = res.data.user;
+      const wp = u.worker_profile || u.worker || {};
+
       const nameInput = form.querySelector('[name="full-name"]');
       const phoneInput = form.querySelector('[name="phone"]');
       const emailInput = form.querySelector('[name="email"]');
       const locInput = form.querySelector('[name="location"]');
       const bioInput = form.querySelector('[name="bio"]');
-      const nameHeading = $id('worker-profile-display-name');
+      const catSelect = form.querySelector('[name="category"]');
+      const expInput = form.querySelector('[name="experience"]');
 
-      if (nameInput && u.full_name) nameInput.value = u.full_name;
-      if (nameHeading && u.full_name) nameHeading.textContent = u.full_name;
+      const realName = u.full_name || u.name || '';
+      if (nameInput && realName) nameInput.value = realName;
+      if (nameHeading && realName) nameHeading.textContent = realName;
+      setInitials(realName);
+
       if (phoneInput && u.phone) phoneInput.value = u.phone;
       if (emailInput && u.email) emailInput.value = u.email;
-      if (locInput && u.address) locInput.value = u.address;
-      if (bioInput && u.bio) bioInput.value = u.bio;
 
-      const uPhoto = u.profile_picture || u.avatar;
+      // Real Bio and Location from worker_profile in the database
+      const realBio = wp.bio || u.bio || '';
+      if (bioInput && realBio) bioInput.value = realBio;
+
+      const realAddress = wp.address || u.address || '';
+      if (locInput && realAddress) locInput.value = realAddress;
+
+      const realExp = wp.experience || wp.working_hours || '';
+      if (expInput && realExp) expInput.value = realExp;
+
+      // Select real category
+      if (catSelect && wp.categories && wp.categories.length > 0) {
+        const catName = wp.categories[0].name || '';
+        for (let i = 0; i < catSelect.options.length; i++) {
+          const optText = catSelect.options[i].text.toLowerCase();
+          if (optText.includes(catName.toLowerCase()) || catName.toLowerCase().includes(optText)) {
+            catSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+
+      // Verification Badge
+      if (verifyBadge) {
+        const isVerified = (wp.is_verified == 1 || wp.verify_status === 'verified');
+        const isPending = (wp.verify_status === 'pending');
+        if (isVerified) {
+          verifyBadge.className = 'badge badge-verified';
+          verifyBadge.innerHTML = '<i data-lucide="check" width="10" height="10"></i> Verified';
+        } else if (isPending) {
+          verifyBadge.className = 'badge badge-pending';
+          verifyBadge.innerHTML = '<i data-lucide="clock" width="10" height="10"></i> Pending Verification';
+        } else {
+          verifyBadge.className = 'badge badge-cancelled';
+          verifyBadge.textContent = 'Unverified';
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+
+      // Avatar
+      const uPhoto = u.profile_picture || u.avatar || wp.profile_picture;
       if (uPhoto && avatarImg) {
         avatarImg.src = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(uPhoto, rootPath) : rootPath + uPhoto;
         avatarImg.style.display = 'block';
@@ -350,10 +428,14 @@ async function initWorkerProfilePage() {
         if (user) {
           user.profile_picture = uPhoto;
           user.avatar = uPhoto;
+          user.name = realName;
           localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
           localStorage.setItem('jobkade_user', JSON.stringify(user));
           localStorage.setItem('jobkade_worker_avatar', uPhoto);
         }
+      } else {
+        if (avatarImg) avatarImg.style.display = 'none';
+        if (avatarInitials) avatarInitials.style.display = 'flex';
       }
     }
   } catch (err) {
@@ -434,10 +516,11 @@ async function initWorkerProfilePage() {
             showToast(res.data?.message || 'Profile updated successfully!', 'success');
           }
         } else {
-          showToast(res.data?.message || 'Profile saved locally.', res.ok ? 'success' : 'info');
+          showToast(res.data?.message || 'Could not update profile.', 'error');
         }
       } catch (err) {
-        showToast('Profile updated!', 'success');
+        console.error('Failed to update worker profile:', err);
+        showToast('Could not update profile. Please try again.', 'error');
       }
     });
   });

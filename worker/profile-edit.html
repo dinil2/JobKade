@@ -24,8 +24,8 @@
         <div class="profile-form-header">
           <div class="avatar-wrapper-relative">
             <div class="avatar-upload-container" id="profile-avatar-clickable" title="Click on profile image to upload new photo">
-              <img id="worker-avatar-img" class="avatar-img-preview" src="" alt="Kasun Perera" style="display:none;">
-              <div id="worker-avatar-initials" class="avatar-initials-fallback avatar-blue">KP</div>
+              <img id="worker-avatar-img" class="avatar-img-preview" src="" alt="Profile Photo" style="display:none;">
+              <div id="worker-avatar-initials" class="avatar-initials-fallback avatar-blue">--</div>
               <div class="avatar-hover-scrim">
                 <i data-lucide="camera" width="24" height="24"></i>
                 <span style="font-size:0.7rem; font-weight:700; margin-top:4px; letter-spacing:0.5px; text-transform:uppercase;">Change</span>
@@ -37,9 +37,9 @@
             <input type="file" id="worker-photo-upload" accept="image/png, image/jpeg, image/jpg" style="display:none;">
           </div>
           <div>
-            <h3 id="worker-profile-display-name">Kasun Perera</h3>
+            <h3 id="worker-profile-display-name">Worker Profile</h3>
             <p class="text-sm" style="margin-top:4px; display:flex; align-items:center; gap:8px;">
-              <span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span>
+              <span id="worker-profile-verify-badge" class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span>
               <span style="font-size:0.78rem; color:var(--text-secondary); cursor:pointer;" id="profile-avatar-hint">
                 <i data-lucide="upload" width="12" height="12" style="vertical-align:middle; margin-right:3px;"></i> Click photo to change
               </span>
@@ -54,15 +54,15 @@
 
         <form id="worker-profile-form">
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Full Name <span>*</span></label><input type="text" name="full-name" class="form-input" value="Kasun Perera" required></div>
-            <div class="form-group"><label class="form-label">Phone <span>*</span></label><input type="tel" name="phone" class="form-input" value="+94 77 123 4567" required></div>
+            <div class="form-group"><label class="form-label">Full Name <span>*</span></label><input type="text" name="full-name" class="form-input" placeholder="Your full name" required></div>
+            <div class="form-group"><label class="form-label">Phone <span>*</span></label><input type="tel" name="phone" class="form-input" placeholder="e.g. +94 77 123 4567" required></div>
           </div>
-          <div class="form-group"><label class="form-label">Email <span>*</span></label><input type="email" name="email" class="form-input" value="kasun@email.com" required></div>
-          <div class="form-group"><label class="form-label">Description / Bio <span>*</span></label><textarea name="bio" class="form-textarea" required>Professional electrician with over 8 years of experience in residential and commercial electrical work. I specialize in wiring installations, circuit breaker repairs, lighting setups, and fault diagnosis.</textarea></div>
-          <div class="form-group"><label class="form-label">Service Category <span>*</span></label><select name="category" class="form-select"><option selected>Electrical</option><option>Plumbing</option><option>AC Repair</option><option>Carpentry</option><option>Painting</option><option>Cleaning</option><option>Appliance Repair</option><option>Masonry</option></select></div>
+          <div class="form-group"><label class="form-label">Email <span>*</span></label><input type="email" name="email" class="form-input" placeholder="Your email address" required></div>
+          <div class="form-group"><label class="form-label">Description / Bio <span>*</span></label><textarea name="bio" class="form-textarea" placeholder="Tell customers about your skills, experience, and services..." required></textarea></div>
+          <div class="form-group"><label class="form-label">Service Category <span>*</span></label><select name="category" class="form-select"><option value="">Select Category</option><option>Electrical</option><option>Plumbing</option><option>AC Repair</option><option>Carpentry</option><option>Painting</option><option>Cleaning</option><option>Appliance Repair</option><option>Masonry</option></select></div>
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Service Location <span>*</span></label><input type="text" name="location" class="form-input" value="Colombo, Dehiwala, Mount Lavinia" required></div>
-            <div class="form-group"><label class="form-label">Experience</label><input type="text" name="experience" class="form-input" value="8+ years"></div>
+            <div class="form-group"><label class="form-label">Service Location <span>*</span></label><input type="text" name="location" class="form-input" placeholder="e.g. Colombo, Western Province" required></div>
+            <div class="form-group"><label class="form-label">Experience</label><input type="text" name="experience" class="form-input" placeholder="e.g. 5+ years"></div>
           </div>
           <div class="form-group">
             <label class="form-label">Availability</label>

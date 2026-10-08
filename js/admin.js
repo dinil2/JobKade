@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', function () {
   loadAdminStats();
   initAdminCharts();
 
+  if (document.getElementById('manage-workers-tbody')) {
+    initManageWorkers();
+  }
+
   // Worker Verification Modal Actions
   let activeWorkerRow = null;
 
@@ -245,4 +249,301 @@ async function loadAdminStats() {
   } catch (err) {
     console.warn('loadAdminStats error:', err);
   }
+}
+
+/* ==========================================
+   Admin Manage Workers - Real Backend Integration
+   ========================================== */
+
+let adminWorkersList = [];
+
+async function initManageWorkers() {
+  const tbody = document.getElementById('manage-workers-tbody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('worker-search-input');
+  const catFilter = document.getElementById('worker-category-filter');
+  const statusFilter = document.getElementById('worker-status-filter');
+
+  if (searchInput) searchInput.addEventListener('input', filterAndRenderWorkers);
+  if (catFilter) catFilter.addEventListener('change', filterAndRenderWorkers);
+  if (statusFilter) statusFilter.addEventListener('change', filterAndRenderWorkers);
+
+  await loadManageWorkers();
+}
+
+async function loadManageWorkers() {
+  const tbody = document.getElementById('manage-workers-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+      <i data-lucide="loader" width="18" height="18" class="spin"></i>
+      <span>Loading real worker data...</span>
+    </div>
+  </td></tr>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  try {
+    const [workersRes, usersRes, paymentsRes, categoriesRes] = await Promise.all([
+      apiFetch('workers.php?action=search'),
+      apiFetch('admin.php?action=users'),
+      apiFetch('admin.php?action=payments'),
+      apiFetch('categories.php')
+    ]);
+
+    // Populate category filter dropdown dynamically from real categories
+    const catSelect = document.getElementById('worker-category-filter');
+    if (catSelect && categoriesRes.ok && Array.isArray(categoriesRes.data?.categories)) {
+      const currentVal = catSelect.value;
+      catSelect.innerHTML = '<option value="">All Categories</option>';
+      categoriesRes.data.categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.name;
+        opt.textContent = cat.name;
+        catSelect.appendChild(opt);
+      });
+      catSelect.value = currentVal;
+    }
+
+    const workerProfiles = (workersRes.ok && Array.isArray(workersRes.data?.workers)) ? workersRes.data.workers : [];
+    const allUsers = (usersRes.ok && Array.isArray(usersRes.data?.users)) ? usersRes.data.users : [];
+    const payments = (paymentsRes.ok && Array.isArray(paymentsRes.data?.payments)) ? paymentsRes.data.payments : [];
+
+    // Map subscription payments by worker profile id
+    const workerSubMap = {};
+    payments.forEach(p => {
+      const wid = p.worker_id;
+      if (wid && (!workerSubMap[wid] || p.status === 'completed')) {
+        workerSubMap[wid] = p.plan_name || 'Active';
+      }
+    });
+
+    // Map user accounts by ID
+    const userMap = {};
+    allUsers.forEach(u => {
+      userMap[u.id] = u;
+    });
+
+    const profileByUserId = {};
+    workerProfiles.forEach(wp => {
+      if (wp.user_id) profileByUserId[wp.user_id] = wp;
+    });
+
+    const unified = [];
+    const seenProfileIds = new Set();
+
+    // 1. Add all workers from worker_profiles
+    workerProfiles.forEach(wp => {
+      seenProfileIds.add(wp.id);
+      const u = userMap[wp.user_id] || {};
+      const isSuspended = (u.status === 'suspended');
+
+      let displayStatus = 'unverified';
+      if (isSuspended) {
+        displayStatus = 'suspended';
+      } else if (wp.is_verified == 1 || wp.verify_status === 'verified') {
+        displayStatus = 'verified';
+      } else if (wp.verify_status === 'pending') {
+        displayStatus = 'pending';
+      }
+
+      const primaryCat = (wp.categories && wp.categories.length > 0) ? wp.categories[0].name : 'General Services';
+
+      unified.push({
+        id: wp.id,
+        user_id: wp.user_id || u.id,
+        name: wp.full_name || u.full_name || wp.username || 'Unnamed Worker',
+        phone: wp.phone || u.phone || 'No phone',
+        email: wp.email || u.email || '',
+        avatar: wp.profile_picture || wp.avatar || u.profile_picture || null,
+        category: primaryCat,
+        location: wp.address || u.address || 'Colombo',
+        rating: (wp.rating_avg !== undefined && wp.rating_avg !== null) ? parseFloat(wp.rating_avg).toFixed(1) : '5.0',
+        is_verified: wp.is_verified == 1 || wp.verify_status === 'verified',
+        verify_status: wp.verify_status || 'unverified',
+        is_suspended: isSuspended,
+        display_status: displayStatus,
+        subscription: workerSubMap[wp.id] || 'Free'
+      });
+    });
+
+    // 2. Add any registered workers from users table not in worker_profiles (e.g. newly registered or suspended)
+    allUsers.filter(u => u.role === 'worker').forEach(u => {
+      if (!profileByUserId[u.id]) {
+        const isSuspended = (u.status === 'suspended');
+        unified.push({
+          id: u.id,
+          user_id: u.id,
+          name: u.full_name || u.username || 'Unnamed Worker',
+          phone: u.phone || 'No phone',
+          email: u.email || '',
+          avatar: u.profile_picture || null,
+          category: 'General Services',
+          location: u.address || 'Colombo',
+          rating: '5.0',
+          is_verified: false,
+          verify_status: 'unverified',
+          is_suspended: isSuspended,
+          display_status: isSuspended ? 'suspended' : 'unverified',
+          subscription: 'Free'
+        });
+      }
+    });
+
+    adminWorkersList = unified;
+    filterAndRenderWorkers();
+  } catch (err) {
+    console.error('Error loading workers:', err);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--danger);">
+      Failed to load workers from server. Please refresh the page.
+    </td></tr>`;
+  }
+}
+
+function filterAndRenderWorkers() {
+  const tbody = document.getElementById('manage-workers-tbody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('worker-search-input');
+  const catFilter = document.getElementById('worker-category-filter');
+  const statusFilter = document.getElementById('worker-status-filter');
+
+  const q = (searchInput?.value || '').toLowerCase().trim();
+  const selectedCat = (catFilter?.value || '').toLowerCase().trim();
+  const selectedStatus = (statusFilter?.value || '').toLowerCase().trim();
+
+  const filtered = adminWorkersList.filter(w => {
+    // Search query filter (name, email, phone, location, category)
+    if (q) {
+      const match = (
+        (w.name && w.name.toLowerCase().includes(q)) ||
+        (w.email && w.email.toLowerCase().includes(q)) ||
+        (w.phone && w.phone.toLowerCase().includes(q)) ||
+        (w.location && w.location.toLowerCase().includes(q)) ||
+        (w.category && w.category.toLowerCase().includes(q))
+      );
+      if (!match) return false;
+    }
+
+    // Category filter
+    if (selectedCat) {
+      if (!w.category || !w.category.toLowerCase().includes(selectedCat)) {
+        return false;
+      }
+    }
+
+    // Status filter
+    if (selectedStatus) {
+      if (w.display_status.toLowerCase() !== selectedStatus) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+      No workers found matching your filter criteria.
+    </td></tr>`;
+    return;
+  }
+
+  const avatarColors = ['avatar-blue', 'avatar-green', 'avatar-purple', 'avatar-orange', 'avatar-teal'];
+
+  tbody.innerHTML = filtered.map(w => {
+    const colorClass = avatarColors[Math.abs(w.id || 0) % avatarColors.length];
+    const nameParts = (w.name || 'WK').trim().split(/\s+/);
+    const initials = nameParts.length >= 2 
+      ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+      : (nameParts[0] ? nameParts[0].substring(0, 2).toUpperCase() : 'WK');
+
+    const avatarHtml = w.avatar
+      ? `<img src="${(typeof resolveAvatarUrl === 'function' ? resolveAvatarUrl(w.avatar, '../') : '../' + w.avatar)}" class="avatar avatar-sm" style="object-fit:cover;border-radius:50%;width:36px;height:36px;" alt="${escapeHtml(w.name)}">`
+      : `<div class="avatar avatar-sm ${colorClass}" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;">${initials}</div>`;
+
+    // Verification badge
+    let verifyBadgeHtml = '';
+    if (w.is_suspended) {
+      verifyBadgeHtml = `<span class="badge badge-cancelled">Suspended</span>`;
+    } else if (w.display_status === 'verified') {
+      verifyBadgeHtml = `<span class="badge badge-verified"><i data-lucide="check" width="10" height="10"></i> Verified</span>`;
+    } else if (w.display_status === 'pending') {
+      verifyBadgeHtml = `<span class="badge badge-pending"><i data-lucide="clock" width="10" height="10"></i> Pending</span>`;
+    } else {
+      verifyBadgeHtml = `<span class="badge badge-cancelled">Unverified</span>`;
+    }
+
+    // Subscription badge
+    const subBadgeHtml = (w.subscription && w.subscription !== 'Free')
+      ? `<span class="badge badge-completed">${escapeHtml(w.subscription)}</span>`
+      : `<span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;">Free</span>`;
+
+    const suspendBtn = w.is_suspended
+      ? `<button class="btn btn-success btn-sm" onclick="toggleAdminWorkerStatus(${w.user_id}, 'active', '${escapeJs(w.name)}')">Activate</button>`
+      : `<button class="btn btn-danger btn-sm" onclick="toggleAdminWorkerStatus(${w.user_id}, 'suspended', '${escapeJs(w.name)}')">Suspend</button>`;
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${avatarHtml}
+            <div>
+              <strong>${escapeHtml(w.name)}</strong><br>
+              <span class="text-sm text-secondary">${escapeHtml(w.phone)}</span>
+            </div>
+          </div>
+        </td>
+        <td>${escapeHtml(w.category)}</td>
+        <td>${escapeHtml(w.location)}</td>
+        <td><i data-lucide="star" width="12" height="12" style="color:#F59E0B;display:inline;vertical-align:middle;"></i> ${escapeHtml(w.rating)}</td>
+        <td>${verifyBadgeHtml}</td>
+        <td>${subBadgeHtml}</td>
+        <td>
+          <div class="btn-group">
+            <a href="../worker-profile.html?id=${w.id}" class="btn btn-outline btn-sm">View Profile</a>
+            ${suspendBtn}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function toggleAdminWorkerStatus(userId, newStatus, workerName) {
+  const actionLabel = newStatus === 'suspended' ? 'suspend' : 'activate';
+  if (!confirm(`Are you sure you want to ${actionLabel} ${workerName}?`)) return;
+
+  try {
+    const res = await apiFetch('admin.php?action=toggle-user', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, status: newStatus })
+    });
+    if (res.ok && res.data?.status === 'success') {
+      showToast(`Worker ${actionLabel}ed successfully.`, 'success');
+      loadManageWorkers();
+    } else {
+      showToast(res.data?.message || `Failed to ${actionLabel} worker.`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function escapeJs(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
 }

@@ -76,13 +76,13 @@ function resolveAvatarUrl(url, rootPath = '') {
 function getRoleUserInfo(role) {
   const user = getLoggedInUser();
   const defaultNames = {
-    worker: 'Kasun Perera',
-    customer: 'Dinil Sandaruwan',
+    worker: 'Worker',
+    customer: 'Customer',
     admin: 'System Administrator'
   };
   const defaultInitials = {
-    worker: 'KP',
-    customer: 'DS',
+    worker: 'WK',
+    customer: 'CU',
     admin: 'AD'
   };
   const defaultRoles = {
