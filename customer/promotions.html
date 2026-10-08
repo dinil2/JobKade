@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promotions & Discounts — JobKade</title>
+  <meta name="description" content="Discover active discounts and seasonal promotions offered by verified workers on JobKade.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/customer.css">
+  <style>
+    .promo-hub-header {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      color: #fff;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25);
+    }
+    .promo-hub-header h1 {
+      color: #fff;
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+    }
+    .promo-hub-header p {
+      color: #bfdbfe;
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .customer-promo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .customer-promo-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    .customer-promo-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: #93c5fd;
+    }
+    .customer-promo-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .worker-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .worker-pill-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #eff6ff;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: 1px solid #bfdbfe;
+      flex-shrink: 0;
+    }
+    .worker-pill-info h4 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .worker-pill-info span {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .discount-pill {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.9rem;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+    }
+    .promo-content h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 8px 0;
+    }
+    .promo-content p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin: 0 0 16px 0;
+      flex-grow: 1;
+    }
+    .customer-promo-footer {
+      border-top: 1px solid #f1f5f9;
+      padding-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: auto;
+    }
+    .validity-info {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .validity-info strong {
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <div class="dashboard-layout">
+    <div id="sidebar-container"></div>
+
+    <main class="dashboard-main">
+      <!-- Promotional Banner Header -->
+      <section class="promo-hub-header">
+        <div>
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:9999px;font-size:0.75rem;font-weight:600;margin-bottom:8px;">
+            <i data-lucide="sparkles" width="14" height="14"></i> SPECIAL OFFERS & DEALS
+          </div>
+          <h1>Promotions & Discounts</h1>
+          <p>Book skilled trade services with limited-time promotional pricing from top rated providers.</p>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);padding:12px 18px;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.2);text-align:right;">
+          <div style="font-size:0.8rem;color:#bfdbfe;margin-bottom:2px;">All offers verified</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;" id="activePromoCount">Loading deals...</div>
+        </div>
+      </section>
+
+      <!-- Search & Filters -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div class="search-bar-small" style="max-width:360px;width:100%;">
+          <i data-lucide="search" width="16" height="16"></i>
+          <input type="text" id="promoSearchInput" class="table-search" placeholder="Search promotions by title or worker..." aria-label="Search promotions">
+        </div>
+        <button type="button" id="refreshPromosBtn" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+          <i data-lucide="refresh-cw" width="14" height="14"></i> Refresh Deals
+        </button>
+      </div>
+
+      <!-- Promotions Cards Grid (Read-Only) -->
+      <div id="activePromotionsGrid" class="customer-promo-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);">
+          <i data-lucide="loader" class="spin" style="width:36px;height:36px;color:var(--primary);margin-bottom:14px;"></i>
+          <p style="color:var(--text-secondary);margin:0;">Fetching active promotions...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script>
+    let allPromotions = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Require Customer Login
+      const user = requireAuth('customer');
+      if (!user) return;
+
+      renderSharedComponents('customer');
+
+      loadActivePromotions();
+
+      // Search filter
+      const searchInput = document.getElementById('promoSearchInput');
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        filterAndRender(query);
+      });
+
+      // Refresh button
+      document.getElementById('refreshPromosBtn').addEventListener('click', () => {
+        loadActivePromotions();
+      });
+    });
+
+    async function loadActivePromotions() {
+      const grid = document.getElementById('activePromotionsGrid');
+      const countLabel = document.getElementById('activePromoCount');
+
+      try {
+        const res = await apiFetch('promotions.php?action=active');
+        if (!res.ok || !res.data || res.data.status !== 'success') {
+          grid.innerHTML = `
+            <div style="grid-column:1/-1;text-align:center;padding:48px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);">
+              <i data-lucide="alert-triangle" style="width:36px;height:36px;color:var(--warning);margin-bottom:10px;"></i>
+              <p style="color:var(--text-secondary);margin:0;">Could not load active promotions at this time.</p>
+            </div>
+          `;
+          countLabel.textContent = '0 active deals';
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        allPromotions = res.data.promotions || [];
+        countLabel.textContent = `${allPromotions.length} Active Deal${allPromotions.length === 1 ? '' : 's'}`;
+
+        const searchVal = document.getElementById('promoSearchInput').value.toLowerCase().trim();
+        filterAndRender(searchVal);
+
+      } catch (err) {
+        grid.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:48px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);">
+            <p style="color:var(--danger);margin:0;">Error: ${escapeHtml(err.message)}</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function filterAndRender(query) {
+      const grid = document.getElementById('activePromotionsGrid');
+      const filtered = allPromotions.filter(p => {
+        if (!query) return true;
+        const title = (p.title || '').toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        const workerName = (p.worker_name || '').toLowerCase();
+        return title.includes(query) || desc.includes(query) || workerName.includes(query);
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:64px 20px;background:var(--white);border:1px dashed var(--border);border-radius:var(--radius-lg);">
+            <div style="width:56px;height:56px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;color:var(--text-muted);">
+              <i data-lucide="tag" width="28" height="28"></i>
+            </div>
+            <h3 style="font-size:1.15rem;font-weight:700;margin:0 0 6px 0;">No Active Promotions Available</h3>
+            <p style="color:var(--text-secondary);font-size:0.875rem;max-width:440px;margin:0 auto;">
+              ${query ? 'No promotions match your search keyword. Try clearing the filter.' : 'Check back regularly for new seasonal offers and discounts from certified trade workers!'}
+            </p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => renderActiveCard(p)).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderActiveCard(promo) {
+      const workerName = promo.worker_name || 'Skilled Professional';
+      const initials = workerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SP';
+      const isVerified = promo.is_verified == 1 || promo.verify_status === 'approved';
+
+      // Format date
+      let dateDisplay = promo.valid_until || '';
+      if (promo.valid_until) {
+        try {
+          const d = new Date(promo.valid_until + 'T00:00:00');
+          dateDisplay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {}
+      }
+
+      return `
+        <div class="customer-promo-card">
+          <div class="customer-promo-top">
+            <div class="worker-pill">
+              <div class="worker-pill-avatar">${escapeHtml(initials)}</div>
+              <div class="worker-pill-info">
+                <h4>
+                  ${escapeHtml(workerName)}
+                  ${isVerified ? '<i data-lucide="check-circle-2" width="14" height="14" style="color:var(--primary);flex-shrink:0;" title="Verified Worker"></i>' : ''}
+                </h4>
+                <span>${promo.address ? escapeHtml(promo.address) : 'Service Professional'}</span>
+              </div>
+            </div>
+            <span class="discount-pill">
+              <i data-lucide="tag" width="13" height="13"></i>
+              ${escapeHtml(String(promo.discount_percent))}% OFF
+            </span>
+          </div>
+
+          <div class="promo-content">
+            <h3>${escapeHtml(promo.title)}</h3>
+            <p>${escapeHtml(promo.description)}</p>
+          </div>
+
+          <div class="customer-promo-footer">
+            <div class="validity-info">
+              <i data-lucide="clock" width="14" height="14"></i>
+              <span>Valid until: <strong>${escapeHtml(dateDisplay)}</strong></span>
+            </div>
+            <a href="../workers.html" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
+              <span>Find & Book</span>
+              <i data-lucide="arrow-right" width="13" height="13"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

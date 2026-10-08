@@ -117,6 +117,7 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Customer Jobs') return currentFile === 'jobs.html' && currentPath.includes('/worker/');
     if (item.label === 'Wallet and Earnings') return currentFile === 'wallet.html';
     if (item.label === 'Subscriptions') return currentFile === 'subscription.html';
+    if (item.label === 'Promotions') return currentFile === 'promotions.html' && currentPath.includes('/worker/');
     if (item.label === 'My Reviews') return currentFile === 'reviews.html';
     if (item.label === 'Messages') return currentFile === 'messages.html';
   } else if (role === 'customer') {
@@ -124,6 +125,7 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Post a Job') return currentFile === 'post-job.html';
     if (item.label === 'My Jobs') return currentFile === 'jobs.html' && currentPath.includes('/customer/');
     if (item.label === 'Saved Workers') return currentFile === 'saved-workers.html';
+    if (item.label === 'Promotions') return currentFile === 'promotions.html' && currentPath.includes('/customer/');
     if (item.label === 'Messages') return currentFile === 'messages.html';
     if (item.label === 'My Profile') return currentFile === 'profile.html';
   } else if (role === 'admin') {
@@ -133,6 +135,7 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Manage Customers') return currentFile === 'customers.html';
     if (item.label === 'Job Requests') return currentFile === 'jobs.html';
     if (item.label === 'Content Moderation') return currentFile === 'moderation.html';
+    if (item.label === 'Promotions') return currentFile === 'promotions.html' && (currentPath.includes('/admin/') || (!currentPath.includes('/worker/') && !currentPath.includes('/customer/')));
     if (item.label === 'Analytics and Reports') return currentFile === 'analytics.html';
   }
   return false;
@@ -238,6 +241,7 @@ function renderSharedComponents(roleOverride) {
         { label: 'Customer Jobs', icon: 'file-text', href: `${rootPath}worker/jobs.html` },
         { label: 'Wallet and Earnings', icon: 'wallet', href: `${rootPath}worker/wallet.html` },
         { label: 'Subscriptions', icon: 'credit-card', href: `${rootPath}worker/subscription.html` },
+        { label: 'Promotions', icon: 'tag', href: `${rootPath}worker/promotions.html` },
         { label: 'My Reviews', icon: 'star', href: `${rootPath}worker/reviews.html` },
         { label: 'Messages', icon: 'message-square', href: `${rootPath}messages.html` }
       ],
@@ -246,6 +250,7 @@ function renderSharedComponents(roleOverride) {
         { label: 'Post a Job', icon: 'plus-circle', href: `${rootPath}customer/post-job.html` },
         { label: 'My Jobs', icon: 'file-text', href: `${rootPath}customer/jobs.html` },
         { label: 'Saved Workers', icon: 'heart', href: `${rootPath}customer/saved-workers.html` },
+        { label: 'Promotions', icon: 'tag', href: `${rootPath}customer/promotions.html` },
         { label: 'Messages', icon: 'message-square', href: `${rootPath}messages.html` },
         { label: 'My Profile', icon: 'user', href: `${rootPath}customer/profile.html` }
       ],
@@ -256,6 +261,7 @@ function renderSharedComponents(roleOverride) {
         { label: 'Manage Customers', icon: 'user-check', href: `${adminPrefix}customers.html` },
         { label: 'Job Requests', icon: 'file-text', href: `${adminPrefix}jobs.html` },
         { label: 'Content Moderation', icon: 'flag', href: `${adminPrefix}moderation.html` },
+        { label: 'Promotions', icon: 'tag', href: `${adminPrefix}promotions.html` },
         { label: 'Analytics and Reports', icon: 'bar-chart-3', href: `${adminPrefix}analytics.html` }
       ]
     };

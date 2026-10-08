@@ -29,6 +29,9 @@ function sendJsonResponse(int $statusCode, array $data): void {
  */
 function getRequestData(): array {
     $raw = file_get_contents('php://input');
+    if (($raw === false || $raw === '') && php_sapi_name() === 'cli') {
+        $raw = @file_get_contents('php://stdin');
+    }
     $json = json_decode($raw, true);
     if (is_array($json) && !empty($json)) {
         return $json;

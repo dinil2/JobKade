@@ -1201,7 +1201,6 @@ async function initWorkerWalletPage() {
   if (!window.location.pathname.includes('wallet.html')) return;
 
   const balDisplay = $id('wallet-balance-display');
-  const earnDisplay = $id('wallet-earnings-display');
   const rateDisplay = $id('wallet-commission-rate-display');
   const planTag = $id('wallet-plan-tag');
   const negBanner = $id('negative-balance-alert');
@@ -1220,8 +1219,7 @@ async function initWorkerWalletPage() {
 
       if (balRes.ok && balRes.data?.wallet) {
         const w = balRes.data.wallet;
-        const bal = parseFloat(w.balance || 0);
-        const earnings = parseFloat(w.total_earnings || 0);
+        const bal = parseFloat(w.wallet_balance !== undefined ? w.wallet_balance : (w.balance || 0));
         const rate = (w.commission_rate !== undefined) ? (parseFloat(w.commission_rate) * 100).toFixed(0) + '%' : '10%';
         const isSub = (w.commission_rate !== undefined && parseFloat(w.commission_rate) <= 0.05);
 
@@ -1229,7 +1227,6 @@ async function initWorkerWalletPage() {
           balDisplay.textContent = (bal < 0 ? '- ' : '') + formatLKR(Math.abs(bal));
           balDisplay.style.color = (bal < 0) ? 'var(--error)' : 'var(--text-primary)';
         }
-        if (earnDisplay) earnDisplay.textContent = formatLKR(earnings);
         if (rateDisplay) rateDisplay.textContent = rate;
         if (planTag) {
           planTag.innerHTML = isSub

@@ -1903,6 +1903,155 @@ paths:
         '400':
           $ref: '#/components/responses/400Error'
 
+  /promotions.php?action=my-promotions:
+    get:
+      tags:
+        - Promotions
+      summary: Get logged-in worker's promotions
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns all promotional deals created by the logged-in worker, including their current moderation status (pending, approved, rejected).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of worker promotions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  promotions:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Error'
+
+  /promotions.php?action=delete:
+    post:
+      tags:
+        - Promotions
+      summary: Delete worker's own promotion
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Allows a worker to delete their own promotion. Workers can only delete their own promotions.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  example: 5
+      responses:
+        '200':
+          description: Promotion deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Promotion deleted successfully.
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+
+  /promotions.php?action=pending:
+    get:
+      tags:
+        - Promotions
+      summary: List all pending promotions for moderation
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns all promotions currently awaiting moderation, including the worker's name.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending promotions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  promotions:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Error'
+
+  /promotions.php?action=moderate:
+    post:
+      tags:
+        - Promotions
+      summary: Approve or reject a promotion
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Allows an administrator to approve or reject a submitted promotion.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - status
+              properties:
+                id:
+                  type: integer
+                  example: 5
+                status:
+                  type: string
+                  enum: [approved, rejected]
+                  example: approved
+      responses:
+        '200':
+          description: Promotion moderated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Promotion status updated to approved.
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+
   # ==========================================
   # REVIEWS
   # ==========================================

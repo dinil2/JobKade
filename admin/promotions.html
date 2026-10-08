@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promotions Moderation — JobKade Admin</title>
+  <meta name="description" content="Moderation dashboard for reviewing worker promotional deals and discounts.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <style>
+    .pending-promo-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    .pending-promo-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+    .pending-promo-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .worker-meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary);
+      background: #eff6ff;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+    .discount-highlight {
+      font-weight: 800;
+      color: #059669;
+      background: #ecfdf5;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      border: 1px solid #a7f3d0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .promo-desc-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid var(--primary);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: #334155;
+      margin: 12px 0;
+      line-height: 1.5;
+    }
+    .promo-action-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-approve {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      font-weight: 600;
+    }
+    .btn-approve:hover {
+      background: #059669;
+      color: #fff;
+    }
+    .btn-reject {
+      background: #fff;
+      color: #ef4444;
+      border: 1px solid #fca5a5;
+      font-weight: 600;
+    }
+    .btn-reject:hover {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <div class="dashboard-layout">
+    <div id="sidebar-container"></div>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <h1 style="display:flex;align-items:center;gap:10px;">
+            <span>Promotions Moderation</span>
+            <span class="badge badge-pending" id="pendingCounter" style="font-size:0.8rem;">0 Pending</span>
+          </h1>
+          <p>Review submitted worker promotional deals and approve or reject campaigns for the public directory.</p>
+        </div>
+        <button type="button" id="refreshBtn" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+          <i data-lucide="refresh-cw" width="14" height="14"></i> Refresh Queue
+        </button>
+      </div>
+
+      <!-- Moderation Queue -->
+      <div id="promotionsQueueContainer">
+        <div style="text-align:center;padding:60px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-md);">
+          <i data-lucide="loader" class="spin" style="width:36px;height:36px;color:var(--primary);margin-bottom:12px;"></i>
+          <p style="color:var(--text-secondary);margin:0;">Loading pending promotions for moderation...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Require Admin Login
+      const user = requireAuth('admin');
+      if (!user) return;
+
+      renderSharedComponents('admin');
+
+      loadPendingPromotions();
+
+      document.getElementById('refreshBtn').addEventListener('click', () => {
+        loadPendingPromotions();
+      });
+    });
+
+    async function loadPendingPromotions() {
+      const container = document.getElementById('promotionsQueueContainer');
+      const counterBadge = document.getElementById('pendingCounter');
+
+      try {
+        const res = await apiFetch('promotions.php?action=pending');
+        if (!res.ok || !res.data || res.data.status !== 'success') {
+          container.innerHTML = `
+            <div style="text-align:center;padding:48px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-md);">
+              <i data-lucide="alert-triangle" style="width:36px;height:36px;color:var(--warning);margin-bottom:10px;"></i>
+              <p style="color:var(--text-secondary);margin:0;">Could not load pending promotions. ${escapeHtml(res.data?.message || '')}</p>
+            </div>
+          `;
+          counterBadge.textContent = '0 Pending';
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        const pendingList = res.data.promotions || res.data.pending_promotions || [];
+        counterBadge.textContent = `${pendingList.length} Pending`;
+
+        if (pendingList.length === 0) {
+          container.innerHTML = `
+            <div style="text-align:center;padding:64px 20px;background:var(--white);border:1px dashed var(--border);border-radius:var(--radius-lg);">
+              <div style="width:56px;height:56px;border-radius:50%;background:#ecfdf5;color:#10b981;display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;">
+                <i data-lucide="check-check" width="28" height="28"></i>
+              </div>
+              <h3 style="font-size:1.15rem;font-weight:700;margin:0 0 6px 0;">All Promotions Reviewed!</h3>
+              <p style="color:var(--text-secondary);font-size:0.875rem;max-width:440px;margin:0 auto;">
+                There are no pending promotions waiting for moderation. Newly submitted promotions will appear here immediately.
+              </p>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        container.innerHTML = pendingList.map(p => renderPendingCard(p)).join('');
+        if (window.lucide) lucide.createIcons();
+
+        // Attach action handlers
+        container.querySelectorAll('.action-moderate-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const promoId = e.currentTarget.dataset.id;
+            const status = e.currentTarget.dataset.status;
+            const title = e.currentTarget.dataset.title;
+
+            if (status === 'rejected' && !confirm(`Reject promotion "${title}"?`)) {
+              return;
+            }
+
+            // Disable buttons in this card
+            const card = document.getElementById(`pending-card-${promoId}`);
+            if (card) {
+              card.querySelectorAll('button').forEach(b => b.disabled = true);
+            }
+
+            try {
+              const modRes = await apiFetch('promotions.php?action=moderate', {
+                method: 'POST',
+                body: JSON.stringify({
+                  id: promoId,
+                  status: status
+                })
+              });
+
+              if (modRes.ok && modRes.data && modRes.data.status === 'success') {
+                showToast(
+                  status === 'approved' ? `Promotion "${title}" approved!` : `Promotion "${title}" rejected.`,
+                  status === 'approved' ? 'success' : 'info'
+                );
+                // Refresh list without page reload
+                loadPendingPromotions();
+              } else {
+                showToast(modRes.data?.message || 'Could not moderate promotion.', 'error');
+                if (card) {
+                  card.querySelectorAll('button').forEach(b => b.disabled = false);
+                }
+              }
+            } catch (err) {
+              showToast('Error: ' + err.message, 'error');
+              if (card) {
+                card.querySelectorAll('button').forEach(b => b.disabled = false);
+              }
+            }
+          });
+        });
+
+      } catch (err) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:48px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-md);">
+            <p style="color:var(--danger);margin:0;">Error loading promotions: ${escapeHtml(err.message)}</p>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function renderPendingCard(promo) {
+      const workerName = promo.worker_name || 'Worker #' + promo.worker_id;
+
+      // Format valid-until date
+      let dateDisplay = promo.valid_until || '';
+      if (promo.valid_until) {
+        try {
+          const d = new Date(promo.valid_until + 'T00:00:00');
+          dateDisplay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {}
+      }
+
+      // Format submission date
+      let createdDisplay = promo.created_at || '';
+      if (promo.created_at) {
+        try {
+          const cd = new Date(promo.created_at);
+          createdDisplay = cd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {}
+      }
+
+      return `
+        <div class="pending-promo-card" id="pending-card-${promo.id}">
+          <div class="pending-promo-header">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <span class="worker-meta-tag">
+                  <i data-lucide="user" width="13" height="13"></i>
+                  ${escapeHtml(workerName)}
+                </span>
+                <span class="text-sm text-secondary">Submitted on ${escapeHtml(createdDisplay)}</span>
+              </div>
+              <h3 style="margin:0;font-size:1.15rem;font-weight:700;color:var(--text-primary);">
+                ${escapeHtml(promo.title)}
+              </h3>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="discount-highlight">
+                <i data-lucide="percent" width="13" height="13"></i>
+                ${escapeHtml(String(promo.discount_percent))}% OFF
+              </span>
+              <span class="badge badge-pending">
+                <i data-lucide="clock" width="12" height="12"></i> Pending
+              </span>
+            </div>
+          </div>
+
+          <div class="promo-desc-box">
+            ${escapeHtml(promo.description)}
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9;">
+            <div style="font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+              <i data-lucide="calendar" width="14" height="14"></i>
+              <span>Valid until: <strong>${escapeHtml(dateDisplay)}</strong></span>
+            </div>
+
+            <div class="promo-action-group">
+              <button type="button" class="btn btn-sm btn-reject action-moderate-btn" data-id="${promo.id}" data-status="rejected" data-title="${escapeHtml(promo.title)}">
+                <i data-lucide="x" width="14" height="14"></i> Reject
+              </button>
+              <button type="button" class="btn btn-sm btn-approve action-moderate-btn" data-id="${promo.id}" data-status="approved" data-title="${escapeHtml(promo.title)}">
+                <i data-lucide="check" width="14" height="14"></i> Approve Promotion
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

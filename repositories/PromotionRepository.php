@@ -53,4 +53,23 @@ class PromotionRepository {
         $stmt = $this->db->prepare("UPDATE promotions SET status = :status WHERE id = :id");
         return $stmt->execute([':status' => $status, ':id' => $promoId]);
     }
+
+    public function getByWorker(int $workerId): array {
+        $stmt = $this->db->prepare("
+            SELECT p.*, wp.is_verified, wp.verify_status, u.full_name AS worker_name
+            FROM promotions p
+            JOIN worker_profiles wp ON p.worker_id = wp.id
+            JOIN users u ON wp.user_id = u.id
+            WHERE p.worker_id = :worker_id
+            ORDER BY p.created_at DESC
+        ");
+        $stmt->execute([':worker_id' => $workerId]);
+        return $stmt->fetchAll();
+    }
+
+    public function deleteByWorker(int $promoId, int $workerId): bool {
+        $stmt = $this->db->prepare("DELETE FROM promotions WHERE id = :id AND worker_id = :worker_id");
+        $stmt->execute([':id' => $promoId, ':worker_id' => $workerId]);
+        return $stmt->rowCount() > 0;
+    }
 }
