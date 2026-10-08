@@ -159,11 +159,22 @@ class WorkerService {
         }
         $profileId = $profile ? (int)$profile['id'] : $workerId;
 
+        // Multi-trade check: maximum of 3 categories per worker
+        if ($catId !== null && $catId > 0) {
+            $hasCat = $this->workerRepo->hasCategory($profileId, $catId);
+            if (!$hasCat) {
+                $categoryCount = $this->workerRepo->getCategoryCount($profileId);
+                if ($categoryCount >= 3) {
+                    throw new Exception("You can offer services in up to 3 trade categories.");
+                }
+            }
+        }
+
         $serviceId = $serviceRepo->create($profileId, $catId, $title, $description, $price, $pricingType, $location, $images, $district);
 
-        // After saving the service, insert the service's category_id into worker_categories for that worker if it is not already there
+        // After saving the service, insert the service's category_id into worker_categories for that worker (secondary trade)
         if ($catId !== null && $catId > 0) {
-            $this->workerRepo->addCategoryIfNotExists($profileId, $catId);
+            $this->workerRepo->addCategoryIfNotExists($profileId, $catId, false);
         }
 
         return [

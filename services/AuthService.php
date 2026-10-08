@@ -105,7 +105,7 @@ class AuthService {
                 if ($catId <= 0) {
                     $catId = 1;
                 }
-                $this->workerRepo->setWorkerCategories($workerProfileId, [$catId]);
+                $this->workerRepo->setWorkerCategories($workerProfileId, [$catId], $catId);
 
                 // Create an actual service record in worker_services using selected category and district
                 $catName = 'General Service';

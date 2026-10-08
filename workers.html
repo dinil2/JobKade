@@ -532,12 +532,21 @@
 
         var html = workers.map(function (w, index) {
           var catList = w.categories || [];
-          var catSlug = (catList.length > 0 && catList[0].slug) ? catList[0].slug : 'tradesman';
-          var catName = (catList.length > 0)
-            ? catList.map(function (c) { return c.name; }).join(', ')
-            : 'Service Professional';
-          var allCats = catList.map(function (c) { return c.slug + ' ' + (c.name || '').toLowerCase(); }).join(' ');
-          if (!allCats) allCats = catSlug + ' ' + catName.toLowerCase();
+          var primaryTrade = w.primary_trade;
+          if (!primaryTrade) {
+            var priObj = catList.find(function(c) { return c.is_primary == 1; });
+            primaryTrade = priObj ? priObj.name : ((catList.length > 0) ? catList[0].name : (w.profession || 'Service Professional'));
+          }
+
+          var extraCats = w.secondary_trades || w.extra_categories || [];
+          if (!extraCats.length && catList.length > 1) {
+            extraCats = catList.filter(function(c) { return c.name !== primaryTrade; }).map(function(c) { return c.name; });
+          }
+
+          // Build exhaustive category string for filtering so worker appears for every category they cover
+          var allCats = catList.map(function (c) { return (c.slug || '') + ' ' + (c.name || '').toLowerCase(); }).join(' ');
+          if (primaryTrade) allCats += ' ' + primaryTrade.toLowerCase();
+          if (extraCats.length) allCats += ' ' + extraCats.join(' ').toLowerCase();
 
           var servicesList = w.services || [];
           var servicesSearchText = servicesList.map(function (s) {
@@ -550,6 +559,17 @@
           var avatarImg = workerAvatars[index % workerAvatars.length];
           var locationText = w.address || 'Colombo';
           var isSaved = userSavedList.some(function (item) { return String(item.id) === String(w.id); });
+
+          // "Also offers:" row with small pill tags for extra categories (hide if none)
+          var alsoOffersHtml = '';
+          if (extraCats.length > 0) {
+            alsoOffersHtml = '<div class="worker-card-also-offers" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:4px 0 10px;font-size:0.775rem;">' +
+              '<span style="color:var(--text-muted);font-weight:600;font-size:0.75rem;">Also offers:</span>' +
+              extraCats.map(function(cat) {
+                return '<span class="pill-tag-secondary" style="background:rgba(89,150,255,0.08);color:#2563eb;border:1px solid rgba(89,150,255,0.2);padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:500;">' + escapeHtml(cat) + '</span>';
+              }).join('') +
+            '</div>';
+          }
 
           var servicesHtml = '';
           if (servicesList.length > 0) {
@@ -592,15 +612,15 @@
             '<img src="' + avatarImg + '" alt="' + (w.full_name || 'Worker') + '" class="worker-card-img" onerror="this.src=\'assets/images/hero-worker.png\'">' +
             '<div class="worker-card-body">' +
               '<div class="worker-card-header">' +
-                '<div>' +
-                  '<div class="worker-card-name">' + (w.full_name || 'Skilled Worker') + '</div>' +
-                  '<div class="worker-card-profession">' + catName + '</div>' +
+                '<div style="max-width:68%;">' +
+                  '<div class="worker-card-name" style="font-size:1.05rem;font-weight:700;line-height:1.3;">' + (w.full_name || 'Skilled Worker') + ' <span style="font-size:0.875rem;font-weight:600;color:var(--primary);">(' + primaryTrade + ')</span></div>' +
                 '</div>' +
                 '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
                   (isVerified ? '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Verified</span>' : '') +
                   suggestedBadge +
                 '</div>' +
               '</div>' +
+              alsoOffersHtml +
               '<div class="worker-card-meta">' +
                 '<span><i data-lucide="map-pin"></i> ' + locationText + '</span>' +
                 '<span><i data-lucide="star"></i> ' + rating + '</span>' +

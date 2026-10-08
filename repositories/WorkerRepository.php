@@ -46,6 +46,23 @@ class WorkerRepository {
         if ($profile) {
             $profile['categories'] = $this->getWorkerCategories($profile['id']);
             $profile['services'] = $this->getWorkerServices($profile['id']);
+
+            $primaryCat = null;
+            $secondaryCats = [];
+            foreach ($profile['categories'] as $cat) {
+                if ((int)($cat['is_primary'] ?? 0) === 1 && !$primaryCat) {
+                    $primaryCat = $cat['name'];
+                } else {
+                    $secondaryCats[] = $cat['name'];
+                }
+            }
+            if (!$primaryCat && !empty($profile['categories'])) {
+                $primaryCat = $profile['categories'][0]['name'];
+                $secondaryCats = array_slice(array_map(fn($c) => $c['name'], $profile['categories']), 1);
+            }
+            $profile['primary_trade'] = $primaryCat ?: ($profile['profession'] ?? 'Service Professional');
+            $profile['secondary_trades'] = $secondaryCats;
+            $profile['extra_categories'] = $secondaryCats;
         }
         return $profile ?: null;
     }
@@ -136,20 +153,38 @@ class WorkerRepository {
 
     public function getWorkerCategories(int $workerId): array {
         $stmt = $this->db->prepare("
-            SELECT c.id, c.name, c.slug, c.icon
+            SELECT c.id, c.name, c.slug, c.icon, COALESCE(wc.is_primary, 0) AS is_primary
             FROM categories c
             JOIN worker_categories wc ON c.id = wc.category_id
             WHERE wc.worker_id = :worker_id
+            ORDER BY wc.is_primary DESC, wc.category_id ASC
         ");
         $stmt->execute([':worker_id' => $workerId]);
         return $stmt->fetchAll();
     }
 
-    public function setWorkerCategories(int $workerId, array $categoryIds): void {
+    public function getCategoryCount(int $workerId): int {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM worker_categories WHERE worker_id = :wid");
+        $stmt->execute([':wid' => $workerId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function hasCategory(int $workerId, int $categoryId): bool {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM worker_categories WHERE worker_id = :wid AND category_id = :cid");
+        $stmt->execute([':wid' => $workerId, ':cid' => $categoryId]);
+        return ((int)$stmt->fetchColumn()) > 0;
+    }
+
+    public function setWorkerCategories(int $workerId, array $categoryIds, ?int $primaryCategoryId = null): void {
         $this->db->prepare("DELETE FROM worker_categories WHERE worker_id = :id")->execute([':id' => $workerId]);
-        $ins = $this->db->prepare("INSERT INTO worker_categories (worker_id, category_id) VALUES (:w, :c)");
-        foreach ($categoryIds as $catId) {
-            $ins->execute([':w' => $workerId, ':c' => (int)$catId]);
+        $ins = $this->db->prepare("INSERT INTO worker_categories (worker_id, category_id, is_primary) VALUES (:w, :c, :p)");
+        foreach ($categoryIds as $idx => $catId) {
+            $isPri = ($primaryCategoryId !== null && (int)$catId === (int)$primaryCategoryId) || ($primaryCategoryId === null && $idx === 0);
+            $ins->execute([
+                ':w' => $workerId,
+                ':c' => (int)$catId,
+                ':p' => $isPri ? 1 : 0
+            ]);
         }
     }
 
@@ -169,15 +204,19 @@ class WorkerRepository {
         return $stmt->fetchAll();
     }
 
-    public function addCategoryIfNotExists(int $workerId, int $categoryId): bool {
+    public function addCategoryIfNotExists(int $workerId, int $categoryId, bool $isPrimary = false): bool {
         if ($workerId <= 0 || $categoryId <= 0) {
             return false;
         }
         $stmt = $this->db->prepare("SELECT COUNT(*) FROM worker_categories WHERE worker_id = :wid AND category_id = :cid");
         $stmt->execute([':wid' => $workerId, ':cid' => $categoryId]);
         if ((int)$stmt->fetchColumn() === 0) {
-            $ins = $this->db->prepare("INSERT INTO worker_categories (worker_id, category_id) VALUES (:wid, :cid)");
-            return $ins->execute([':wid' => $workerId, ':cid' => $categoryId]);
+            $ins = $this->db->prepare("INSERT INTO worker_categories (worker_id, category_id, is_primary) VALUES (:wid, :cid, :is_primary)");
+            return $ins->execute([
+                ':wid'        => $workerId,
+                ':cid'        => $categoryId,
+                ':is_primary' => $isPrimary ? 1 : 0
+            ]);
         }
         return true;
     }
@@ -247,6 +286,23 @@ class WorkerRepository {
         foreach ($workers as &$worker) {
             $worker['categories'] = $this->getWorkerCategories($worker['id']);
             $worker['services'] = $this->getWorkerServices($worker['id']);
+
+            $primaryCat = null;
+            $secondaryCats = [];
+            foreach ($worker['categories'] as $cat) {
+                if ((int)($cat['is_primary'] ?? 0) === 1 && !$primaryCat) {
+                    $primaryCat = $cat['name'];
+                } else {
+                    $secondaryCats[] = $cat['name'];
+                }
+            }
+            if (!$primaryCat && !empty($worker['categories'])) {
+                $primaryCat = $worker['categories'][0]['name'];
+                $secondaryCats = array_slice(array_map(fn($c) => $c['name'], $worker['categories']), 1);
+            }
+            $worker['primary_trade'] = $primaryCat ?: ($worker['profession'] ?? 'Service Professional');
+            $worker['secondary_trades'] = $secondaryCats;
+            $worker['extra_categories'] = $secondaryCats;
             if (!empty($district)) {
                 $dLow = strtolower(trim($district));
                 $workerDistLow = strtolower(trim($worker['district'] ?? ''));

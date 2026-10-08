@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `worker_profiles` (
 CREATE TABLE IF NOT EXISTS `worker_categories` (
     `worker_id` INT NOT NULL,
     `category_id` INT NOT NULL,
+    `is_primary` TINYINT(1) DEFAULT 0,
     PRIMARY KEY (`worker_id`, `category_id`),
     CONSTRAINT `fk_wc_worker` FOREIGN KEY (`worker_id`) REFERENCES `worker_profiles` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_wc_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
