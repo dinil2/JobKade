@@ -403,8 +403,7 @@
           // Service Areas
           const areasEl = document.getElementById('workerServiceAreasText');
           if (areasEl) {
-            const radius = w.service_radius_km || 15;
-            areasEl.innerHTML = `<i data-lucide="map-pin" width="16" height="16" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Serves ${escapeHtml(w.address || 'Colombo')} and surrounding areas within ${radius} km.`;
+            areasEl.innerHTML = `<i data-lucide="map-pin" width="16" height="16" style="display:inline;vertical-align:middle;color:var(--primary);"></i> Serves ${escapeHtml(w.address || 'Colombo')} and surrounding areas.`;
           }
 
           // Sidebar details

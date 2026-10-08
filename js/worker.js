@@ -16,11 +16,13 @@ document.addEventListener('DOMContentLoaded', function () {
   initProfilePhotoUpload();
 
   loadOpenJobsForWorker();
+  initWorkerJobTabs();
   loadMyServicesForWorker();
   initWorkerSettings();
   initWorkerWalletPage();
   initWorkerJobMapModal();
   initWorkerInvoiceAndAccess();
+  initWorkerReviews();
 });
 
 // ==========================================
@@ -57,15 +59,6 @@ function syncWorkerIdentity(user) {
 
   document.querySelectorAll('.sidebar.worker .sidebar-user-name, #sidebarUserName').forEach(el => {
     el.textContent = workerName;
-  });
-
-  const savedAvatar = localStorage.getItem('jobkade_worker_avatar') || user.avatar;
-  document.querySelectorAll('.sidebar.worker .avatar, #sidebarAvatar, #navAvatar, .dashboard-nav-right .avatar').forEach(el => {
-    if (savedAvatar) {
-      el.innerHTML = `<img src="${savedAvatar}" alt="${workerName}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
-    } else {
-      el.textContent = initials;
-    }
   });
 }
 
@@ -211,53 +204,105 @@ function initProfilePhotoUpload() {
   const avatarClickable = $id('profile-avatar-clickable');
   const cameraBtn = $id('btn-camera-trigger');
   const avatarHint = $id('profile-avatar-hint');
+  const changeBtnText = $id('btn-change-photo-text');
   const photoUpload = $id('worker-photo-upload');
 
   const triggerUpload = () => photoUpload?.click();
   avatarClickable?.addEventListener('click', triggerUpload);
   cameraBtn?.addEventListener('click', e => { e.stopPropagation(); triggerUpload(); });
   avatarHint?.addEventListener('click', triggerUpload);
+  changeBtnText?.addEventListener('click', triggerUpload);
 
-  photoUpload?.addEventListener('change', () => {
+  photoUpload?.addEventListener('change', async () => {
     const file = photoUpload.files[0];
     if (!file) return;
 
-    if (!file.type.match(/^image\//)) {
-      showToast('Please select a valid image file (PNG, JPG, JPEG, WebP).', 'error');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Image file size must be less than 5MB.', 'error');
+    // Validate image format: only JPG and PNG
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    const isAllowedExt = ['jpg', 'jpeg', 'png'].includes(ext);
+    const isAllowedMime = ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type);
+    if (!isAllowedExt && !isAllowedMime) {
+      showToast('Please select a JPG or PNG image.', 'error');
+      photoUpload.value = '';
       return;
     }
 
+    // Validate size: max 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image file size must be less than 2MB.', 'error');
+      photoUpload.value = '';
+      return;
+    }
+
+    const avatarImg = $id('worker-avatar-img');
+    const avatarInitials = $id('worker-avatar-initials');
+
+    // 1. Show immediate local preview
     const reader = new FileReader();
     reader.onload = e => {
       const dataUrl = e.target.result;
-      const avatarImg = $id('worker-avatar-img');
-      const avatarInitials = $id('worker-avatar-initials');
-
       if (avatarImg) { avatarImg.src = dataUrl; avatarImg.style.display = 'block'; }
       if (avatarInitials) avatarInitials.style.display = 'none';
-
-      try {
-        localStorage.setItem('jobkade_worker_avatar', dataUrl);
-        const sUser = JSON.parse(localStorage.getItem('jobkade_user') || 'null');
-        if (sUser) {
-          sUser.avatar = dataUrl;
-          localStorage.setItem('jobkade_user', JSON.stringify(sUser));
-        }
-      } catch (storageErr) {
-        console.warn('Could not persist avatar:', storageErr);
-      }
-
-      document.querySelectorAll('.sidebar.worker .avatar, #sidebarAvatar, #navAvatar, .dashboard-nav-right .avatar').forEach(el => {
-        el.innerHTML = `<img src="${dataUrl}" alt="Profile Photo" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
-      });
-
-      showToast('Profile photo updated successfully!', 'success');
     };
     reader.readAsDataURL(file);
+
+    // 2. Upload to backend endpoint
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    const token = (typeof getAuthToken === 'function') ? getAuthToken() : (localStorage.getItem('jobkade_token') || '');
+    const isSubfolder = ['/worker/', '/customer/', '/admin/'].some(s => window.location.pathname.includes(s));
+    const apiEndpoint = (isSubfolder ? '../api/' : 'api/') + 'auth.php?action=upload-photo';
+
+    try {
+      showToast('Uploading profile photo...', 'info');
+      const res = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        body: formData
+      });
+      const data = await res.json();
+
+      if (res.ok && data && (data.status === 'success' || data.profile_picture)) {
+        const photoPath = data.profile_picture || data.photo_url || data.avatar;
+
+        // Update local session
+        const sUser = (typeof getLoggedInUser === 'function' ? getLoggedInUser() : null) || {};
+        sUser.profile_picture = photoPath;
+        sUser.avatar = photoPath;
+        localStorage.setItem('jodkade_logged_user', JSON.stringify(sUser));
+        localStorage.setItem('jobkade_user', JSON.stringify(sUser));
+        localStorage.setItem('jobkade_worker_avatar', photoPath);
+
+        // Update photo everywhere immediately without a page refresh
+        const rootPath = isSubfolder ? '../' : '';
+        const resolvedUrl = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(photoPath, rootPath) : rootPath + photoPath;
+
+        if (avatarImg) {
+          avatarImg.src = resolvedUrl;
+          avatarImg.style.display = 'block';
+        }
+        if (avatarInitials) avatarInitials.style.display = 'none';
+
+        if (typeof updateSharedAvatars === 'function') {
+          updateSharedAvatars(rootPath);
+        } else {
+          document.querySelectorAll('.sidebar.worker .avatar, #sidebarAvatar, #navAvatar, .avatar-nav, .dashboard-nav-right .avatar').forEach(el => {
+            el.innerHTML = `<img src="${resolvedUrl}" alt="Profile Photo" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
+          });
+        }
+
+        showToast('Profile photo updated successfully!', 'success');
+      } else {
+        const errMsg = data.message || 'Failed to upload profile photo.';
+        showToast(errMsg, 'error');
+      }
+    } catch (err) {
+      console.error('Photo upload failed:', err);
+      showToast('Network error while uploading photo.', 'error');
+    } finally {
+      photoUpload.value = '';
+    }
   });
 }
 
@@ -265,12 +310,16 @@ async function initWorkerProfilePage() {
   const form = $id('worker-profile-form');
   if (!form || !window.location.pathname.includes('profile-edit.html')) return;
 
-  const savedAvatar = localStorage.getItem('jobkade_worker_avatar');
+  const user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+  const savedAvatar = user?.profile_picture || user?.avatar || localStorage.getItem('jobkade_worker_avatar');
   const avatarImg = $id('worker-avatar-img');
   const avatarInitials = $id('worker-avatar-initials');
 
+  const isSubfolder = ['/worker/', '/customer/', '/admin/'].some(s => window.location.pathname.includes(s));
+  const rootPath = isSubfolder ? '../' : '';
+
   if (savedAvatar && avatarImg) {
-    avatarImg.src = savedAvatar;
+    avatarImg.src = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(savedAvatar, rootPath) : rootPath + savedAvatar;
     avatarImg.style.display = 'block';
     if (avatarInitials) avatarInitials.style.display = 'none';
   }
@@ -293,10 +342,18 @@ async function initWorkerProfilePage() {
       if (locInput && u.address) locInput.value = u.address;
       if (bioInput && u.bio) bioInput.value = u.bio;
 
-      if (!savedAvatar && u.avatar && avatarImg) {
-        avatarImg.src = u.avatar;
+      const uPhoto = u.profile_picture || u.avatar;
+      if (uPhoto && avatarImg) {
+        avatarImg.src = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(uPhoto, rootPath) : rootPath + uPhoto;
         avatarImg.style.display = 'block';
         if (avatarInitials) avatarInitials.style.display = 'none';
+        if (user) {
+          user.profile_picture = uPhoto;
+          user.avatar = uPhoto;
+          localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+          localStorage.setItem('jobkade_user', JSON.stringify(user));
+          localStorage.setItem('jobkade_worker_avatar', uPhoto);
+        }
       }
     }
   } catch (err) {
@@ -612,6 +669,88 @@ function initWorkerJobMapModal() {
   });
 }
 
+let currentWorkerJobTab = 'available';
+let cachedAvailableJobs = [];
+let cachedCompletedJobs = [];
+
+function renderWorkerJobCard(j, isCompleted = false) {
+  const lat = j.latitude || 6.9271;
+  const lng = j.longitude || 79.8612;
+  const addr = j.address || 'Colombo';
+  const custId = j.customer_id || 2;
+  const jId = j.id || j.job_id || '';
+  const safeTitle = (j.title || j.job_title || 'Job Request').replace(/"/g, '&quot;');
+  const badgeClass = isCompleted ? 'badge-completed' : 'badge-open';
+  const badgeText = isCompleted ? 'Completed' : 'Active';
+
+  return `
+    <div class="job-card">
+      <div class="job-card-header"><h3 class="job-card-title">${safeTitle}</h3><span class="badge ${badgeClass}">${badgeText}</span></div>
+      <div class="job-card-meta">
+        <span><i data-lucide="user" width="14" height="14"></i> ${j.customer_name || 'Customer'}</span>
+        <span><i data-lucide="map-pin" width="14" height="14"></i> ${addr}</span>
+        <span><i data-lucide="clock" width="14" height="14"></i> ${j.created_at || j.applied_at || 'Recently'}</span>
+        <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
+      </div>
+      <p class="job-card-desc">${j.description || 'No description provided.'}</p>
+      <div class="job-card-actions">
+        <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
+        <button class="btn btn-success btn-sm btn-open-invoice-modal" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:600;"><i data-lucide="check-circle" width="14" height="14"></i> Mark Done & Set Price</button>
+        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+        ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
+      </div>
+    </div>`;
+}
+
+function renderWorkerJobs() {
+  const grid = $id('worker-jobs-container');
+  if (!grid) return;
+
+  if (currentWorkerJobTab === 'completed') {
+    if (cachedCompletedJobs && cachedCompletedJobs.length > 0) {
+      grid.innerHTML = cachedCompletedJobs.map(j => renderWorkerJobCard(j, true)).join('');
+    } else {
+      grid.innerHTML = `
+        <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+          <i data-lucide="check-circle-2" style="width: 48px; height: 48px; color: var(--text-muted); margin: 0 auto 12px; display:block;"></i>
+          <h3 style="margin-bottom: 8px;">No Completed Jobs</h3>
+          <p style="color: var(--text-secondary);">You have no completed jobs assigned to you yet.</p>
+        </div>`;
+    }
+  } else {
+    // Available Jobs
+    if (cachedAvailableJobs && cachedAvailableJobs.length > 0) {
+      grid.innerHTML = cachedAvailableJobs.map(j => renderWorkerJobCard(j, false)).join('');
+    } else {
+      grid.innerHTML = `
+        <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+          <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--text-muted); margin: 0 auto 12px; display:block;"></i>
+          <h3 style="margin-bottom: 8px;">No Open Job Requests</h3>
+          <p style="color: var(--text-secondary);">There are currently no open customer requests matching your area.</p>
+        </div>`;
+    }
+  }
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function initWorkerJobTabs() {
+  const tabsContainer = document.querySelector('.tabs[data-tabs]');
+  if (!tabsContainer || !window.location.pathname.includes('jobs.html')) return;
+
+  const tabs = tabsContainer.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function () {
+      tabs.forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const tabKey = this.getAttribute('data-tab') ||
+        (this.textContent.trim().toLowerCase().includes('completed') ? 'completed' : 'available');
+      currentWorkerJobTab = tabKey;
+      renderWorkerJobs();
+    });
+  });
+}
+
 async function loadOpenJobsForWorker() {
   const grid = $id('worker-jobs-container');
   if (!grid || !window.location.pathname.includes('jobs.html')) return;
@@ -620,7 +759,10 @@ async function loadOpenJobsForWorker() {
   const accessBanner = $id('job-access-banner');
 
   try {
-    const res = await apiFetch('jobs.php?action=list');
+    const [res, workerRes] = await Promise.all([
+      apiFetch('jobs.php?action=list'),
+      apiFetch('jobs.php?action=worker').catch(() => ({ ok: false }))
+    ]);
 
     if (res.status === 403 || (!res.ok && res.status === 403)) {
       if (accessBanner) accessBanner.style.display = 'none';
@@ -649,45 +791,57 @@ async function loadOpenJobsForWorker() {
 
     if (verifyBanner) verifyBanner.style.display = 'none';
 
-    if (res.ok && res.data?.status === 'success' && res.data.jobs?.length > 0) {
+    if (res.ok && res.data?.status === 'success') {
       if (res.data.has_job_access && accessBanner) accessBanner.style.display = 'none';
-
-      grid.innerHTML = res.data.jobs.map(j => {
-        const lat = j.latitude || 6.9271;
-        const lng = j.longitude || 79.8612;
-        const addr = j.address || 'Colombo';
-        const custId = j.customer_id || 2;
-        const jId = j.id || '';
-        const safeTitle = (j.title || 'Job Request').replace(/"/g, '&quot;');
-
-        return `
-          <div class="job-card">
-            <div class="job-card-header"><h3 class="job-card-title">${j.title}</h3><span class="badge badge-open">Active</span></div>
-            <div class="job-card-meta">
-              <span><i data-lucide="user" width="14" height="14"></i> ${j.customer_name || 'Customer'}</span>
-              <span><i data-lucide="map-pin" width="14" height="14"></i> ${addr}</span>
-              <span><i data-lucide="clock" width="14" height="14"></i> ${j.created_at || 'Recently'}</span>
-              <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
-            </div>
-            <p class="job-card-desc">${j.description}</p>
-            <div class="job-card-actions">
-              <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
-              <button class="btn btn-success btn-sm btn-open-invoice-modal" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:600;"><i data-lucide="check-circle" width="14" height="14"></i> Mark Done & Set Price</button>
-              <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
-              ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
-            </div>
-          </div>`;
-      }).join('');
-      if (typeof lucide !== 'undefined') lucide.createIcons();
+      const openJobs = Array.isArray(res.data.jobs) ? res.data.jobs : [];
+      cachedAvailableJobs = openJobs.filter(j => !j.status || j.status.toLowerCase() === 'open');
     } else {
-      grid.innerHTML = `
-        <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
-          <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--text-muted); margin: 0 auto 12px; display:block;"></i>
-          <h3 style="margin-bottom: 8px;">No Open Job Requests</h3>
-          <p style="color: var(--text-secondary);">There are currently no open customer requests matching your area.</p>
-        </div>`;
-      if (typeof lucide !== 'undefined') lucide.createIcons();
+      cachedAvailableJobs = [];
     }
+
+    let completedList = [];
+    if (workerRes && workerRes.ok && workerRes.data?.status === 'success' && Array.isArray(workerRes.data.jobs)) {
+      const completedAssigned = workerRes.data.jobs.filter(j => {
+        const jobStatus = (j.job_status || j.status || '').toLowerCase();
+        const appStatus = (j.application_status || '').toLowerCase();
+        return jobStatus === 'completed' && (appStatus === 'accepted' || !appStatus);
+      });
+
+      if (completedAssigned.length > 0) {
+        completedList = await Promise.all(
+          completedAssigned.map(async item => {
+            const jobId = item.job_id || item.id;
+            try {
+              const detailRes = await apiFetch(`jobs.php?action=details&id=${jobId}`);
+              if (detailRes.ok && detailRes.data?.job) {
+                return {
+                  ...detailRes.data.job,
+                  id: jobId,
+                  title: detailRes.data.job.title || item.job_title,
+                  created_at: detailRes.data.job.created_at || item.applied_at || 'Recently'
+                };
+              }
+            } catch (err) {
+              console.warn('Could not fetch completed job details:', err);
+            }
+            return {
+              id: jobId,
+              title: item.job_title || 'Completed Job',
+              customer_name: 'Customer',
+              customer_phone: '',
+              address: 'Colombo',
+              category_name: 'Service',
+              description: item.proposal_note || 'Completed job request.',
+              created_at: item.applied_at || 'Recently',
+              ...item
+            };
+          })
+        );
+      }
+    }
+    cachedCompletedJobs = completedList;
+
+    renderWorkerJobs();
   } catch (err) {
     console.warn('loadOpenJobsForWorker error:', err);
     grid.innerHTML = '<div class="empty-state" style="text-align:center; padding: 40px 16px;"><p style="color: var(--error);">Failed to load jobs. Please check your connection.</p></div>';
@@ -1027,24 +1181,190 @@ async function loadWorkerDashboardStats() {
   } catch (err) {
     console.warn('Worker dashboard KYC status failed:', err);
   }
+}
 
+// ==========================================
+// 8. Worker Reviews Management (Read-Only)
+// ==========================================
+
+function renderStarsHtml(score, size = 14) {
+  const val = Math.min(5, Math.max(0, Math.round(Number(score) || 0)));
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    if (i <= val) {
+      html += `<i data-lucide="star" width="${size}" height="${size}" style="color:#f59e0b; fill:#f59e0b;"></i>`;
+    } else {
+      html += `<i data-lucide="star" width="${size}" height="${size}" style="color:#cbd5e1; fill:none;"></i>`;
+    }
+  }
+  return html;
+}
+
+async function initWorkerReviews() {
+  const reviewsContainer = $id('worker-reviews-list');
+  const summaryBox = $id('worker-reviews-summary');
+  const dashboardPreview = $id('worker-dashboard-reviews');
+  const statRatingEl = $id('stat-worker-rating');
+  const statReviewsCountEl = $id('stat-reviews-count');
+
+  if (!reviewsContainer && !summaryBox && !dashboardPreview && !statRatingEl && !statReviewsCountEl) {
+    return;
+  }
+
+  // 1. Identify current worker ID
+  let user = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
+  let workerId = user?.worker_id || user?.worker?.id || user?.worker_profile?.id;
+
+  if (!workerId) {
+    try {
+      const meRes = await apiFetch('auth.php?action=me');
+      if (meRes.ok && meRes.data?.user) {
+        const u = meRes.data.user;
+        workerId = u.worker_profile?.id || u.worker_id || u.worker?.id;
+        if (workerId && user) {
+          user.worker_id = workerId;
+          localStorage.setItem('jodkade_logged_user', JSON.stringify(user));
+          localStorage.setItem('jobkade_user', JSON.stringify(user));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch worker identity from auth.php:', e);
+    }
+  }
+
+  if (!workerId) {
+    if (reviewsContainer) {
+      reviewsContainer.innerHTML = '<div class="empty-state" style="text-align:center; padding:36px 16px;"><p style="color:var(--text-muted); margin:0;">Unable to load reviews for this worker profile.</p></div>';
+    }
+    return;
+  }
+
+  // 2. Fetch reviews using existing API: GET api/reviews.php?action=worker&worker_id={worker_id}
   try {
-    let done = 0;
-    const total = 5;
-    const u = (typeof getLoggedInUser === 'function') ? getLoggedInUser() : null;
-    if (u?.name || u?.full_name) done++;
-    if (u?.phone) done++;
-    if (u?.email) done++;
-    if (kycInfo && (kycInfo.verify_status || 'unverified').toLowerCase() !== 'unverified') done++;
+    const res = await apiFetch(`reviews.php?action=worker&worker_id=${workerId}`);
+    if (res.ok && res.data && res.data.status === 'success') {
+      const reviews = Array.isArray(res.data.reviews) ? res.data.reviews : [];
+      const totalReviews = reviews.length;
 
-    const svcRes = await apiFetch('workers.php?action=my-services').catch(() => null);
-    if (svcRes?.ok && svcRes.data?.services?.length > 0) done++;
+      // Calculate score & breakdown
+      const sum = reviews.reduce((acc, r) => acc + (parseFloat(r.rating) || 0), 0);
+      const avgScore = totalReviews > 0 ? (sum / totalReviews).toFixed(1) : '0.0';
 
-    const pct = Math.round((done / total) * 100);
-    if ($id('profile-completion-label')) $id('profile-completion-label').textContent = `Profile ${pct}% complete`;
-    if ($id('profile-completion-bar')) $id('profile-completion-bar').style.width = pct + '%';
-    if ($id('profile-completion-percent')) $id('profile-completion-percent').textContent = pct + '%';
+      const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      reviews.forEach(r => {
+        const star = Math.min(5, Math.max(1, Math.round(parseFloat(r.rating) || 5)));
+        counts[star] = (counts[star] || 0) + 1;
+      });
+
+      // Update stat cards if on dashboard
+      if (statRatingEl) statRatingEl.textContent = avgScore;
+      if (statReviewsCountEl) statReviewsCountEl.textContent = totalReviews;
+
+      // Update Summary at the top (if on reviews.html)
+      const avgScoreEl = $id('summary-avg-score');
+      const starsRowEl = $id('summary-stars');
+      const totalLabelEl = $id('summary-total-label');
+
+      if (avgScoreEl) avgScoreEl.textContent = avgScore;
+      if (starsRowEl) starsRowEl.innerHTML = renderStarsHtml(avgScore, 24);
+      if (totalLabelEl) {
+        totalLabelEl.textContent = `Based on ${totalReviews} review${totalReviews === 1 ? '' : 's'}`;
+      }
+
+
+      // Render Review List
+      if (reviewsContainer) {
+        if (totalReviews === 0) {
+          reviewsContainer.innerHTML = `
+            <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+              <i data-lucide="message-square" style="width: 40px; height: 40px; color: var(--text-muted); margin: 0 auto 12px; display:block; opacity:0.5;"></i>
+              <h4 style="margin-bottom: 6px;">No reviews yet.</h4>
+              <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Customer reviews will appear here once you complete job requests.</p>
+            </div>
+          `;
+        } else {
+          reviewsContainer.innerHTML = reviews.map(r => {
+            const cName = escapeHtml(r.customer_name || 'Verified Customer');
+            const cInitials = escapeHtml((r.customer_name || 'C').substring(0, 2).toUpperCase());
+            const dateStr = r.created_at
+              ? new Date(r.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+              : 'Recent';
+            const rating = Math.min(5, Math.max(1, parseInt(r.rating || 5, 10)));
+            const commentText = escapeHtml(r.comment || '');
+
+            return `
+              <div class="review-card" style="padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+                <div class="review-header" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                  <div class="review-avatar" style="width:40px; height:40px; border-radius:50%; background:var(--bg-alt); color:var(--text-primary); font-weight:700; display:flex; align-items:center; justify-content:center; font-size:0.875rem; border:1px solid var(--border-light);">${cInitials}</div>
+                  <div style="flex:1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                      <div class="review-name" style="font-weight:600; font-size:0.95rem; color:var(--text-primary);">${cName}</div>
+                      <div class="review-date" style="font-size:0.8rem; color:var(--text-muted);">${dateStr}</div>
+                    </div>
+                    <div class="star-rating" style="display:inline-flex; gap:2px; color:#f59e0b; margin-top:2px;">
+                      ${renderStarsHtml(rating, 14)}
+                    </div>
+                  </div>
+                </div>
+                <p class="review-text" style="font-size:0.875rem; color:var(--text-secondary); line-height:1.6; margin:0;">${commentText || '<em style="color:var(--text-muted);">No comment provided.</em>'}</p>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // Render Dashboard Preview (if on dashboard.html)
+      if (dashboardPreview) {
+        if (totalReviews === 0) {
+          dashboardPreview.innerHTML = `
+            <div class="empty-state" style="text-align:center; padding: 32px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+              <i data-lucide="message-square" style="width: 32px; height: 32px; color: var(--text-muted); margin: 0 auto 8px; display:block; opacity:0.5;"></i>
+              <h4 style="margin-bottom: 4px; font-size: 0.95rem;">No reviews yet.</h4>
+              <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Reviews from customers will appear here after job completion.</p>
+            </div>
+          `;
+        } else {
+          const previewReviews = reviews.slice(0, 3);
+          dashboardPreview.innerHTML = previewReviews.map(r => {
+            const cName = escapeHtml(r.customer_name || 'Verified Customer');
+            const cInitials = escapeHtml((r.customer_name || 'C').substring(0, 2).toUpperCase());
+            const dateStr = r.created_at
+              ? new Date(r.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+              : 'Recent';
+            const rating = Math.min(5, Math.max(1, parseInt(r.rating || 5, 10)));
+            const commentText = escapeHtml(r.comment || '');
+
+            return `
+              <div class="review-card" style="padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 12px;">
+                <div class="review-header" style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                  <div class="review-avatar" style="width:34px; height:34px; border-radius:50%; background:var(--bg-alt); color:var(--text-primary); font-weight:700; display:flex; align-items:center; justify-content:center; font-size:0.8rem; border:1px solid var(--border-light);">${cInitials}</div>
+                  <div style="flex:1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <div class="review-name" style="font-weight:600; font-size:0.9rem;">${cName}</div>
+                      <div class="review-date" style="font-size:0.75rem; color:var(--text-muted);">${dateStr}</div>
+                    </div>
+                    <div class="star-rating" style="display:inline-flex; gap:2px; color:#f59e0b; margin-top:2px;">
+                      ${renderStarsHtml(rating, 13)}
+                    </div>
+                  </div>
+                </div>
+                <p class="review-text" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5; margin:0;">${commentText || '<em style="color:var(--text-muted);">No comment provided.</em>'}</p>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } else {
+      if (reviewsContainer) {
+        reviewsContainer.innerHTML = '<div class="empty-state" style="text-align:center; padding:36px 16px;"><p style="color:var(--error); margin:0;">Unable to load reviews right now.</p></div>';
+      }
+    }
   } catch (err) {
-    console.warn('Worker dashboard profile completion failed:', err);
+    console.warn('initWorkerReviews failed:', err);
+    if (reviewsContainer) {
+      reviewsContainer.innerHTML = '<div class="empty-state" style="text-align:center; padding:36px 16px;"><p style="color:var(--error); margin:0;">Error loading reviews.</p></div>';
+    }
   }
 }

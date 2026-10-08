@@ -26,7 +26,7 @@ class UserRepository {
     }
 
     public function findById(int $id): ?array {
-        $stmt = $this->db->prepare("SELECT id, full_name, username, email, role, phone, address, notification_prefs, status, created_at FROM users WHERE id = :id LIMIT 1");
+        $stmt = $this->db->prepare("SELECT id, full_name, username, email, role, phone, address, profile_picture, notification_prefs, status, created_at FROM users WHERE id = :id LIMIT 1");
         $stmt->execute([':id' => $id]);
         return $stmt->fetch() ?: null;
     }
@@ -54,7 +54,7 @@ class UserRepository {
     }
 
     public function getAllUsers(): array {
-        $stmt = $this->db->query("SELECT id, full_name, username, email, role, phone, status, created_at FROM users ORDER BY created_at DESC");
+        $stmt = $this->db->query("SELECT id, full_name, username, email, role, phone, address, profile_picture, status, created_at FROM users ORDER BY created_at DESC");
         return $stmt->fetchAll();
     }
 
@@ -83,6 +83,10 @@ class UserRepository {
             $fields[] = "notification_prefs = :notification_prefs";
             $params[':notification_prefs'] = is_array($data['notification_prefs']) ? json_encode($data['notification_prefs']) : (string)$data['notification_prefs'];
         }
+        if (isset($data['profile_picture'])) {
+            $fields[] = "profile_picture = :profile_picture";
+            $params[':profile_picture'] = $data['profile_picture'];
+        }
 
         if (empty($fields)) return true;
 
@@ -101,5 +105,10 @@ class UserRepository {
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
         return $row ? (string)$row['password_hash'] : null;
+    }
+
+    public function updateProfilePicture(int $id, string $filePath): bool {
+        $stmt = $this->db->prepare("UPDATE users SET profile_picture = :photo WHERE id = :id");
+        return $stmt->execute([':photo' => $filePath, ':id' => $id]);
     }
 }

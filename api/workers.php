@@ -28,6 +28,11 @@ switch ($action) {
     case 'delete-service':
         $controller->deleteService();
         break;
+    case 'upload-photo':
+    case 'upload-profile-picture':
+        require_once __DIR__ . '/../controllers/AuthController.php';
+        (new AuthController())->uploadProfilePhoto();
+        break;
     default:
         sendJsonResponse(400, ['status' => 'error', 'message' => "Unknown worker action: $action"]);
 }

@@ -50,15 +50,12 @@ class WorkerRepository {
 
     public function createProfile(int $userId, array $data): int {
         $stmt = $this->db->prepare("
-            INSERT INTO worker_profiles (user_id, bio, service_radius_km, latitude, longitude, address, working_hours, verify_status)
-            VALUES (:user_id, :bio, :service_radius_km, :latitude, :longitude, :address, :working_hours, 'unverified')
+            INSERT INTO worker_profiles (user_id, bio, address, working_hours, verify_status)
+            VALUES (:user_id, :bio, :address, :working_hours, 'unverified')
         ");
         $stmt->execute([
             ':user_id'           => $userId,
             ':bio'               => $data['bio'] ?? '',
-            ':service_radius_km' => $data['service_radius_km'] ?? 15,
-            ':latitude'          => $data['latitude'] ?? 6.9271,
-            ':longitude'         => $data['longitude'] ?? 79.8612,
             ':address'           => $data['address'] ?? 'Colombo',
             ':working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
         ]);
@@ -68,15 +65,11 @@ class WorkerRepository {
     public function updateProfile(int $workerId, array $data): bool {
         $stmt = $this->db->prepare("
             UPDATE worker_profiles 
-            SET bio = :bio, service_radius_km = :service_radius_km,
-                latitude = :latitude, longitude = :longitude, address = :address, working_hours = :working_hours
+            SET bio = :bio, address = :address, working_hours = :working_hours
             WHERE id = :id
         ");
         $res = $stmt->execute([
             ':bio'               => $data['bio'] ?? '',
-            ':service_radius_km' => $data['service_radius_km'] ?? 15,
-            ':latitude'          => $data['latitude'] ?? 6.9271,
-            ':longitude'         => $data['longitude'] ?? 79.8612,
             ':address'           => $data['address'] ?? 'Colombo',
             ':working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM',
             ':id'                => $workerId
@@ -155,7 +148,9 @@ class WorkerRepository {
     }
 
     /**
-     * Search verified workers with optional trade category and location calculation (Haversine Formula).
+     * Search verified workers with optional trade category.
+     * Coordinates/distance calculations are ignored.
+     * Ordered by rating_avg DESC, is_verified DESC only.
      *
      * @param float|null $lat
      * @param float|null $lng
@@ -164,20 +159,9 @@ class WorkerRepository {
      */
     public function searchWorkers(?float $lat = null, ?float $lng = null, ?int $categoryId = null): array {
         $params = [];
-        $distanceSelect = "0 AS distance_km";
-
-        if ($lat !== null && $lng !== null) {
-            // Earth radius ~6371 km
-            $distanceSelect = "(6371 * acos(
-                cos(radians(:lat)) * cos(radians(wp.latitude)) * cos(radians(wp.longitude) - radians(:lng)) +
-                sin(radians(:lat)) * sin(radians(wp.latitude))
-            )) AS distance_km";
-            $params[':lat'] = $lat;
-            $params[':lng'] = $lng;
-        }
 
         $sql = "
-            SELECT wp.*, u.full_name, u.email, u.phone, u.username, $distanceSelect
+            SELECT wp.*, u.full_name, u.email, u.phone, u.username
             FROM worker_profiles wp
             JOIN users u ON wp.user_id = u.id
             WHERE u.status = 'active'
@@ -188,11 +172,7 @@ class WorkerRepository {
             $params[':cat_id'] = $categoryId;
         }
 
-        if ($lat !== null && $lng !== null) {
-            $sql .= " ORDER BY distance_km ASC";
-        } else {
-            $sql .= " ORDER BY wp.rating_avg DESC, wp.is_verified DESC";
-        }
+        $sql .= " ORDER BY wp.rating_avg DESC, wp.is_verified DESC";
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -200,7 +180,6 @@ class WorkerRepository {
 
         foreach ($workers as &$worker) {
             $worker['categories'] = $this->getWorkerCategories($worker['id']);
-            $worker['distance_km'] = isset($worker['distance_km']) ? round((float)$worker['distance_km'], 1) : null;
         }
 
         return $workers;

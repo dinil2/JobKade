@@ -22,6 +22,7 @@ function initSharedApp() {
 
   updateGlobalNavbarAuth();
   initMobileBottomNav();
+  syncCurrentUserProfile();
 
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
@@ -61,6 +62,17 @@ function getPageRole() {
   return 'customer';
 }
 
+function resolveAvatarUrl(url, rootPath = '') {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  const clean = trimmed.replace(/^(\.\.\/|\.\/|\/)+/, '');
+  return rootPath + clean;
+}
+
 function getRoleUserInfo(role) {
   const user = getLoggedInUser();
   const defaultNames = {
@@ -91,7 +103,9 @@ function getRoleUserInfo(role) {
   }
 
   const roleTitle = defaultRoles[role] || 'Member';
-  return { name, initials, roleTitle };
+  const workerAvatar = localStorage.getItem('jobkade_worker_avatar');
+  const photo = workerAvatar || user?.profile_picture || user?.avatar || null;
+  return { name, initials, roleTitle, photo };
 }
 
 function isItemActive(item, currentPath, currentFile, role) {
@@ -103,6 +117,7 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Customer Jobs') return currentFile === 'jobs.html' && currentPath.includes('/worker/');
     if (item.label === 'Wallet and Earnings') return currentFile === 'wallet.html';
     if (item.label === 'Subscriptions') return currentFile === 'subscription.html';
+    if (item.label === 'My Reviews') return currentFile === 'reviews.html';
     if (item.label === 'Messages') return currentFile === 'messages.html';
   } else if (role === 'customer') {
     if (item.label === 'Dashboard') return currentFile === 'dashboard.html' && currentPath.includes('/customer/');
@@ -155,6 +170,9 @@ function renderSharedComponents(roleOverride) {
 
   const userInfo = getRoleUserInfo(role);
   const avatarColor = role === 'admin' ? 'avatar-purple' : (role === 'worker' ? 'avatar-green' : 'avatar-blue');
+  const avatarInnerHtml = userInfo.photo
+    ? `<img src="${escapeHtml(resolveAvatarUrl(userInfo.photo, rootPath))}" alt="${escapeHtml(userInfo.name)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" onerror="this.onerror=null;this.parentElement.textContent='${escapeHtml(userInfo.initials)}';">`
+    : escapeHtml(userInfo.initials);
 
   // 1. Render Unified Top Navbar
   if (navbarContainer) {
@@ -194,7 +212,7 @@ function renderSharedComponents(roleOverride) {
               </div>
             </div>
             <a href="${profileHref}" style="text-decoration:none;" title="My Profile" id="navbarProfileLink">
-              <div class="avatar avatar-nav ${avatarColor}" id="${role === 'admin' ? 'adminNavAvatar' : 'navAvatar'}">${escapeHtml(userInfo.initials)}</div>
+              <div class="avatar avatar-nav ${avatarColor}" id="${role === 'admin' ? 'adminNavAvatar' : 'navAvatar'}">${avatarInnerHtml}</div>
             </a>
             <a href="${rootPath}auth/login.html" class="nav-logout-btn" id="navLogoutBtn" title="Logout from JobKade">
               <i data-lucide="log-out" width="18" height="18"></i>
@@ -220,6 +238,7 @@ function renderSharedComponents(roleOverride) {
         { label: 'Customer Jobs', icon: 'file-text', href: `${rootPath}worker/jobs.html` },
         { label: 'Wallet and Earnings', icon: 'wallet', href: `${rootPath}worker/wallet.html` },
         { label: 'Subscriptions', icon: 'credit-card', href: `${rootPath}worker/subscription.html` },
+        { label: 'My Reviews', icon: 'star', href: `${rootPath}worker/reviews.html` },
         { label: 'Messages', icon: 'message-square', href: `${rootPath}messages.html` }
       ],
       customer: [
@@ -253,7 +272,7 @@ function renderSharedComponents(roleOverride) {
       <aside class="sidebar ${role}">
         <div class="sidebar-header">
           <div class="sidebar-user">
-            <div class="avatar avatar-md ${avatarColor}" id="sidebarAvatar">${escapeHtml(userInfo.initials)}</div>
+            <div class="avatar avatar-md ${avatarColor}" id="sidebarAvatar">${avatarInnerHtml}</div>
             <div>
               <div class="sidebar-user-name" id="${role === 'admin' ? 'adminUserName' : 'sidebarUserName'}">${escapeHtml(userInfo.name)}</div>
               <div class="sidebar-user-role" id="sidebarUserRole">${escapeHtml(userInfo.roleTitle)}</div>
@@ -280,6 +299,36 @@ function renderSharedComponents(roleOverride) {
   if (role === 'admin') {
     updateAdminBadge();
   }
+
+  // After the shared sidebar and navbar are rendered, check localStorage for jobkade_worker_avatar (fall back to the logged-in user's avatar field)
+  updateSharedAvatars(rootPath, userInfo);
+}
+
+function updateSharedAvatars(rootPathOverride, userInfoOverride) {
+  const currentPath = window.location.pathname.toLowerCase();
+  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => currentPath.includes(s));
+  const rootPath = (rootPathOverride !== undefined) ? rootPathOverride : (isSubfolder ? '../' : '');
+
+  const user = getLoggedInUser();
+  const role = (user && user.role) ? String(user.role).toLowerCase() : getPageRole();
+  const info = userInfoOverride || getRoleUserInfo(role);
+
+  // Check localStorage for jobkade_worker_avatar (fall back to the logged-in user's avatar field)
+  const workerAvatar = localStorage.getItem('jobkade_worker_avatar');
+  const photo = workerAvatar || (user ? (user.avatar || user.profile_picture) : null) || info.photo || null;
+
+  const avatarTargets = document.querySelectorAll(
+    '#sidebarAvatar, #navAvatar, #adminNavAvatar, #navbar-user-avatar, .avatar-nav, .sidebar.worker .avatar, .sidebar .avatar, .sidebar-user .avatar, .dashboard-nav-right .avatar'
+  );
+
+  avatarTargets.forEach(el => {
+    if (photo) {
+      const resolved = resolveAvatarUrl(photo, rootPath);
+      el.innerHTML = `<img src="${escapeHtml(resolved)}" alt="${escapeHtml(info.name || 'User')}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" onerror="this.onerror=null;this.parentElement.textContent='${escapeHtml(info.initials)}';">`;
+    } else {
+      el.textContent = info.initials;
+    }
+  });
 }
 
 function updateSharedUserUI(user) {
@@ -301,13 +350,16 @@ function updateSharedUserUI(user) {
   document.querySelectorAll('#sidebarUserRole, .sidebar-user-role').forEach(el => {
     el.textContent = info.roleTitle;
   });
-  document.querySelectorAll('#sidebarAvatar, #navAvatar, #adminNavAvatar, #navbar-user-avatar, .sidebar-user .avatar, .dashboard-nav-right .avatar').forEach(el => {
-    el.textContent = info.initials;
-  });
+
+  const currentPath = window.location.pathname.toLowerCase();
+  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => currentPath.includes(s));
+  const rootPath = isSubfolder ? '../' : '';
+  updateSharedAvatars(rootPath, info);
 }
 
 window.renderSharedComponents = renderSharedComponents;
 window.updateSharedUserUI = updateSharedUserUI;
+window.updateSharedAvatars = updateSharedAvatars;
 
 // ==========================================
 // UI Component Initializers
@@ -666,7 +718,7 @@ function getAuthToken() {
 
 function getLoggedInUser() {
   try {
-    const userJson = localStorage.getItem('jodkade_logged_user');
+    const userJson = localStorage.getItem('jobkade_user') || localStorage.getItem('jodkade_logged_user');
     return userJson ? JSON.parse(userJson) : null;
   } catch (e) {
     return null;
@@ -687,6 +739,7 @@ function requireAuth(role) {
 function setLoggedInSession(token, user) {
   if (token) localStorage.setItem('jobkade_token', token);
   if (user) {
+    const photo = user.profile_picture || user.avatar || (user.role === 'worker' ? localStorage.getItem('jobkade_worker_avatar') : null) || null;
     const normalized = {
       id: user.id || user.user_id,
       name: user.name || user.full_name || 'User',
@@ -694,11 +747,16 @@ function setLoggedInSession(token, user) {
       email: user.email || '',
       role: (user.role || 'customer').toLowerCase(),
       phone: user.phone || '',
-      worker_id: user.worker_id || null,
+      worker_id: user.worker_id || (user.worker ? user.worker.id : null) || (user.worker_profile ? user.worker_profile.id : null) || null,
+      profile_picture: photo,
+      avatar: photo,
       loginTime: Date.now()
     };
     localStorage.setItem('jodkade_logged_user', JSON.stringify(normalized));
     localStorage.setItem('jobkade_user', JSON.stringify(normalized));
+    if (photo && normalized.role === 'worker') {
+      localStorage.setItem('jobkade_worker_avatar', photo);
+    }
     return normalized;
   }
   return null;
@@ -716,7 +774,7 @@ let isLoggingOut = false;
 function logoutUser() {
   if (isLoggingOut) return;
   isLoggingOut = true;
-  ['jobkade_token', 'jodkade_logged_user', 'jobkade_user'].forEach(k => localStorage.removeItem(k));
+  ['jobkade_token', 'jodkade_logged_user', 'jobkade_user', 'jobkade_worker_avatar'].forEach(k => localStorage.removeItem(k));
   showToast('Logged out successfully.', 'info');
   const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.toLowerCase().includes(s));
   setTimeout(() => {
@@ -746,6 +804,10 @@ function updateGlobalNavbarAuth() {
   const cfg = roleConfigs[user.role] || roleConfigs.customer;
   const dashboardPage = rel + cfg.page;
   const firstName = (user.name || 'User').split(' ')[0];
+  const userPhoto = user?.profile_picture || user?.avatar || (user.role === 'worker' ? localStorage.getItem('jobkade_worker_avatar') : null) || null;
+  const navAvatarInner = userPhoto
+    ? `<img src="${escapeHtml(resolveAvatarUrl(userPhoto, rel))}" alt="${escapeHtml(firstName)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" onerror="this.onerror=null;this.parentElement.textContent='${cfg.initials}';">`
+    : cfg.initials;
 
   if (navAuth) {
     navAuth.innerHTML = `
@@ -754,7 +816,7 @@ function updateGlobalNavbarAuth() {
           <i data-lucide="layout-dashboard" width="16" height="16"></i> Dashboard
         </a>
         <div class="user-nav-trigger" id="user-nav-trigger" style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-light);border:1px solid var(--border);border-radius:30px;cursor:pointer;">
-          <div class="avatar avatar-sm ${cfg.badge}" style="width:28px;height:28px;font-size:0.75rem;">${cfg.initials}</div>
+          <div class="avatar avatar-sm ${cfg.badge}" style="width:28px;height:28px;font-size:0.75rem;">${navAvatarInner}</div>
           <span style="font-weight:600;font-size:0.875rem;color:var(--text-primary);">${firstName}</span>
           <i data-lucide="chevron-down" width="14" height="14" style="color:var(--text-secondary);"></i>
         </div>
@@ -958,3 +1020,41 @@ function simulateLoading(element, duration = 1500) {
   element.classList.add('loading');
   setTimeout(() => element.classList.remove('loading'), duration);
 }
+
+async function syncCurrentUserProfile() {
+  const token = (typeof getAuthToken === 'function') ? getAuthToken() : (localStorage.getItem('jobkade_token') || '');
+  if (!token) return;
+
+  try {
+    const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.toLowerCase().includes(s));
+    const rootPath = isSubfolder ? '../' : '';
+    const res = await apiFetch('auth.php?action=me');
+    if (res.ok && res.data?.user) {
+      const u = res.data.user;
+      const cached = (typeof getLoggedInUser === 'function') ? (getLoggedInUser() || {}) : {};
+      const newPhoto = u.profile_picture || u.avatar || null;
+      let changed = false;
+
+      if (newPhoto && cached.profile_picture !== newPhoto) {
+        cached.profile_picture = newPhoto;
+        cached.avatar = newPhoto;
+        changed = true;
+      }
+      if (u.full_name && cached.name !== u.full_name) {
+        cached.name = u.full_name;
+        changed = true;
+      }
+      if (changed) {
+        localStorage.setItem('jodkade_logged_user', JSON.stringify(cached));
+        localStorage.setItem('jobkade_user', JSON.stringify(cached));
+        if (newPhoto && (cached.role || '').toLowerCase() === 'worker') {
+          localStorage.setItem('jobkade_worker_avatar', newPhoto);
+        }
+        updateSharedAvatars(rootPath, cached);
+      }
+    }
+  } catch (e) {
+    // Non-blocking sync
+  }
+}
+

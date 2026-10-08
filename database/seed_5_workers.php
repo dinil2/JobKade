@@ -256,8 +256,8 @@ try {
     ");
 
     $stmtProfile = $db->prepare("
-        INSERT INTO worker_profiles (id, user_id, bio, service_radius_km, latitude, longitude, address, is_verified, verify_status, has_job_access, wallet_balance, total_earnings, total_commission_paid, rating_avg, reviews_count, working_hours)
-        VALUES (:id, :user_id, :bio, :service_radius, :lat, :lng, :address, :is_verified, :verify_status, :has_job_access, :wallet_balance, :total_earnings, :total_comm, :rating, :reviews, :hours)
+        INSERT INTO worker_profiles (id, user_id, bio, address, is_verified, verify_status, has_job_access, wallet_balance, total_earnings, total_commission_paid, rating_avg, reviews_count, working_hours)
+        VALUES (:id, :user_id, :bio, :address, :is_verified, :verify_status, :has_job_access, :wallet_balance, :total_earnings, :total_comm, :rating, :reviews, :hours)
     ");
 
     $stmtCat = $db->prepare("
@@ -365,9 +365,6 @@ try {
             ':id'             => $w['worker_id'],
             ':user_id'        => $w['user_id'],
             ':bio'            => $w['bio'],
-            ':service_radius' => $w['service_radius_km'],
-            ':lat'            => $w['latitude'],
-            ':lng'            => $w['longitude'],
             ':address'        => $w['address'],
             ':is_verified'    => $w['is_verified'],
             ':verify_status'  => $w['verify_status'],

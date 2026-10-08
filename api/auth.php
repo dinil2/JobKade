@@ -24,6 +24,11 @@ switch ($action) {
     case 'password':
         $controller->changePassword();
         break;
+    case 'upload-photo':
+    case 'upload-profile-picture':
+    case 'profile-picture':
+        $controller->uploadProfilePhoto();
+        break;
     default:
         sendJsonResponse(400, ['status' => 'error', 'message' => "Unknown auth action: $action"]);
 }

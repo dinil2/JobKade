@@ -1,0 +1,3061 @@
+openapi: 3.0.3
+info:
+  title: JobKade REST API Specification
+  description: |
+    # JobKade On-Demand Household Services & Maintenance Marketplace
+    
+    Cardiff Metropolitan University / ICBT Computing Project CSE5015.
+    
+    This specification documents every endpoint across the 12 core API controllers in `api/`:
+    - **Auth**: User authentication, registration, session profile, and password updates.
+    - **Admin**: Administrative metrics, analytics, user lifecycle, KYC verification, and promotions.
+    - **Categories**: Household service categories and trades.
+    - **Jobs**: Open service marketplace jobs, worker proposals, invoicing, and invoice settlements.
+    - **KYC**: Worker verification document submissions and status badges.
+    - **Messages**: Direct real-time messaging between customers and workers.
+    - **Notifications**: Automated system and transaction alerts.
+    - **Promotions**: Worker service deals and discount offerings.
+    - **Reviews**: Customer ratings, reviews, and worker satisfaction scores.
+    - **Subscriptions**: Worker monthly/annual membership plans and digital payment receipts.
+    - **Wallet**: Commission tracking, balance top-ups, access pass activation, and bank payouts.
+    - **Workers**: Directory search by geo-coordinates, trade categories, profiles, and custom service packages.
+    
+    ---
+    ### Role Access Model:
+    - **Public**: Accessible without credentials.
+    - **Customer**: Requires valid JWT token for a customer account.
+    - **Worker**: Requires valid JWT token for a worker account.
+    - **Admin**: Requires valid JWT token for an administrator account.
+    
+    ### JWT Bearer Authentication:
+    To test authenticated endpoints:
+    1. Send a request to `POST /auth.php?action=login` (e.g. with `admin@jobkade.lk` / `admin@123` or your customer/worker credentials).
+    2. Copy the `token` string from the JSON response.
+    3. Click the green **Authorize** button at the top right of this Swagger UI page.
+    4. Paste the token into the `bearerAuth` dialog and click **Authorize**.
+  version: 1.0.0
+servers:
+  - url: http://localhost/JobKade/api
+    description: Local WAMP Server (Default)
+  - url: http://localhost:8000/api
+    description: Local PHP Development Server (Port 8000)
+  - url: ./api
+    description: Relative API Path
+tags:
+  - name: Auth
+    description: Authentication, Registration, and User Profile Management
+  - name: Admin
+    description: System Administration, Analytics, User Management & KYC Moderation
+  - name: Categories
+    description: Service Category Catalog
+  - name: Jobs
+    description: Job Requests, Bidding Proposals, Invoicing & Settlement
+  - name: KYC
+    description: Worker Identity Verification Documents & Status
+  - name: Messages
+    description: In-App Messaging & Conversation History
+  - name: Notifications
+    description: User Notifications & Alerts
+  - name: Promotions
+    description: Worker Deals & Promotional Discounts
+  - name: Reviews
+    description: Customer Reviews & Ratings
+  - name: Subscriptions
+    description: Worker Membership Subscriptions & Payment Receipts
+  - name: Wallet
+    description: Worker Financial Wallet, Commission Deductions & Payouts
+  - name: Workers
+    description: Worker Directory, Geolocation Search, Profiles & Custom Services
+
+paths:
+  # ==========================================
+  # AUTH
+  # ==========================================
+  /auth.php?action=register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user (Customer or Worker)
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Registers a customer or worker account. If registering as a worker, `nic` is mandatory, and verification documents (`nic_document`, `police_report`, `qualification_document`) may be provided as file uploads or pre-uploaded paths.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - full_name
+                - email
+                - password
+                - phone
+              properties:
+                full_name:
+                  type: string
+                  example: Sunil Perera
+                email:
+                  type: string
+                  format: email
+                  example: sunil.electric@gmail.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: worker@123
+                phone:
+                  type: string
+                  example: "+94771234567"
+                username:
+                  type: string
+                  example: sunilp
+                role:
+                  type: string
+                  enum: [customer, worker]
+                  default: customer
+                  example: worker
+                nic:
+                  type: string
+                  description: Mandatory if role is worker
+                  example: 198512345678
+                bio:
+                  type: string
+                  example: Licensed electrician with over 10 years of domestic & commercial wiring experience.
+                address:
+                  type: string
+                  example: 124 Galle Road, Colombo 03
+                working_hours:
+                  type: string
+                  example: 8:00 AM - 6:00 PM
+                category_id:
+                  type: integer
+                  example: 1
+                service:
+                  type: string
+                  example: electrical
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - full_name
+                - email
+                - password
+                - phone
+              properties:
+                full_name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                phone:
+                  type: string
+                username:
+                  type: string
+                role:
+                  type: string
+                  enum: [customer, worker]
+                nic:
+                  type: string
+                bio:
+                  type: string
+                address:
+                  type: string
+                category_id:
+                  type: integer
+                nic_document:
+                  type: string
+                  format: binary
+                  description: Scanned NIC or Driver's license document (PDF/PNG/JPG, max 5MB)
+                police_report:
+                  type: string
+                  format: binary
+                  description: Optional Police clearance report (PDF/PNG/JPG, max 5MB)
+                qualification_document:
+                  type: string
+                  format: binary
+                  description: Optional trade qualification certificate (PDF/PNG/JPG, max 5MB)
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /register.php:
+    post:
+      tags:
+        - Auth
+      summary: Direct endpoint for user registration
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Direct alias routing directly to `AuthController::register()`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - full_name
+                - email
+                - password
+                - phone
+              properties:
+                full_name:
+                  type: string
+                  example: Jane Doe
+                email:
+                  type: string
+                  example: jane@gmail.com
+                password:
+                  type: string
+                  example: secret123
+                phone:
+                  type: string
+                  example: "+94711122334"
+                role:
+                  type: string
+                  enum: [customer, worker]
+                  default: customer
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+
+  /auth.php?action=login:
+    post:
+      tags:
+        - Auth
+      summary: Authenticate user & issue JWT token
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Logs in a registered user and returns an authentication payload containing a signed JWT token valid for subsequent authorized requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@jobkade.lk
+                password:
+                  type: string
+                  format: password
+                  example: admin@123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /login.php:
+    post:
+      tags:
+        - Auth
+      summary: Direct endpoint for user login
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Direct alias routing directly to `AuthController::login()`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  example: customer@gmail.com
+                password:
+                  type: string
+                  example: customer@123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+
+  /auth.php?action=me:
+    get:
+      tags:
+        - Auth
+      summary: Get currently authenticated user details
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Bearer token required)
+        
+        Returns the full profile and settings for the token holder. Includes `worker_profile` data when the caller is a registered worker.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  user:
+                    $ref: '#/components/schemas/UserDetail'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /auth.php?action=update-profile:
+    post:
+      tags:
+        - Auth
+      summary: Update profile information
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Bearer token required)
+        
+        Updates personal profile fields for the authenticated user account.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  example: Sunil R. Perera
+                phone:
+                  type: string
+                  example: "+94779876543"
+                address:
+                  type: string
+                  example: 54 Temple Road, Colombo 10
+                notification_prefs:
+                  type: object
+                  example:
+                    email_alerts: true
+                    sms_alerts: false
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profile updated successfully!
+                  user:
+                    $ref: '#/components/schemas/UserDetail'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /auth.php?action=change-password:
+    post:
+      tags:
+        - Auth
+      summary: Change account password
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Bearer token required)
+        
+        Validates the existing password and replaces it with a new hashed password.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - old_password
+                - new_password
+              properties:
+                old_password:
+                  type: string
+                  format: password
+                  example: worker@123
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: workerNewPass#2026
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /auth.php?action=upload-photo:
+    post:
+      tags:
+        - Auth
+      summary: Upload user profile picture
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Bearer token required)
+        
+        Uploads an avatar picture via `multipart/form-data` or base64 JSON payload. Max file size: 2MB.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  format: binary
+                  description: Profile image file (JPG/JPEG/PNG, max 2MB)
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  description: Base64 data URL encoded image string
+                  example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+      responses:
+        '200':
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profile picture updated successfully!
+                  photo_url:
+                    type: string
+                    example: uploads/profiles/profile_3_abc123.jpg
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  # ==========================================
+  # ADMIN
+  # ==========================================
+  /admin.php?action=stats:
+    get:
+      tags:
+        - Admin
+      summary: Administrative system activity statistics
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns real-time dashboard KPIs including user counts, worker verification statuses, job metrics, KYC queue sizes, and total platform revenue.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Platform statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  stats:
+                    type: object
+                    properties:
+                      total_users:
+                        type: integer
+                        example: 24
+                      total_workers:
+                        type: integer
+                        example: 10
+                      verified_workers:
+                        type: integer
+                        example: 6
+                      total_jobs:
+                        type: integer
+                        example: 15
+                      pending_kyc:
+                        type: integer
+                        example: 3
+                      approved_kyc:
+                        type: integer
+                        example: 5
+                      rejected_kyc:
+                        type: integer
+                        example: 1
+                      total_revenue_lkr:
+                        type: number
+                        example: 32500.00
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=analytics:
+    get:
+      tags:
+        - Admin
+      summary: Comprehensive marketplace analytics
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns aggregated analytical metrics, category distribution percentages, user growth curves, and revenue breakdowns.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Analytics data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  analytics:
+                    type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=kyc-pending:
+    get:
+      tags:
+        - Admin
+      summary: Get all pending worker KYC verification requests
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Retrieves workers with unapproved document packets awaiting administrative compliance verification.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending KYC queue retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pending_kyc:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KycDocumentItem'
+                  count:
+                    type: integer
+                    example: 3
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=kyc-counts:
+    get:
+      tags:
+        - Admin
+      summary: Get counts of KYC documents by verification status
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns total document counts grouped by status (`pending`, `approved`, `rejected`).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: KYC document counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  counts:
+                    type: object
+                    properties:
+                      pending:
+                        type: integer
+                        example: 3
+                      approved:
+                        type: integer
+                        example: 8
+                      rejected:
+                        type: integer
+                        example: 1
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=kyc-list:
+    get:
+      tags:
+        - Admin
+      summary: List KYC documents filtered by status
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Retrieves all worker KYC documents filtered by verification status (`pending`, `approved`, or `rejected`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+            default: pending
+          description: Filter verification status
+      responses:
+        '200':
+          description: Filtered KYC document list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KycDocumentItem'
+                  count:
+                    type: integer
+                    example: 5
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=kyc-packet:
+    get:
+      tags:
+        - Admin
+      summary: Inspect full verification dossier for a worker
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Loads all submitted identification files, trade certificates, and worker bio for comprehensive compliance review.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: worker_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Target worker profile ID
+          example: 1
+      responses:
+        '200':
+          description: Worker KYC packet loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  worker_id:
+                    type: integer
+                    example: 1
+                  profile:
+                    type: object
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KycDocumentItem'
+                  count:
+                    type: integer
+                    example: 2
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=kyc-verify:
+    post:
+      tags:
+        - Admin
+      summary: Approve or reject worker KYC verification
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Approves or rejects an individual KYC document or an entire worker dossier. Approving assigns the verified worker badge and unlocks job applications.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                kyc_id:
+                  type: integer
+                  description: KYC document record ID
+                  example: 1
+                worker_id:
+                  type: integer
+                  description: Required when verifying packet
+                  example: 1
+                verify_packet:
+                  type: boolean
+                  description: Set true to approve/reject all documents for the worker
+                  example: true
+                status:
+                  type: string
+                  enum: [approved, rejected]
+                  example: approved
+                notes:
+                  type: string
+                  description: Administrative feedback or reason for rejection
+                  example: Valid NIC document and verified criminal history clearance.
+      responses:
+        '200':
+          description: KYC review recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=users:
+    get:
+      tags:
+        - Admin
+      summary: List all registered platform users
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns all customers, workers, and administrators with account status flags.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User directory retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserDetail'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=toggle-user:
+    post:
+      tags:
+        - Admin
+      summary: Suspend or activate a user account
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Toggles user status between `active` and `suspended`. Suspended users are immediately denied login.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - status
+              properties:
+                user_id:
+                  type: integer
+                  example: 5
+                status:
+                  type: string
+                  enum: [active, suspended]
+                  example: suspended
+      responses:
+        '200':
+          description: User status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=payments:
+    get:
+      tags:
+        - Admin
+      summary: View platform subscription payment ledger
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Lists all worker subscription payments and financial transactions.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment transactions retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payments:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=promos:
+    get:
+      tags:
+        - Admin
+      summary: Get pending promotional discounts for approval
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Lists worker promotional submissions awaiting review.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending promotions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  pending_promotions:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=review-promo:
+    post:
+      tags:
+        - Admin
+      summary: Moderate worker promotional campaign
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Approves or rejects a submitted worker promotional discount.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - promotion_id
+                - status
+              properties:
+                promotion_id:
+                  type: integer
+                  example: 1
+                status:
+                  type: string
+                  enum: [approved, rejected]
+                  example: approved
+      responses:
+        '200':
+          description: Promotion moderation outcome recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  # ==========================================
+  # CATEGORIES
+  # ==========================================
+  /categories.php:
+    get:
+      tags:
+        - Categories
+      summary: Retrieve all household service categories
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Returns the platform trade categories (Electrical, Plumbing, AC Repair, Painting, Carpentry, Masonry, Cleaning, Appliance Repair, etc.).
+      responses:
+        '200':
+          description: Category catalog retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: Electrical & Wiring
+                        icon:
+                          type: string
+                          example: zap
+                        description:
+                          type: string
+                          example: Certified residential wiring, socket fixing, and switchboard repairs.
+
+  # ==========================================
+  # JOBS
+  # ==========================================
+  /jobs.php?action=list:
+    get:
+      tags:
+        - Jobs
+      summary: Browse open maintenance jobs
+      description: |
+        **Allowed Role**: Public or Worker (Optional Bearer token)
+        
+        Lists open customer maintenance jobs. If called by a verified worker with active job access pass or active subscription, unmasked customer contact numbers are provided.
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter jobs by category ID
+          example: 1
+      responses:
+        '200':
+          description: Open jobs list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  has_job_access:
+                    type: boolean
+                    example: true
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobItem'
+
+  /jobs.php?action=create:
+    post:
+      tags:
+        - Jobs
+      summary: Post a new job request
+      description: |
+        **Allowed Role**: Customer (Bearer token required)
+        
+        Allows a customer to broadcast a household repair or maintenance request with geographic coordinates.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - category_id
+                - address
+              properties:
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 150
+                  example: Circuit breaker tripping in living room
+                description:
+                  type: string
+                  minLength: 10
+                  maxLength: 3000
+                  example: Main trip switch goes off whenever the air conditioner starts. Need a certified electrician to inspect the distribution board.
+                category_id:
+                  type: integer
+                  example: 1
+                address:
+                  type: string
+                  example: 78 Havelock Road, Colombo 05
+                latitude:
+                  type: number
+                  default: 6.9271
+                  example: 6.8912
+                longitude:
+                  type: number
+                  default: 79.8612
+                  example: 79.8634
+                photo_path:
+                  type: string
+                  nullable: true
+                  example: uploads/jobs/breaker_box.jpg
+      responses:
+        '201':
+          description: Job posted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Job request posted successfully!
+                  job_id:
+                    type: integer
+                    example: 12
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /jobs.php?action=customer:
+    get:
+      tags:
+        - Jobs
+      summary: Get current customer job postings
+      description: |
+        **Allowed Role**: Customer (Bearer token required)
+        
+        Returns all repair requests posted by the authenticated customer with application and invoice statuses.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customer jobs retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobItem'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /jobs.php?action=worker:
+    get:
+      tags:
+        - Jobs
+      summary: Get jobs applied or serviced by authenticated worker
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Lists jobs where the authenticated worker has submitted a quote, is actively servicing, or has issued invoices.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Worker jobs retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JobItem'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /jobs.php?action=details:
+    get:
+      tags:
+        - Jobs
+      summary: Get complete job details and active invoice
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Optional Bearer token; unverified workers are restricted)
+        
+        Returns single job metadata, bidding worker applications, and payment invoice details.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Job request ID
+          example: 1
+      responses:
+        '200':
+          description: Job details loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  job:
+                    $ref: '#/components/schemas/JobItem'
+                  invoice:
+                    type: object
+                    nullable: true
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /jobs.php?action=apply:
+    post:
+      tags:
+        - Jobs
+      summary: Apply / bid on a customer job request
+      description: |
+        **Allowed Role**: Worker (Must be KYC verified, Bearer token required)
+        
+        Submits a quotation proposal and optional note to the job poster.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - job_id
+                - quote_amount
+              properties:
+                job_id:
+                  type: integer
+                  example: 1
+                quote_amount:
+                  type: number
+                  example: 3500.00
+                proposal_note:
+                  type: string
+                  example: I can visit tomorrow morning at 9:30 AM with testing equipment.
+      responses:
+        '201':
+          description: Application submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Application submitted to customer!
+                  application_id:
+                    type: integer
+                    example: 4
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /jobs.php?action=create-invoice:
+    post:
+      tags:
+        - Jobs
+      summary: Worker generates a service invoice for a job
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Worker specifies final bill amount. System automatically computes the platform commission breakdown (5% if subscribed, 10% if standard).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - job_id
+                - amount
+              properties:
+                job_id:
+                  type: integer
+                  example: 1
+                amount:
+                  type: number
+                  description: Total billed service amount in LKR
+                  example: 4500.00
+                payment_method:
+                  type: string
+                  enum: [online, cash]
+                  default: online
+                  example: online
+                notes:
+                  type: string
+                  example: Replaced circuit breaker fuse and rewired switchboard line.
+      responses:
+        '201':
+          description: Invoice created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Job invoice created successfully for LKR 4,500.00
+                  invoice_id:
+                    type: integer
+                    example: 7
+                  invoice:
+                    type: object
+                  breakdown:
+                    type: object
+                    properties:
+                      job_amount:
+                        type: number
+                        example: 4500.00
+                      is_subscribed:
+                        type: boolean
+                        example: true
+                      commission_rate:
+                        type: number
+                        example: 0.05
+                      commission_pct:
+                        type: string
+                        example: "5%"
+                      commission_amount:
+                        type: number
+                        example: 225.00
+                      worker_net_amount:
+                        type: number
+                        example: 4275.00
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /jobs.php?action=pay-invoice:
+    post:
+      tags:
+        - Jobs
+      summary: Settle an invoice (Online IPG or Cash in hand)
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Settles a pending job invoice.
+        - **Online**: Platform retains commission, credits net amount to worker wallet balance.
+        - **Cash**: Customer pays worker directly in cash; platform debits commission fee from worker wallet.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - invoice_id
+              properties:
+                invoice_id:
+                  type: integer
+                  example: 7
+                payment_method:
+                  type: string
+                  enum: [online, cash]
+                  default: online
+                  example: online
+      responses:
+        '200':
+          description: Invoice settled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Invoice #7 successfully settled via ONLINE payment.
+                  invoice_id:
+                    type: integer
+                    example: 7
+                  payment_method:
+                    type: string
+                    example: online
+                  job_amount:
+                    type: number
+                    example: 4500.00
+                  commission_paid:
+                    type: number
+                    example: 225.00
+                  wallet_impact:
+                    type: number
+                    example: 4275.00
+                  wallet_balance:
+                    type: number
+                    example: 8550.00
+                  transaction_ref:
+                    type: string
+                    example: TXN-202610-8912
+        '400':
+          $ref: '#/components/responses/400Error'
+
+  /jobs.php?action=invoices:
+    get:
+      tags:
+        - Jobs
+      summary: List user invoices
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Returns all invoices related to the logged-in user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Invoices retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  invoices:
+                    type: array
+                    items:
+                      type: object
+
+  # ==========================================
+  # KYC
+  # ==========================================
+  /kyc.php?action=status:
+    get:
+      tags:
+        - KYC
+      summary: Get live verification badge and compliance status
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns verification badge state (`unverified`, `pending`, `verified`, `rejected`), approved/pending counts, and document requirements.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Verification status details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      worker_id:
+                        type: integer
+                        example: 3
+                      is_verified:
+                        type: boolean
+                        example: true
+                      verification_status:
+                        type: string
+                        example: verified
+                      total_documents:
+                        type: integer
+                        example: 2
+                      approved_documents:
+                        type: integer
+                        example: 2
+                      pending_documents:
+                        type: integer
+                        example: 0
+                      rejected_documents:
+                        type: integer
+                        example: 0
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /kyc.php?action=upload:
+    post:
+      tags:
+        - KYC
+      summary: Upload a verification document
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Uploads NIC, driver license, trade certificate, police clearance, or selfie verification photo. Automatically transitions worker verification state to `pending`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - document_type
+              properties:
+                document_type:
+                  type: string
+                  enum: [nic, driving_license, trade_certificate, police_report, selfie]
+                  example: nic
+                document_name:
+                  type: string
+                  example: National Identity Card - Sunil Perera
+                kyc_file:
+                  type: string
+                  format: binary
+                  description: Document file (PDF, PNG, JPG, JPEG, max 5MB)
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_type
+              properties:
+                document_type:
+                  type: string
+                  enum: [nic, driving_license, trade_certificate, police_report, selfie]
+                  example: trade_certificate
+                document_name:
+                  type: string
+                  example: NVQ Level 4 Electrical Technician Certificate
+                file_path:
+                  type: string
+                  example: uploads/kyc/doc_sample_123.pdf
+      responses:
+        '201':
+          description: KYC document uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: KYC document submitted successfully and pending admin approval!
+                  document_id:
+                    type: integer
+                    example: 9
+                  file_path:
+                    type: string
+                    example: uploads/kyc/kyc_3_a9b1c2.pdf
+                  verify_status:
+                    type: string
+                    example: pending
+        '400':
+          $ref: '#/components/responses/400Error'
+
+  /kyc.php?action=my-docs:
+    get:
+      tags:
+        - KYC
+      summary: List all documents submitted by current worker
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns all verification files submitted by the worker with their verification statuses and review notes.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of worker KYC documents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  documents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KycDocumentItem'
+                  count:
+                    type: integer
+                    example: 2
+
+  # ==========================================
+  # MESSAGES
+  # ==========================================
+  /messages.php?action=send:
+    post:
+      tags:
+        - Messages
+      summary: Send an in-app message
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Sends a private message to another user, optionally linked to a specific job request.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - receiver_id
+                - message_text
+              properties:
+                receiver_id:
+                  type: integer
+                  description: Target user ID
+                  example: 3
+                message_text:
+                  type: string
+                  example: Hello Mr. Sunil, are you available for an electrical inspection this weekend?
+                job_id:
+                  type: integer
+                  nullable: true
+                  example: 1
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Message sent successfully.
+                  data:
+                    $ref: '#/components/schemas/MessageItem'
+        '400':
+          $ref: '#/components/responses/400Error'
+
+  /messages.php?action=conversation:
+    get:
+      tags:
+        - Messages
+      summary: Get conversation thread with a user
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Returns chronological message history exchanged between the caller and the target user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: with_user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Interlocutor user ID
+          example: 3
+        - name: job_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Optional filter by job ID
+          example: 1
+      responses:
+        '200':
+          description: Conversation messages retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MessageItem'
+        '400':
+          $ref: '#/components/responses/400Error'
+
+  /messages.php?action=read:
+    post:
+      tags:
+        - Messages
+      summary: Mark messages from a sender as read
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Clears unread flags for all incoming messages from a specific sender.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sender_id
+              properties:
+                sender_id:
+                  type: integer
+                  example: 3
+      responses:
+        '200':
+          description: Messages marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Messages marked as read successfully.
+                  updated:
+                    type: boolean
+                    example: true
+
+  /messages.php?action=conversations:
+    get:
+      tags:
+        - Messages
+      summary: Get conversations inbox summary
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Returns all recent chat dialogs with unread counts and latest message snippets.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conversations summary list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  conversations:
+                    type: array
+                    items:
+                      type: object
+
+  /messages.php?action=contact_info:
+    get:
+      tags:
+        - Messages
+      summary: Get user contact metadata for chat header
+      description: |
+        **Allowed Role**: Customer or Worker (Bearer token required)
+        
+        Returns recipient user information (name, avatar, phone, role) for display in the messenger UI header.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Target user ID
+          example: 3
+      responses:
+        '200':
+          description: Contact details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  contact:
+                    type: object
+
+  # ==========================================
+  # NOTIFICATIONS
+  # ==========================================
+  /notifications.php?action=list:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications for logged-in user
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Bearer token required)
+        
+        Returns latest alerts and unread notification badge count.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NotificationItem'
+                  unread_count:
+                    type: integer
+                    example: 2
+
+  /notifications.php?action=read-all:
+    post:
+      tags:
+        - Notifications
+      summary: Mark all user notifications as read
+      description: |
+        **Allowed Role**: Customer, Worker, or Admin (Bearer token required)
+        
+        Marks all unread notifications for the caller as read.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  # ==========================================
+  # PROMOTIONS
+  # ==========================================
+  /promotions.php?action=active:
+    get:
+      tags:
+        - Promotions
+      summary: Get active approved promotions
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Returns currently active, admin-approved discount promotional deals.
+      responses:
+        '200':
+          description: Active promotions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  promotions:
+                    type: array
+                    items:
+                      type: object
+
+  /promotions.php?action=create:
+    post:
+      tags:
+        - Promotions
+      summary: Create a worker promotional discount
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Submits a promotional discount campaign for admin moderation.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                  example: Sinhala & Tamil New Year 20% Discount
+                description:
+                  type: string
+                  example: 20% off all electrical wiring inspections during the festive season.
+                discount_percent:
+                  type: integer
+                  default: 10
+                  example: 20
+                valid_until:
+                  type: string
+                  format: date
+                  example: '2026-11-30'
+      responses:
+        '201':
+          description: Promotion created and pending approval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Promotion submitted for admin approval!
+                  promotion_id:
+                    type: integer
+                    example: 2
+        '400':
+          $ref: '#/components/responses/400Error'
+
+  # ==========================================
+  # REVIEWS
+  # ==========================================
+  /reviews.php?action=worker:
+    get:
+      tags:
+        - Reviews
+      summary: Get customer reviews for a worker
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Returns customer ratings, timestamps, and feedback comments for a specified worker.
+      parameters:
+        - name: worker_id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Worker profile ID
+          example: 1
+      responses:
+        '200':
+          description: Reviews retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  reviews:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        customer_name:
+                          type: string
+                        rating:
+                          type: integer
+                          example: 5
+                        comment:
+                          type: string
+                          example: Very professional, identified the wiring fault quickly and fixed it!
+                        created_at:
+                          type: string
+
+  /reviews.php?action=create:
+    post:
+      tags:
+        - Reviews
+      summary: Submit a review and rating for a worker
+      description: |
+        **Allowed Role**: Customer (Bearer token required)
+        
+        Allows customers to rate a worker (1 to 5 stars) and leave review comments after a service.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - worker_id
+                - rating
+              properties:
+                worker_id:
+                  type: integer
+                  example: 1
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                job_id:
+                  type: integer
+                  nullable: true
+                  example: 1
+                comment:
+                  type: string
+                  example: Excellent workmanship, arrived on time and cleaned up afterwards!
+      responses:
+        '201':
+          description: Review submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Review submitted successfully!
+                  review_id:
+                    type: integer
+                    example: 5
+        '400':
+          $ref: '#/components/responses/400Error'
+
+  # ==========================================
+  # SUBSCRIPTIONS
+  # ==========================================
+  /subscriptions.php?action=plans:
+    get:
+      tags:
+        - Subscriptions
+      summary: List available membership subscription plans
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Returns all subscription tiers (e.g. Standard, Silver, Gold, Platinum) with benefits and prices.
+      responses:
+        '200':
+          description: Subscription plans list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  plans:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: Premium Pro Monthly
+                        price:
+                          type: number
+                          example: 2500.00
+                        duration_days:
+                          type: integer
+                          example: 30
+                        commission_discount:
+                          type: string
+                          example: "50% off (5% commission rate)"
+
+  /subscriptions.php?action=pay:
+    post:
+      tags:
+        - Subscriptions
+      summary: Worker subscribes to a membership plan
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Processes payment for a subscription plan via simulated IPG gateway. Unlocks premium benefits and 5% commission rate.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plan_id
+              properties:
+                plan_id:
+                  type: integer
+                  example: 1
+                payment_method:
+                  type: string
+                  default: "IPG Visa/Mastercard (Online)"
+                  example: "IPG Visa/Mastercard (Online)"
+      responses:
+        '200':
+          description: Subscription activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Subscription payment processed successfully!
+                  receipt:
+                    type: object
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /subscriptions.php?action=receipt:
+    get:
+      tags:
+        - Subscriptions
+      summary: View digital payment receipt
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Retrieves receipt details by unique receipt number.
+      parameters:
+        - name: receipt_number
+          in: query
+          required: true
+          schema:
+            type: string
+          example: RCPT-202609-001
+      responses:
+        '200':
+          description: Digital payment receipt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  receipt:
+                    type: object
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /subscriptions.php?action=history:
+    get:
+      tags:
+        - Subscriptions
+      summary: Worker subscription payment history
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns all past subscription renewals and invoices for the logged-in worker.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payment history retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  payments:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  # ==========================================
+  # WALLET
+  # ==========================================
+  /wallet.php?action=balance:
+    get:
+      tags:
+        - Wallet
+      summary: Get worker wallet balance & commission status
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns current wallet balance, cumulative earnings, total commission paid, subscription status, and commission rate (5% vs 10%).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Wallet balance summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  wallet:
+                    type: object
+                    properties:
+                      worker_id:
+                        type: integer
+                        example: 1
+                      wallet_balance:
+                        type: number
+                        example: 12450.00
+                      total_earnings:
+                        type: number
+                        example: 45000.00
+                      total_commission_paid:
+                        type: number
+                        example: 2250.00
+                      has_job_access:
+                        type: boolean
+                        example: true
+                      is_subscribed:
+                        type: boolean
+                        example: true
+                      commission_rate:
+                        type: number
+                        example: 0.05
+                      commission_percentage:
+                        type: string
+                        example: "5%"
+                      subscription_plan_name:
+                        type: string
+                        example: Pro Monthly
+                      transactions:
+                        type: array
+                        items:
+                          type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /wallet.php?action=transactions:
+    get:
+      tags:
+        - Wallet
+      summary: Get worker transaction history
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns the last 30 ledger transactions (online job earnings, cash commission debits, access pass payments, top-ups, and bank payouts).
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Transaction history list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  transactions:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /wallet.php?action=activate-access:
+    post:
+      tags:
+        - Wallet
+      summary: Activate one-time lifetime job viewing access pass
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Activates lifetime customer job board access pass (LKR 1,500.00), allowing worker to view unmasked customer telephone contacts on open jobs.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  type: string
+                  default: "Online IPG (Card/Visa/Master)"
+                  example: "Online IPG (Card/Visa/Master)"
+      responses:
+        '200':
+          description: Job access activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: One-time job access pass activated! You can now view all open jobs and customer contacts.
+                  has_job_access:
+                    type: boolean
+                    example: true
+                  transaction_ref:
+                    type: string
+                    example: TXN-ACCESS-202610-12
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /wallet.php?action=request-payout:
+    post:
+      tags:
+        - Wallet
+      summary: Request bank payout of earned wallet balance
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Initiates a bank transfer payout from available balance to a Sri Lankan bank account. Minimum withdrawal: LKR 1,000.00.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - bank_name
+                - account_number
+                - account_name
+              properties:
+                amount:
+                  type: number
+                  minimum: 1000
+                  example: 5000.00
+                bank_name:
+                  type: string
+                  example: Commercial Bank of Ceylon
+                account_number:
+                  type: string
+                  example: 8001234567
+                account_name:
+                  type: string
+                  example: S. P. Sunil Perera
+                branch:
+                  type: string
+                  example: Kollupitiya Branch
+      responses:
+        '200':
+          description: Payout request submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Payout request submitted successfully! Funds will be transferred within 1-2 business days.
+                  payout_id:
+                    type: integer
+                    example: 3
+                  amount:
+                    type: number
+                    example: 5000.00
+                  wallet_balance:
+                    type: number
+                    example: 7450.00
+                  transaction_ref:
+                    type: string
+                    example: TXN-WDR-202610-33
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /wallet.php?action=top-up:
+    post:
+      tags:
+        - Wallet
+      summary: Top-up wallet balance
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Deposits funds into the wallet (e.g. to clear a negative balance after collecting cash jobs). Minimum amount: LKR 100.00.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  minimum: 100
+                  example: 1500.00
+                payment_method:
+                  type: string
+                  default: online
+                  example: online
+      responses:
+        '200':
+          description: Wallet topped up successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Wallet topped up successfully by Rs. 1,500.00
+                  wallet_balance:
+                    type: number
+                    example: 8950.00
+                  transaction_ref:
+                    type: string
+                    example: TXN-TOP-202610-44
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  # ==========================================
+  # WORKERS
+  # ==========================================
+  /workers.php?action=search:
+    get:
+      tags:
+        - Workers
+      summary: Search workers by category & GPS geolocation
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Calculates Haversine distance between customer coordinates and worker addresses, returning nearby qualified service professionals sorted by proximity and ratings.
+      parameters:
+        - name: lat
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Customer latitude (e.g. Colombo 6.9271)
+          example: 6.9271
+        - name: lng
+          in: query
+          required: false
+          schema:
+            type: number
+          description: Customer longitude (e.g. Colombo 79.8612)
+          example: 79.8612
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Trade Category ID (1=Electrical, 2=Plumbing, etc.)
+          example: 1
+      responses:
+        '200':
+          description: Worker search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  count:
+                    type: integer
+                    example: 5
+                  workers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkerProfileItem'
+
+  /workers.php?action=profile:
+    get:
+      tags:
+        - Workers
+      summary: View public worker profile
+      description: |
+        **Allowed Role**: Public (No authentication required)
+        
+        Returns verified worker information, trades, bio, experience, average rating, and service catalog.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Worker ID
+          example: 1
+      responses:
+        '200':
+          description: Worker profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  worker:
+                    $ref: '#/components/schemas/WorkerProfileItem'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /workers.php?action=update:
+    post:
+      tags:
+        - Workers
+      summary: Update worker trade profile & service area
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Updates bio, travel radius (km), contact number, and work base address.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio:
+                  type: string
+                  maxLength: 2000
+                  example: Master electrician with 12 years of commercial & home wiring expertise.
+                service_radius_km:
+                  type: integer
+                  minimum: 1
+                  maximum: 150
+                  example: 25
+                full_name:
+                  type: string
+                  example: Sunil R. Perera
+                phone:
+                  type: string
+                  example: "+94771234567"
+                address:
+                  type: string
+                  example: Colombo 03, Western Province
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /workers.php?action=add-service:
+    post:
+      tags:
+        - Workers
+      summary: Add a custom service offering
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Creates a custom package in the worker portfolio with transparent pricing.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  minLength: 3
+                  example: Full House Wiring Safety Inspection
+                description:
+                  type: string
+                  example: Insulation resistance testing, circuit breaker evaluation, and electrical safety certificate issuance.
+                price:
+                  type: number
+                  minimum: 100
+                  default: 1500.00
+                  example: 3500.00
+                pricing_type:
+                  type: string
+                  enum: [hourly, fixed, starting_at]
+                  default: hourly
+                  example: fixed
+                category_id:
+                  type: integer
+                  example: 1
+                location:
+                  type: string
+                  example: Colombo & Gampaha Districts
+                images:
+                  type: array
+                  items:
+                    type: string
+                  example: ["uploads/services/inspection.jpg"]
+      responses:
+        '201':
+          description: Service package created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Service created successfully.
+                  service_id:
+                    type: integer
+                    example: 8
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /workers.php?action=my-services:
+    get:
+      tags:
+        - Workers
+      summary: List current worker custom services
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Returns all service listings published by the authenticated worker.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Custom services list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  services:
+                    type: array
+                    items:
+                      type: object
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /workers.php?action=delete-service:
+    post:
+      tags:
+        - Workers
+      summary: Delete a custom service listing
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Removes an existing service package from the worker's profile.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - service_id
+              properties:
+                service_id:
+                  type: integer
+                  example: 8
+      responses:
+        '200':
+          description: Service deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /workers.php?action=upload-photo:
+    post:
+      tags:
+        - Workers
+      summary: Upload worker profile photo
+      description: |
+        **Allowed Role**: Worker (Bearer token required)
+        
+        Direct alias to update the worker avatar photo.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+                  format: binary
+          application/json:
+            schema:
+              type: object
+              required:
+                - photo
+              properties:
+                photo:
+                  type: string
+      responses:
+        '200':
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profile picture updated successfully!
+                  photo_url:
+                    type: string
+                    example: uploads/profiles/worker_3.jpg
+
+# ==========================================
+# COMPONENTS
+# ==========================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Paste your JWT token here (without the 'Bearer ' prefix).
+        Obtain tokens from `POST /auth.php?action=login` or `POST /auth.php?action=register`.
+
+  schemas:
+    StandardResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operation completed successfully.
+
+    AuthSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Login successful!
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/UserDetail'
+
+    UserDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: Sunil Perera
+        full_name:
+          type: string
+          example: Sunil Perera
+        username:
+          type: string
+          example: sunil.electric
+        email:
+          type: string
+          example: sunil.electric@gmail.com
+        role:
+          type: string
+          enum: [customer, worker, admin]
+          example: worker
+        phone:
+          type: string
+          example: "+94771234567"
+        profile_picture:
+          type: string
+          nullable: true
+          example: uploads/profiles/sunil.jpg
+        avatar:
+          type: string
+          nullable: true
+          example: uploads/profiles/sunil.jpg
+        worker:
+          type: object
+          nullable: true
+
+    JobItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        customer_id:
+          type: integer
+          example: 2
+        customer_name:
+          type: string
+          example: Dilshan Silva
+        customer_phone:
+          type: string
+          example: "+94711122334"
+        category_id:
+          type: integer
+          example: 1
+        category_name:
+          type: string
+          example: Electrical & Wiring
+        title:
+          type: string
+          example: Circuit breaker tripping in living room
+        description:
+          type: string
+          example: Main trip switch goes off whenever the air conditioner starts.
+        address:
+          type: string
+          example: 78 Havelock Road, Colombo 05
+        latitude:
+          type: number
+          example: 6.8912
+        longitude:
+          type: number
+          example: 79.8634
+        status:
+          type: string
+          enum: [open, in_progress, completed, cancelled]
+          example: open
+        created_at:
+          type: string
+          example: "2026-10-01 14:30:00"
+
+    WorkerProfileItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 3
+        full_name:
+          type: string
+          example: Sunil Perera
+        phone:
+          type: string
+          example: "+94771234567"
+        bio:
+          type: string
+          example: Professional electrician with 10+ years experience.
+        address:
+          type: string
+          example: Colombo 03
+        is_verified:
+          type: boolean
+          example: true
+        verification_status:
+          type: string
+          enum: [unverified, pending, verified, rejected]
+          example: verified
+        service_radius_km:
+          type: integer
+          example: 25
+        avg_rating:
+          type: number
+          example: 4.8
+        review_count:
+          type: integer
+          example: 14
+        categories:
+          type: array
+          items:
+            type: object
+        services:
+          type: array
+          items:
+            type: object
+
+    KycDocumentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        worker_id:
+          type: integer
+          example: 1
+        worker_name:
+          type: string
+          example: Sunil Perera
+        worker_email:
+          type: string
+          example: sunil.electric@gmail.com
+        document_type:
+          type: string
+          enum: [nic, driving_license, trade_certificate, police_report, selfie]
+          example: nic
+        document_name:
+          type: string
+          example: "National Identity Card (NIC: 198512345678)"
+        file_path:
+          type: string
+          example: uploads/kyc/nic_1_abc123.jpg
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+          example: pending
+        admin_notes:
+          type: string
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          example: "2026-10-02 10:15:00"
+
+    MessageItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        sender_id:
+          type: integer
+          example: 2
+        receiver_id:
+          type: integer
+          example: 3
+        job_id:
+          type: integer
+          nullable: true
+          example: 1
+        message_text:
+          type: string
+          example: Hello Mr. Sunil, are you available for an electrical inspection?
+        is_read:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          example: "2026-10-08 09:20:00"
+
+    NotificationItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        user_id:
+          type: integer
+          example: 3
+        title:
+          type: string
+          example: KYC Verification Approved
+        message:
+          type: string
+          example: Congratulations! Your identity document has been verified.
+        type:
+          type: string
+          example: kyc
+        is_read:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          example: "2026-10-08 08:00:00"
+
+  responses:
+    400Error:
+      description: Bad Request / Validation Failure
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              message:
+                type: string
+                example: Validation error or missing mandatory parameter.
+
+    401Unauthorized:
+      description: Authentication required or invalid Bearer token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              message:
+                type: string
+                example: Unauthorized. Please provide a valid Bearer token.
+
+    403Forbidden:
+      description: Insufficient role permissions or unverified account
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              message:
+                type: string
+                example: Forbidden. Only verified workers or administrators may perform this action.
+
+    404NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              message:
+                type: string
+                example: Resource not found.
+
+    409Conflict:
+      description: Data conflict (e.g. email or username already registered)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: error
+              message:
+                type: string
+                example: A user with this email address already exists.

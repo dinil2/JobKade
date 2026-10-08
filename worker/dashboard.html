@@ -28,18 +28,23 @@
         </div>
       </a>
 
-      <!-- Profile Completion -->
-      <div class="profile-completion">
-        <div class="profile-completion-info"><p id="profile-completion-label">Profile 0% complete</p><div class="progress-bar"><div id="profile-completion-bar" class="progress-fill" style="width:0%;"></div></div></div>
-        <span id="profile-completion-percent" class="profile-completion-percent">0%</span>
-      </div>
 
       <!-- Stats -->
       <div class="worker-stats-row">
         <div class="stat-card"><div class="stat-card-icon blue"><i data-lucide="briefcase" width="24" height="24"></i></div><div class="stat-card-info"><h3 id="stat-available-jobs">0</h3><p>Available Jobs</p></div></div>
         <div class="stat-card"><div class="stat-card-icon orange"><i data-lucide="clock" width="24" height="24"></i></div><div class="stat-card-info"><h3 id="stat-active-jobs">0</h3><p>Active Jobs</p></div></div>
         <div class="stat-card"><div class="stat-card-icon green"><i data-lucide="check-circle" width="24" height="24"></i></div><div class="stat-card-info"><h3 id="stat-completed-jobs">0</h3><p>Completed Jobs</p></div></div>
-        
+        <a href="reviews.html" style="text-decoration:none;color:inherit;display:block;">
+          <div class="stat-card" style="cursor:pointer;">
+            <div class="stat-card-icon yellow" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+              <i data-lucide="star" width="24" height="24" style="fill:#f59e0b;"></i>
+            </div>
+            <div class="stat-card-info">
+              <h3 id="stat-worker-rating">0.0</h3>
+              <p><span id="stat-reviews-count">0</span> Reviews</p>
+            </div>
+          </div>
+        </a>
       </div>
 
       <!-- Subscription Banner -->
@@ -56,6 +61,21 @@
           <i data-lucide="inbox" style="width: 36px; height: 36px; color: var(--text-muted); margin: 0 auto 10px; display:block;"></i>
           <h4 style="margin-bottom: 6px;">No Recent Job Requests</h4>
           <p style="color: var(--text-secondary); font-size: 0.85rem;">New customer requests in your service radius will appear here.</p>
+        </div>
+      </div>
+
+      <!-- Recent Customer Reviews -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:28px; margin-bottom:12px;">
+        <h3 style="margin:0;">Recent Customer Reviews</h3>
+        <a href="reviews.html" class="btn btn-outline btn-sm" style="display:inline-flex; align-items:center; gap:6px;">
+          <i data-lucide="star" width="14" height="14"></i> View All Reviews
+        </a>
+      </div>
+      <div id="worker-dashboard-reviews">
+        <div class="empty-state" style="text-align:center; padding: 32px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+          <i data-lucide="message-square" style="width: 32px; height: 32px; color: var(--text-muted); margin: 0 auto 8px; display:block; opacity:0.5;"></i>
+          <h4 style="margin-bottom: 4px; font-size: 0.95rem;">No reviews yet.</h4>
+          <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Reviews from customers will appear here after job completion.</p>
         </div>
       </div>
     </main>

@@ -60,9 +60,7 @@
     <div class="container">
       <h1>Find the right worker for your job</h1>
       <div class="search-bar-large">
-        <input type="text" id="search-service-input" placeholder="What service do you need? (e.g. Electrical, Plumber)" aria-label="Service">
-        <div class="search-divider"></div>
-        <input type="text" id="search-location-input" placeholder="Enter location (e.g. Colombo)" aria-label="Location">
+        <input type="text" id="search-service-input" placeholder="Search by service or worker name (e.g. Electrical, Amal)" aria-label="Search workers">
         <button class="btn btn-primary" id="btn-header-search"><i data-lucide="search" width="18" height="18"></i> Search</button>
       </div>
     </div>
@@ -98,14 +96,13 @@
                 <label class="filter-option"><input type="checkbox" class="cat-filter" value="masonry"> Masonry & Tiling</label>
               </div>
 
-              <!-- Location Filter -->
+              <!-- Rating Filter -->
               <div class="filter-group">
-                <h4>Location</h4>
-                <label class="filter-option"><input type="checkbox" class="loc-filter" value="colombo"> Colombo</label>
-                <label class="filter-option"><input type="checkbox" class="loc-filter" value="negombo"> Negombo</label>
-                <label class="filter-option"><input type="checkbox" class="loc-filter" value="kandy"> Kandy</label>
-                <label class="filter-option"><input type="checkbox" class="loc-filter" value="dehiwala"> Dehiwala</label>
-                <label class="filter-option"><input type="checkbox" class="loc-filter" value="mount-lavinia"> Mount Lavinia</label>
+                <h4>Rating</h4>
+                <label class="filter-option"><input type="radio" name="rating-filter" class="rating-filter" value="0" checked> Any Rating</label>
+                <label class="filter-option"><input type="radio" name="rating-filter" class="rating-filter" value="4.8"> 4.8 ★ & above</label>
+                <label class="filter-option"><input type="radio" name="rating-filter" class="rating-filter" value="4.5"> 4.5 ★ & above</label>
+                <label class="filter-option"><input type="radio" name="rating-filter" class="rating-filter" value="4.0"> 4.0 ★ & above</label>
               </div>
 
               <!-- Verification Filter -->
@@ -150,7 +147,7 @@
           <div id="no-results-msg" style="display:none;text-align:center;padding:60px 20px;background:white;border-radius:12px;border:1px solid var(--border);margin-top:20px;">
             <i data-lucide="user-x" width="48" height="48" style="color:var(--text-muted);margin-bottom:12px;"></i>
             <h3>No workers found</h3>
-            <p style="color:var(--text-secondary);max-width:400px;margin:0 auto 20px;">No workers match your selected filters. Try clearing some location or category options.</p>
+            <p style="color:var(--text-secondary);max-width:400px;margin:0 auto 20px;">No workers match your selected filters. Try clearing some category or rating options.</p>
             <button id="clear-filters-link" class="btn btn-outline">Clear All Filters</button>
           </div>
 
@@ -180,21 +177,20 @@
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var catCheckboxes = document.querySelectorAll('.cat-filter');
-      var locCheckboxes = document.querySelectorAll('.loc-filter');
+      var ratingRadios = document.querySelectorAll('.rating-filter');
       var verifiedCheckbox = document.getElementById('filter-verified');
       var availableCheckbox = document.getElementById('filter-available');
       var serviceInput = document.getElementById('search-service-input');
-      var locationInput = document.getElementById('search-location-input');
       var applyBtn = document.getElementById('apply-filters-btn');
       var resetBtn = document.getElementById('reset-filters-btn');
       var clearLink = document.getElementById('clear-filters-link');
       var searchBtnHeader = document.getElementById('btn-header-search');
       var sortSelect = document.getElementById('sort-select');
 
-      // Check URL query parameters (e.g. ?cat=electrical or ?loc=colombo or ?q=electrician)
+      // Check URL query parameters (e.g. ?cat=electrical or ?rating=4.5 or ?q=electrician)
       var urlParams = new URLSearchParams(window.location.search);
       var initialCat = urlParams.get('cat');
-      var initialLoc = urlParams.get('loc');
+      var initialRating = urlParams.get('rating');
       var initialQuery = urlParams.get('q') || urlParams.get('search');
 
       if (initialCat) {
@@ -203,11 +199,10 @@
         });
       }
 
-      if (initialLoc) {
-        locCheckboxes.forEach(function(cb) {
-          if (cb.value === initialLoc || initialLoc.includes(cb.value)) cb.checked = true;
+      if (initialRating) {
+        ratingRadios.forEach(function(rb) {
+          if (rb.value === initialRating) rb.checked = true;
         });
-        if (locationInput) locationInput.value = initialLoc;
       }
 
       if (initialQuery && serviceInput) {
@@ -234,16 +229,15 @@
             if (cb.checked) selectedCats.push(cb.value.toLowerCase());
           });
 
-          var selectedLocs = [];
-          locCheckboxes.forEach(function (cb) {
-            if (cb.checked) selectedLocs.push(cb.value.toLowerCase());
+          var selectedMinRating = 0;
+          ratingRadios.forEach(function (rb) {
+            if (rb.checked) selectedMinRating = parseFloat(rb.value) || 0;
           });
 
           var verifiedOnly = verifiedCheckbox ? verifiedCheckbox.checked : false;
           var availableOnly = availableCheckbox ? availableCheckbox.checked : false;
 
           var serviceQuery = serviceInput ? serviceInput.value.trim().toLowerCase() : '';
-          var locationQuery = locationInput ? locationInput.value.trim().toLowerCase() : '';
 
           var cards = document.querySelectorAll('.worker-card');
           if (cards.length === 0) {
@@ -259,7 +253,7 @@
 
           cards.forEach(function (card) {
             var cardCat = (card.getAttribute('data-category') || '').toLowerCase();
-            var cardLoc = (card.getAttribute('data-location') || '').toLowerCase();
+            var cardRating = parseFloat(card.getAttribute('data-rating') || '0');
             var cardVerified = card.getAttribute('data-verified') === 'true';
             var cardAvailable = card.getAttribute('data-available') === 'true';
             var cardName = (card.getAttribute('data-name') || '').toLowerCase();
@@ -281,19 +275,11 @@
               });
             }
 
-            // 2. Location Filter
-            var locMatch = true;
-            if (selectedLocs.length > 0) {
-              locMatch = selectedLocs.some(function (loc) {
-                return cardLoc.includes(loc) || loc.includes(cardLoc);
-              });
-            }
-            if (locMatch && locationQuery !== '') {
-              locMatch = cardLoc.includes(locationQuery) || cardText.includes(locationQuery);
-            }
+            // 2. Rating Filter
+            var ratingMatch = (selectedMinRating === 0) || (cardRating >= selectedMinRating);
 
-            // 3. Service Query Match
-            var serviceMatch = serviceQuery === '' || cardText.includes(serviceQuery) || cardCat.includes(serviceQuery);
+            // 3. Service Query / Name Match
+            var serviceMatch = serviceQuery === '' || cardName.includes(serviceQuery) || cardCat.includes(serviceQuery) || cardText.includes(serviceQuery);
 
             // 4. Verification Match
             var verifiedMatch = !verifiedOnly || cardVerified;
@@ -301,7 +287,7 @@
             // 5. Availability Match
             var availableMatch = !availableOnly || cardAvailable;
 
-            if (catMatch && locMatch && serviceMatch && verifiedMatch && availableMatch) {
+            if (catMatch && ratingMatch && serviceMatch && verifiedMatch && availableMatch) {
               card.style.display = '';
               // Smooth stagger animation
               card.classList.remove('card-revealing');
@@ -317,7 +303,7 @@
           });
 
           // Render Active Filter Chips
-          renderActiveChips(selectedCats, selectedLocs, verifiedOnly, availableOnly, serviceQuery, locationQuery);
+          renderActiveChips(selectedCats, selectedMinRating, verifiedOnly, availableOnly, serviceQuery);
 
           // Update count with bump animation
           var countEl = document.getElementById('workers-count');
@@ -341,7 +327,7 @@
       }
 
       // Render Active Chips
-      function renderActiveChips(cats, locs, verified, available, serviceQuery, locQuery) {
+      function renderActiveChips(cats, minRating, verified, available, serviceQuery) {
         if (!chipsContainer) return;
         var html = '';
 
@@ -351,11 +337,9 @@
           html += '<span class="filter-chip">' + label + ' <button type="button" class="filter-chip-remove" data-action="remove-cat" data-value="' + c + '">✕</button></span>';
         });
 
-        locs.forEach(function (l) {
-          var label = l.replace(/-/g, ' ');
-          label = label.charAt(0).toUpperCase() + label.slice(1);
-          html += '<span class="filter-chip">' + label + ' <button type="button" class="filter-chip-remove" data-action="remove-loc" data-value="' + l + '">✕</button></span>';
-        });
+        if (minRating > 0) {
+          html += '<span class="filter-chip">Rating: ' + minRating + '★+ <button type="button" class="filter-chip-remove" data-action="remove-rating">✕</button></span>';
+        }
 
         if (verified) {
           html += '<span class="filter-chip">Verified Only <button type="button" class="filter-chip-remove" data-action="remove-verified">✕</button></span>';
@@ -369,10 +353,6 @@
           html += '<span class="filter-chip">Search: "' + serviceQuery + '" <button type="button" class="filter-chip-remove" data-action="remove-service-query">✕</button></span>';
         }
 
-        if (locQuery) {
-          html += '<span class="filter-chip">City: "' + locQuery + '" <button type="button" class="filter-chip-remove" data-action="remove-loc-query">✕</button></span>';
-        }
-
         chipsContainer.innerHTML = html;
 
         // Attach chip remove listeners
@@ -383,16 +363,14 @@
 
             if (action === 'remove-cat') {
               catCheckboxes.forEach(function (cb) { if (cb.value.toLowerCase() === val) cb.checked = false; });
-            } else if (action === 'remove-loc') {
-              locCheckboxes.forEach(function (cb) { if (cb.value.toLowerCase() === val) cb.checked = false; });
+            } else if (action === 'remove-rating') {
+              ratingRadios.forEach(function (rb) { if (rb.value === '0') rb.checked = true; });
             } else if (action === 'remove-verified') {
               if (verifiedCheckbox) verifiedCheckbox.checked = false;
             } else if (action === 'remove-available') {
               if (availableCheckbox) availableCheckbox.checked = false;
             } else if (action === 'remove-service-query') {
               if (serviceInput) serviceInput.value = '';
-            } else if (action === 'remove-loc-query') {
-              if (locationInput) locationInput.value = '';
             }
             filterWorkers();
           });
@@ -401,12 +379,11 @@
 
       // Event Listeners for Live Filtering
       catCheckboxes.forEach(function (cb) { cb.addEventListener('change', function () { filterWorkers(); }); });
-      locCheckboxes.forEach(function (cb) { cb.addEventListener('change', function () { filterWorkers(); }); });
+      ratingRadios.forEach(function (rb) { rb.addEventListener('change', function () { filterWorkers(); }); });
       if (verifiedCheckbox) verifiedCheckbox.addEventListener('change', function () { filterWorkers(); });
       if (availableCheckbox) availableCheckbox.addEventListener('change', function () { filterWorkers(); });
 
       if (serviceInput) serviceInput.addEventListener('input', function () { filterWorkers(); });
-      if (locationInput) locationInput.addEventListener('input', function () { filterWorkers(); });
       var filterToggleMobile = document.getElementById('filter-toggle-mobile');
       var filterCardBody = document.getElementById('filter-card-body');
       if (filterToggleMobile && filterCardBody) {
@@ -436,11 +413,10 @@
       // Reset All Filters
       function resetFilters() {
         catCheckboxes.forEach(function (cb) { cb.checked = false; });
-        locCheckboxes.forEach(function (cb) { cb.checked = false; });
+        ratingRadios.forEach(function (rb) { if (rb.value === '0') rb.checked = true; });
         if (verifiedCheckbox) verifiedCheckbox.checked = false;
         if (availableCheckbox) availableCheckbox.checked = false;
         if (serviceInput) serviceInput.value = '';
-        if (locationInput) locationInput.value = '';
         filterWorkers();
       }
 

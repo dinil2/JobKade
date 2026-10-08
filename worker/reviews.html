@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Reviews — JobKade</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../js/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/worker.css">
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <div class="dashboard-layout">
+    <div id="sidebar-container"></div>
+
+    <main class="dashboard-main">
+      <div class="dashboard-header">
+        <h1>My Customer Reviews ⭐</h1>
+        <p>View genuine feedback, star ratings, and comments left by customers for your completed jobs.</p>
+      </div>
+
+      <!-- Reviews Summary Card (Top) -->
+      <div class="reviews-summary-card" id="worker-reviews-summary">
+        <!-- Average Score & Stars -->
+        <div class="rating-overview-box">
+          <div class="rating-big-score" id="summary-avg-score">0.0</div>
+          <div class="rating-stars-row" id="summary-stars">
+            <i data-lucide="star" width="24" height="24" style="color:#cbd5e1;fill:none;"></i>
+            <i data-lucide="star" width="24" height="24" style="color:#cbd5e1;fill:none;"></i>
+            <i data-lucide="star" width="24" height="24" style="color:#cbd5e1;fill:none;"></i>
+            <i data-lucide="star" width="24" height="24" style="color:#cbd5e1;fill:none;"></i>
+            <i data-lucide="star" width="24" height="24" style="color:#cbd5e1;fill:none;"></i>
+          </div>
+          <div class="rating-total-label" id="summary-total-label">Based on 0 reviews</div>
+        </div>
+      </div>
+
+      <!-- Review List Header -->
+      <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="margin: 0;">All Reviews</h3>
+        <span style="font-size: 0.825rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+          <i data-lucide="shield-check" width="14" height="14" style="color:var(--success);"></i>
+          Verified Customer Feedback
+        </span>
+      </div>
+
+      <!-- Reviews Container -->
+      <div id="worker-reviews-list">
+        <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+          <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; color: var(--primary); margin: 0 auto 12px; display:block;"></i>
+          <p style="color: var(--text-secondary); margin: 0;">Loading reviews...</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="../js/main.js"></script>
+  <script src="../js/worker.js"></script>
+</body>
+</html>

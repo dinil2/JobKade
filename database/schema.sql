@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `role` ENUM('customer', 'worker', 'admin') NOT NULL DEFAULT 'customer',
     `phone` VARCHAR(20) DEFAULT NULL,
     `address` VARCHAR(255) DEFAULT 'Colombo',
+    `profile_picture` VARCHAR(255) DEFAULT NULL,
     `status` ENUM('active', 'suspended', 'pending') NOT NULL DEFAULT 'active',
     `notification_prefs` JSON DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -35,14 +36,11 @@ CREATE TABLE IF NOT EXISTS `categories` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. Worker Profiles (Location, Verification, Service Area)
+-- 3. Worker Profiles (Verification, Details, Wallet)
 CREATE TABLE IF NOT EXISTS `worker_profiles` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL UNIQUE,
     `bio` TEXT DEFAULT NULL,
-    `service_radius_km` INT DEFAULT 15,
-    `latitude` DECIMAL(10, 7) DEFAULT 6.9271000,
-    `longitude` DECIMAL(10, 7) DEFAULT 79.8612000,
     `address` VARCHAR(255) DEFAULT 'Colombo, Western Province',
     `is_verified` TINYINT(1) DEFAULT 0,
     `verify_status` ENUM('unverified', 'pending', 'verified', 'rejected') NOT NULL DEFAULT 'unverified',
@@ -301,8 +299,8 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- Subscription Plans
 INSERT INTO `subscription_plans` (`id`, `name`, `price`, `duration_days`, `features`, `is_active`) VALUES
-(1, 'Monthly Plan', 3000.00, 30, '5% platform commission rate (Save 50%), Unlimited customer job board access, Verified worker priority badge, In-app direct messaging', 1),
-(2, 'Yearly Plan', 30000.00, 365, '5% platform commission rate (Save 50%), 2 Months Free (Save Rs. 6,000), Top search and map ranking, Unlimited job applications, VIP support', 1)
+(1, 'Monthly Plan', 3000.00, 30, '5% platform commission rate (Save 50%), Unlimited customer job board access, In-app direct messaging', 1),
+(2, 'Yearly Plan', 30000.00, 365, '5% platform commission rate (Save 50%), 2 Months Free (Save Rs. 6,000), Unlimited job applications, VIP support', 1)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `price`=VALUES(`price`), `duration_days`=VALUES(`duration_days`), `features`=VALUES(`features`);
 
 -- Seed Users:
@@ -323,13 +321,13 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `password_hash`, `r
 (7, 'Ruwan Samarasinghe (Painter)', 'ruwanpainter', 'ruwan.painter@gmail.com', '$2y$10$67KCe/AKNgcKslPkzoQpGuI5n15CljfXexA/GxCCKJlxH7pdP17QG', 'worker', '0779988112', 'Dehiwala - Mount Lavinia', 'active')
 ON DUPLICATE KEY UPDATE `email`=VALUES(`email`), `password_hash`=VALUES(`password_hash`);
 
--- Seed Worker Profiles (Centered in Colombo/Western Province for Leaflet.js Map)
-INSERT INTO `worker_profiles` (`id`, `user_id`, `bio`, `service_radius_km`, `latitude`, `longitude`, `address`, `is_verified`, `verify_status`, `rating_avg`, `reviews_count`, `working_hours`) VALUES
-(1, 3, 'Certified Master Electrician with 12+ years experience in commercial & domestic wiring, fault diagnosis, and solar installation.', 20, 6.9271, 79.8612, 'Colombo 03 (Kollupitiya)', 1, 'verified', 4.95, 24, '7:30 AM - 7:00 PM'),
-(2, 4, 'Licensed Plumber specialized in leak detection, bathroom sanitary plumbing, water pumps, and high-pressure water systems.', 15, 6.8950, 79.8730, 'Bambalapitiya, Colombo 04', 1, 'verified', 4.85, 19, '8:00 AM - 6:00 PM'),
-(3, 5, 'HVAC & Inverter Air Conditioner specialist. Deep chemical wash, PCB repairs, refrigerant charging, and energy-saving setups.', 25, 6.9015, 79.8550, 'Colombo 07 (Cinnamon Gardens)', 1, 'verified', 4.92, 28, '8:30 AM - 8:00 PM'),
-(4, 6, 'Master Carpenter crafting custom wooden furniture, roofing structures, doors, pantry cupboards, and restoration.', 20, 6.8649, 79.8997, 'Nugegoda & Colombo', 1, 'verified', 4.88, 16, '8:00 AM - 6:00 PM'),
-(5, 7, 'Professional interior and exterior painting contractor. Expert in weather-shield coatings, smooth wall putty application, and wood varnishing.', 18, 6.8400, 79.8700, 'Dehiwala - Mount Lavinia', 0, 'pending', 4.80, 15, '8:00 AM - 5:30 PM')
+-- Seed Worker Profiles
+INSERT INTO `worker_profiles` (`id`, `user_id`, `bio`, `address`, `is_verified`, `verify_status`, `rating_avg`, `reviews_count`, `working_hours`) VALUES
+(1, 3, 'Certified Master Electrician with 12+ years experience in commercial & domestic wiring, fault diagnosis, and solar installation.', 'Colombo 03 (Kollupitiya)', 1, 'verified', 4.95, 24, '7:30 AM - 7:00 PM'),
+(2, 4, 'Licensed Plumber specialized in leak detection, bathroom sanitary plumbing, water pumps, and high-pressure water systems.', 'Bambalapitiya, Colombo 04', 1, 'verified', 4.85, 19, '8:00 AM - 6:00 PM'),
+(3, 5, 'HVAC & Inverter Air Conditioner specialist. Deep chemical wash, PCB repairs, refrigerant charging, and energy-saving setups.', 'Colombo 07 (Cinnamon Gardens)', 1, 'verified', 4.92, 28, '8:30 AM - 8:00 PM'),
+(4, 6, 'Master Carpenter crafting custom wooden furniture, roofing structures, doors, pantry cupboards, and restoration.', 'Nugegoda & Colombo', 1, 'verified', 4.88, 16, '8:00 AM - 6:00 PM'),
+(5, 7, 'Professional interior and exterior painting contractor. Expert in weather-shield coatings, smooth wall putty application, and wood varnishing.', 'Dehiwala - Mount Lavinia', 0, 'pending', 4.80, 15, '8:00 AM - 5:30 PM')
 ON DUPLICATE KEY UPDATE `bio`=VALUES(`bio`), `verify_status`=VALUES(`verify_status`);
 
 -- Seed Worker Categories

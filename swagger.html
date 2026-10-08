@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobKade API Documentation & Interactive Testing</title>
+  
+  <!-- Local Swagger UI Stylesheet (Offline Compatible) -->
+  <link rel="stylesheet" type="text/css" href="./swagger-ui/swagger-ui.css">
+  <link rel="icon" type="image/png" href="./swagger-ui/favicon-32x32.png" sizes="32x32" />
+  <link rel="icon" type="image/png" href="./swagger-ui/favicon-16x16.png" sizes="16x16" />
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --surface: #0f172a;
+      --surface-card: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --accent: #10b981;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #fafafa;
+      color: #1e293b;
+    }
+
+    /* Top Bar Header */
+    .top-header {
+      background: var(--surface);
+      color: var(--text);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      background: rgba(37, 99, 235, 0.25);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #93c5fd;
+      font-size: 0.725rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .config-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .config-label {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .base-url-input {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-family: Consolas, Monaco, monospace;
+      min-width: 280px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .base-url-input:focus {
+      border-color: var(--primary);
+    }
+
+    .apply-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .apply-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .preset-btn {
+      background: rgba(255,255,255,0.08);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    /* Quick Info Banner */
+    .info-banner {
+      background: #eff6ff;
+      border-bottom: 1px solid #dbeafe;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.8125rem;
+      color: #1e40af;
+    }
+
+    .demo-creds {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .demo-cred-tag {
+      background: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #bfdbfe;
+      font-family: Consolas, monospace;
+    }
+
+    /* Swagger UI customization */
+    .swagger-ui .topbar {
+      display: none; /* Hide default topbar since we have a custom brand header */
+    }
+
+    .swagger-ui .info {
+      margin: 24px 0;
+    }
+
+    .swagger-ui .info .title {
+      font-size: 2rem;
+      color: #0f172a;
+    }
+
+    .swagger-ui .btn.authorize {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+
+    .swagger-ui .btn.authorize svg {
+      fill: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation & Base URL Configuration Bar -->
+  <header class="top-header">
+    <div class="brand-section">
+      <a href="./index.html" class="brand-logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: #3b82f6;">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        <span>JobKade</span>
+      </a>
+      <span class="brand-badge">REST API Spec</span>
+    </div>
+
+    <div class="config-section">
+      <span class="config-label">API Base URL:</span>
+      <input type="text" id="apiBaseUrlInput" class="base-url-input" spellcheck="false" />
+      <button id="applyBaseUrlBtn" class="apply-btn" onclick="applyBaseUrl()">Apply</button>
+      <button class="preset-btn" onclick="setPreset('http://localhost/JobKade/api')">WAMP Default</button>
+      <button class="preset-btn" onclick="setPreset('http://localhost:8000/api')">Port 8000</button>
+      <button class="preset-btn" onclick="setPreset(autoDetectBaseUrl())">Auto Detect</button>
+    </div>
+  </header>
+
+  <!-- Demo & Credentials Guidance Banner -->
+  <div class="info-banner">
+    <div>
+      <strong>Offline Ready</strong> &bull; Fully self-contained inside <code>swagger-ui/</code> with no external CDN dependency.
+    </div>
+    <div class="demo-creds">
+      <span>Demo Admin: <span class="demo-cred-tag">admin@jobkade.lk / admin@123</span></span>
+      <span>Demo Customer: <span class="demo-cred-tag">customer@gmail.com / customer@123</span></span>
+      <span>Demo Worker: <span class="demo-cred-tag">sunil.electric@gmail.com / worker@123</span></span>
+    </div>
+  </div>
+
+  <!-- Swagger UI Container -->
+  <div id="swagger-ui"></div>
+
+  <!-- Local Swagger UI Bundle Scripts (Offline Compatible) -->
+  <script src="./swagger-ui/swagger-ui-bundle.js"></script>
+  <script src="./swagger-ui/swagger-ui-standalone-preset.js"></script>
+
+  <script>
+    // =========================================================================
+    // CONFIGURABLE API BASE URL
+    // Change this single variable to switch hosts (e.g. WAMP, port 80, 8000)
+    // =========================================================================
+    const API_BASE_URL = 'http://localhost/JobKade/api';
+
+    // Helper: Auto-detect the current host & subfolder if running on WAMP or arbitrary host
+    function autoDetectBaseUrl() {
+      const origin = window.location.origin;
+      const pathname = window.location.pathname.replace(/\/swagger\.html.*$/i, '');
+      return origin + (pathname ? pathname : '') + '/api';
+    }
+
+    // Retrieve active base URL from localStorage or fallback to API_BASE_URL
+    function getActiveBaseUrl() {
+      return localStorage.getItem('jobkade_swagger_base_url') || API_BASE_URL;
+    }
+
+    function setPreset(url) {
+      document.getElementById('apiBaseUrlInput').value = url;
+      applyBaseUrl();
+    }
+
+    function applyBaseUrl() {
+      const inputVal = document.getElementById('apiBaseUrlInput').value.trim().replace(/\/+$/, '');
+      if (inputVal) {
+        localStorage.setItem('jobkade_swagger_base_url', inputVal);
+        window.location.reload();
+      }
+    }
+
+    // Initialize input box on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const input = document.getElementById('apiBaseUrlInput');
+      if (input) {
+        input.value = getActiveBaseUrl();
+      }
+    });
+
+    // Initialize Swagger UI
+    window.onload = function() {
+      const currentApiBase = getActiveBaseUrl();
+
+      window.ui = SwaggerUIBundle({
+        url: "./openapi.yaml",
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        layout: "StandaloneLayout",
+        persistAuthorization: true,
+        displayRequestDuration: true,
+        docExpansion: "list",
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        defaultModelsExpandDepth: 1,
+
+        // Request Interceptor:
+        // Dynamically rewrites all API requests to the configured API_BASE_URL
+        // and normalizes query parameter delimiters (fixing duplicate '?' if present)
+        requestInterceptor: function(req) {
+          // Do not rewrite openapi.yaml itself or local UI assets
+          if (req.url.endsWith('openapi.yaml') || req.url.includes('/swagger-ui/')) {
+            return req;
+          }
+
+          // 1. Rewrite base host/path to the configured currentApiBase
+          try {
+            const urlObj = new URL(req.url, window.location.href);
+            const pathAndQuery = urlObj.pathname + urlObj.search;
+
+            // Find where '/api/' or the script name begins
+            const apiIdx = pathAndQuery.toLowerCase().indexOf('/api/');
+            let relativeApiPath = '';
+            if (apiIdx !== -1) {
+              relativeApiPath = pathAndQuery.substring(apiIdx + 5); // strip '/api/'
+            } else {
+              // Extract starting from the php script name (e.g. auth.php?action=...)
+              const match = pathAndQuery.match(/([a-zA-Z0-9_-]+\.php.*)$/);
+              if (match) {
+                relativeApiPath = match[1];
+              }
+            }
+
+            if (relativeApiPath) {
+              // Reconstruct URL with configured currentApiBase
+              const cleanBase = currentApiBase.replace(/\/+$/, '');
+              req.url = cleanBase + '/' + relativeApiPath.replace(/^\/+/, '');
+            }
+          } catch (e) {
+            console.warn('[Swagger Interceptor] URL parse fallback:', e);
+          }
+
+          // 2. Fix multiple '?' if path already contained '?action=...' and Swagger appended '?param=...'
+          if (req.url.indexOf('?') !== req.url.lastIndexOf('?')) {
+            const firstQ = req.url.indexOf('?');
+            req.url = req.url.substring(0, firstQ + 1) + req.url.substring(firstQ + 1).replace(/\?/g, '&');
+          }
+
+          return req;
+        }
+      });
+    };
+  </script>
+</body>
+</html>

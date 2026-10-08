@@ -73,15 +73,11 @@ class AuthService {
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             $userId = $this->userRepo->create($fullName, $username, $email, $passwordHash, $role, $phone);
 
-            $workerProfileId = null;
             if ($role === 'worker') {
                 $workerProfileId = $this->workerRepo->createProfile($userId, [
-                    'bio'               => $data['bio'] ?? 'Skilled service professional.',
-                    'service_radius_km' => (int)($data['service_radius_km'] ?? 15),
-                    'latitude'          => (float)($data['latitude'] ?? 6.9271),
-                    'longitude'         => (float)($data['longitude'] ?? 79.8612),
-                    'address'           => $data['address'] ?? $data['location'] ?? 'Colombo',
-                    'working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
+                    'bio'           => $data['bio'] ?? 'Skilled service professional.',
+                    'address'       => $data['address'] ?? $data['location'] ?? 'Colombo',
+                    'working_hours' => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
                 ]);
 
                 // Assign category by ID or name
@@ -251,13 +247,15 @@ class AuthService {
             'message' => 'Login successful!',
             'token'   => $token,
             'user'    => [
-                'id'        => (int)$user['id'],
-                'name'      => $user['full_name'],
-                'username'  => $user['username'],
-                'email'     => $user['email'],
-                'role'      => $user['role'],
-                'phone'     => $user['phone'],
-                'worker'    => $workerProfile
+                'id'              => (int)$user['id'],
+                'name'            => $user['full_name'],
+                'username'        => $user['username'],
+                'email'           => $user['email'],
+                'role'            => $user['role'],
+                'phone'           => $user['phone'],
+                'profile_picture' => $user['profile_picture'] ?? null,
+                'avatar'          => $user['profile_picture'] ?? null,
+                'worker'          => $workerProfile
             ]
         ];
     }
@@ -265,6 +263,10 @@ class AuthService {
     public function me(int $userId): ?array {
         $user = $this->userRepo->findById($userId);
         if (!$user) return null;
+
+        if (isset($user['profile_picture'])) {
+            $user['avatar'] = $user['profile_picture'];
+        }
 
         if ($user['role'] === 'worker') {
             $user['worker_profile'] = $this->workerRepo->getProfileByUserId($userId);
@@ -329,6 +331,82 @@ class AuthService {
         return [
             'status'  => 'success',
             'message' => 'Password updated successfully!'
+        ];
+    }
+
+    public function uploadProfilePicture(int $userId, ?array $file, ?string $base64Data = null): array {
+        $uploadDir = __DIR__ . '/../uploads/profiles';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $relPath = null;
+        $allowedExts = ['jpg', 'jpeg', 'png'];
+        $maxBytes = 2 * 1024 * 1024; // 2MB
+
+        if ($file && isset($file['error']) && $file['error'] === UPLOAD_ERR_OK) {
+            if ($file['size'] > $maxBytes) {
+                throw new InvalidArgumentException("File exceeds 2MB limit.");
+            }
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, $allowedExts, true)) {
+                throw new InvalidArgumentException("Invalid file format. Only JPG and PNG images are allowed.");
+            }
+
+            // Verify MIME type if finfo available
+            if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+                $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!in_array($mime, $allowedMimes, true)) {
+                    throw new InvalidArgumentException("Invalid image content. Only JPEG and PNG files are allowed.");
+                }
+            }
+
+            $uniqueName = 'profile_' . $userId . '_' . bin2hex(random_bytes(6)) . '.' . ($ext === 'jpeg' ? 'jpg' : $ext);
+            $dest = $uploadDir . '/' . $uniqueName;
+            if (!move_uploaded_file($file['tmp_name'], $dest)) {
+                throw new Exception("Failed to save uploaded profile picture.");
+            }
+            $relPath = 'uploads/profiles/' . $uniqueName;
+        } elseif (!empty($base64Data) && is_string($base64Data)) {
+            $ext = 'jpg';
+            if (preg_match('/^data:image\/(jpeg|jpg|png);base64,(.+)$/i', $base64Data, $matches)) {
+                $ext = strtolower($matches[1]);
+                $ext = ($ext === 'jpeg') ? 'jpg' : $ext;
+                $decoded = base64_decode($matches[2]);
+            } else {
+                $cleanB64 = preg_replace('/^data:image\/[a-zA-Z0-9_-]+;base64,/', '', $base64Data);
+                $decoded = base64_decode($cleanB64, true);
+            }
+
+            if (!$decoded) {
+                throw new InvalidArgumentException("Invalid image data provided.");
+            }
+
+            if (strlen($decoded) > $maxBytes) {
+                throw new InvalidArgumentException("Profile picture exceeds 2MB limit.");
+            }
+
+            $uniqueName = 'profile_' . $userId . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+            $dest = $uploadDir . '/' . $uniqueName;
+            if (file_put_contents($dest, $decoded) === false) {
+                throw new Exception("Failed to write profile image to disk.");
+            }
+            $relPath = 'uploads/profiles/' . $uniqueName;
+        } else {
+            throw new InvalidArgumentException("No profile picture file was uploaded.");
+        }
+
+        $this->userRepo->updateProfilePicture($userId, $relPath);
+
+        return [
+            'status'          => 'success',
+            'message'         => 'Profile photo updated successfully!',
+            'profile_picture' => $relPath,
+            'photo_url'       => $relPath,
+            'avatar'          => $relPath
         ];
     }
 }

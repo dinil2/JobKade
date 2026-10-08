@@ -89,4 +89,31 @@ class AuthController {
             sendJsonResponse(500, ['status' => 'error', 'message' => $e->getMessage()]);
         }
     }
+
+    public function uploadProfilePhoto(): void {
+        $user = JWT::getAuthUser();
+        if (!$user) {
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login first.']);
+        }
+
+        $file = null;
+        if (!empty($_FILES)) {
+            $file = $_FILES['photo'] ?? $_FILES['profile_picture'] ?? $_FILES['image'] ?? $_FILES['file'] ?? reset($_FILES);
+        }
+
+        $base64 = null;
+        if (!$file) {
+            $data = getRequestData();
+            $base64 = $data['photo'] ?? $data['image'] ?? $data['avatar'] ?? $data['profile_picture'] ?? null;
+        }
+
+        try {
+            $res = $this->authService->uploadProfilePicture((int)$user['user_id'], $file, $base64);
+            sendJsonResponse(200, $res);
+        } catch (InvalidArgumentException $e) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
+        } catch (Exception $e) {
+            sendJsonResponse(500, ['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
 }

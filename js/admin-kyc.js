@@ -242,9 +242,6 @@ function filterAndRenderTable(query) {
           </td>
           <td style="text-align:right;">
             <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-              <button class="btn-packet" onclick="openWorkerDossier(${workerId}, '${workerNameEsc}')" title="Inspect Police Report, Selfie & ID together">
-                <i data-lucide="shield-check" width="14" height="14"></i> Review Packet
-              </button>
               <button class="btn-approve" onclick="handleApprove(${kycId}, '${workerNameEsc}')">
                 <i data-lucide="check" width="14" height="14"></i> Approve
               </button>
