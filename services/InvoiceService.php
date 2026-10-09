@@ -76,11 +76,11 @@ class InvoiceService {
         }
 
         // Verify or auto-establish worker relationship to the job
-        if (!$this->hasJobRelationship($workerId, $jobId, $job)) {
-            $db = Database::getConnection();
-            $walletRepo = new WalletRepository();
-            $profileId = $walletRepo->resolveProfileId($workerId) ?? $workerId;
+        $db = Database::getConnection();
+        $walletRepo = new WalletRepository();
+        $profileId = $walletRepo->resolveProfileId($workerId) ?? $workerId;
 
+        if (!$this->hasJobRelationship($workerId, $jobId, $job)) {
             // In JobKade's direct marketplace model, verified workers can directly service and invoice open customer requests.
             $stmtApp = $db->prepare("
                 INSERT INTO job_applications (job_id, worker_id, proposal_note, quote_amount, status)
@@ -94,12 +94,18 @@ class InvoiceService {
                 ':amount'    => $jobAmount,
                 ':amount2'   => $jobAmount
             ]);
-
-            // Transition job request status to in_progress if currently open
-            if ($job['status'] === 'open') {
-                $db->prepare("UPDATE job_requests SET status = 'in_progress' WHERE id = :job_id AND status = 'open'")
-                   ->execute([':job_id' => $jobId]);
-            }
+        } else {
+            // Ensure worker application status is marked accepted
+            $db->prepare("
+                UPDATE job_applications
+                SET status = 'accepted', quote_amount = :amount
+                WHERE job_id = :job_id AND (worker_id = :wid OR worker_id = :pid)
+            ")->execute([
+                ':job_id' => $jobId,
+                ':wid'    => $workerId,
+                ':pid'    => $profileId,
+                ':amount' => $jobAmount
+            ]);
         }
 
         $paymentMethod = strtolower(trim((string)($data["payment_method"] ?? "online")));
@@ -121,7 +127,6 @@ class InvoiceService {
 
         if ($existingInvoice && $existingInvoice['payment_status'] === 'pending' && (int)$existingInvoice['worker_id'] === $workerId) {
             // Update existing pending invoice with latest price and breakdown
-            $db = Database::getConnection();
             $db->prepare("
                 UPDATE job_invoices
                 SET job_amount = :amount,
@@ -154,6 +159,9 @@ class InvoiceService {
         }
 
         $invoice = $this->invoiceRepo->getInvoiceById($invoiceId);
+
+        // Work is finished ("Mark Done & Set Price"), so update job_requests row to status = 'completed'
+        $this->jobRepo->updateStatus($jobId, 'completed');
 
         return [
             "status"     => "success",

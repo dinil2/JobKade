@@ -38,7 +38,7 @@ $stmt->execute(["worker_$testSuffix", "Worker $testSuffix", $workerEmail, passwo
 $workerUserId = (int)$pdo->lastInsertId();
 
 // Create worker profile (initial state: has_job_access = 0, balance = 0)
-$stmt = $pdo->prepare("INSERT INTO worker_profiles (user_id, bio, service_radius_km, has_job_access, wallet_balance, total_earnings, total_commission_paid) VALUES (?, 'Test Bio', 15, 0, 0.00, 0.00, 0.00)");
+$stmt = $pdo->prepare("INSERT INTO worker_profiles (user_id, bio, has_job_access, wallet_balance, total_earnings, total_commission_paid) VALUES (?, 'Test Bio', 0, 0.00, 0.00, 0.00)");
 $stmt->execute([$workerUserId]);
 $workerId = (int)$pdo->lastInsertId();
 

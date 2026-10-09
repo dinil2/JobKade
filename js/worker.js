@@ -801,7 +801,32 @@ function initWorkerInvoiceAndAccess() {
         if (res.ok && res.data?.status === 'success') {
           closeModal('invoice-modal');
           showToast(`Invoice for Rs. ${amountVal.toLocaleString()} sent to customer!`, 'success');
-          loadOpenJobsForWorker();
+
+          // Immediately remove the invoiced job from cachedAvailableJobs
+          const numJobId = parseInt(jobId, 10);
+          const completedJob = cachedAvailableJobs.find(j => parseInt(j.id || j.job_id, 10) === numJobId);
+          cachedAvailableJobs = cachedAvailableJobs.filter(j => parseInt(j.id || j.job_id, 10) !== numJobId);
+
+          // Immediately add to cachedCompletedJobs so it is present under Completed
+          if (completedJob) {
+            const enrichedJob = {
+              ...completedJob,
+              id: numJobId,
+              status: 'completed',
+              job_status: 'completed',
+              application_status: 'accepted'
+            };
+            cachedCompletedJobs = [
+              enrichedJob,
+              ...cachedCompletedJobs.filter(j => parseInt(j.id || j.job_id, 10) !== numJobId)
+            ];
+          }
+
+          // Immediately re-render so the job disappears from Available tab without delay
+          renderWorkerJobs();
+
+          // Refresh both Available Jobs and Completed tabs from server without requiring page reload
+          await loadOpenJobsForWorker();
         } else {
           showToast(res.data?.message || 'Could not create invoice.', 'error');
         }
@@ -888,8 +913,9 @@ function renderWorkerJobCard(j, isCompleted = false) {
   const custId = j.customer_id || 2;
   const jId = j.id || j.job_id || '';
   const safeTitle = (j.title || j.job_title || 'Job Request').replace(/"/g, '&quot;');
-  const badgeClass = isCompleted ? 'badge-completed' : 'badge-open';
-  const badgeText = isCompleted ? 'Completed' : 'Active';
+  const isJobDone = isCompleted || (j.status === 'completed') || (j.job_status === 'completed');
+  const badgeClass = isJobDone ? 'badge-completed' : 'badge-open';
+  const badgeText = isJobDone ? 'Completed' : 'Active';
 
   return `
     <div class="job-card">
@@ -903,7 +929,7 @@ function renderWorkerJobCard(j, isCompleted = false) {
       <p class="job-card-desc">${j.description || 'No description provided.'}</p>
       <div class="job-card-actions">
         <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
-        <button class="btn btn-success btn-sm btn-open-invoice-modal" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:600;"><i data-lucide="check-circle" width="14" height="14"></i> Mark Done & Set Price</button>
+        ${!isJobDone ? `<button class="btn btn-success btn-sm btn-open-invoice-modal" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:600;"><i data-lucide="check-circle" width="14" height="14"></i> Mark Done & Set Price</button>` : ''}
         <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
         ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
       </div>
@@ -1012,7 +1038,7 @@ async function loadOpenJobsForWorker() {
       const completedAssigned = workerRes.data.jobs.filter(j => {
         const jobStatus = (j.job_status || j.status || '').toLowerCase();
         const appStatus = (j.application_status || '').toLowerCase();
-        return jobStatus === 'completed' && (appStatus === 'accepted' || !appStatus);
+        return jobStatus === 'completed' && (appStatus !== 'rejected');
       });
 
       if (completedAssigned.length > 0) {
