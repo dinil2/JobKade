@@ -43,9 +43,7 @@ if (typeof document !== 'undefined') {
   }
 }
 
-// ==========================================
-// Shared Dashboard Navbar & Sidebar Components
-// ==========================================
+// shared dashboard navbar & sidebar components
 
 function getPageRole() {
   const path = window.location.pathname.toLowerCase();
@@ -367,9 +365,7 @@ window.renderSharedComponents = renderSharedComponents;
 window.updateSharedUserUI = updateSharedUserUI;
 window.updateSharedAvatars = updateSharedAvatars;
 
-// ==========================================
-// UI Component Initializers
-// ==========================================
+// ui component initializers
 
 function initNavbarScroll() {
   const navbar = document.querySelector('.navbar');
@@ -667,9 +663,7 @@ function initLogoutBindings() {
   });
 }
 
-// ==========================================
-// Global Auth & API Client
-// ==========================================
+// global auth & api client
 
 function getApiBaseUrl() {
   const origin = window.location.origin;
@@ -788,9 +782,7 @@ function logoutUser() {
   }, 400);
 }
 
-// ==========================================
-// Dynamic Navbar & Mobile Bottom Nav
-// ==========================================
+// dynamic navbar & mobile bottom nav
 
 function updateGlobalNavbarAuth() {
   const user = getLoggedInUser();
@@ -933,9 +925,7 @@ function initMobileBottomNav() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// ==========================================
-// Toast & Shared Utilities
-// ==========================================
+// toast & shared utilities
 
 function showToast(message, type = 'info', duration = 4000) {
   let container = document.querySelector('.toast-container');

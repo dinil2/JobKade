@@ -15,9 +15,7 @@ class KycController {
         $this->db = Database::getConnection();
     }
 
-    /**
-     * Resolve worker_profile ID from JWT user data.
-     */
+    // Resolve worker_profile ID from JWT user data.
     private function resolveWorkerId(array $user): int {
         if (!empty($user['worker_id'])) {
             return (int)$user['worker_id'];
@@ -30,16 +28,14 @@ class KycController {
         if (!$workerId) {
             sendJsonResponse(404, [
                 'status' => 'error',
-                'message' => 'Worker profile not found. Please complete your registration.'
+                'message' => 'Worker profile not found.'
             ]);
         }
 
         return (int)$workerId;
     }
 
-    /**
-     * Handle KYC document upload (multipart/form-data or JSON).
-     */
+    // Handle KYC document upload (multipart/form-data or JSON).
     public function upload(): void {
         $user = JWT::getAuthUser();
         if (!$user || ($user['role'] !== 'worker' && $user['role'] !== 'admin')) {
@@ -71,9 +67,7 @@ class KycController {
         }
     }
 
-    /**
-     * Get submitted documents for the authenticated worker.
-     */
+    // Get submitted documents for the authenticated worker.
     public function myDocuments(): void {
         $user = JWT::getAuthUser();
         if (!$user) {
@@ -89,9 +83,7 @@ class KycController {
         ]);
     }
 
-    /**
-     * Get the live verification badge & summary for authenticated worker.
-     */
+    // Get the live verification badge & summary for authenticated worker.
     public function status(): void {
         $user = JWT::getAuthUser();
         if (!$user) {

@@ -10,9 +10,7 @@ class KycRepository {
         $this->db = Database::getConnection();
     }
 
-    /**
-     * Create a new KYC verification document record.
-     */
+    // Create a new KYC verification document record.
     public function createKycRecord(int $workerId, string $docType, string $docName, string $filePath): int {
         $stmt = $this->db->prepare("
             INSERT INTO kyc_documents (worker_id, document_type, document_name, document_path, file_path, status)
@@ -28,16 +26,12 @@ class KycRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    /**
-     * Backward-compatible alias for createKycRecord.
-     */
+    // Backward-compatible alias for createKycRecord.
     public function submitDocument(int $workerId, string $docType, string $docName, string $docPath): int {
         return $this->createKycRecord($workerId, $docType, $docName, $docPath);
     }
 
-    /**
-     * Retrieve all KYC documents for a specific worker.
-     */
+    // Retrieve all KYC documents for a specific worker.
     public function getDocumentsByWorkerId(int $workerId): array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -64,16 +58,12 @@ class KycRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Backward-compatible alias for getDocumentsByWorkerId.
-     */
+    // Backward-compatible alias for getDocumentsByWorkerId.
     public function getDocumentsByWorker(int $workerId): array {
         return $this->getDocumentsByWorkerId($workerId);
     }
 
-    /**
-     * Retrieve the latest KYC record and computed status for a worker.
-     */
+    // Retrieve the latest KYC record and computed status for a worker.
     public function getLatestStatusByWorker(int $workerId): ?array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -100,9 +90,7 @@ class KycRepository {
         return $row ?: null;
     }
 
-    /**
-     * Retrieve a single KYC document by ID.
-     */
+    // Retrieve a single KYC document by ID.
     public function getDocumentById(int $id): ?array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -127,9 +115,7 @@ class KycRepository {
         return $doc ?: null;
     }
 
-    /**
-     * Retrieve all pending KYC documents for moderation with worker information.
-     */
+    // Retrieve all pending KYC documents for moderation with worker information.
     public function getPendingKycList(): array {
         $stmt = $this->db->query("
             SELECT 
@@ -162,9 +148,7 @@ class KycRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Retrieve KYC documents filtered by status.
-     */
+    // Retrieve KYC documents filtered by status.
     public function getAllByStatus(string $status = 'pending'): array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -198,16 +182,12 @@ class KycRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Backward-compatible alias for getPendingKycList.
-     */
+    // Backward-compatible alias for getPendingKycList.
     public function getAllPending(): array {
         return $this->getPendingKycList();
     }
 
-    /**
-     * Update KYC status and synchronize document columns.
-     */
+    // Update KYC status and synchronize document columns.
     public function updateKycStatus(int $kycId, string $status, ?string $notes, int $adminId): bool {
         $stmt = $this->db->prepare("
             UPDATE kyc_documents
@@ -228,9 +208,7 @@ class KycRepository {
         ]);
     }
 
-    /**
-     * Backward-compatible reviewDocument method.
-     */
+    // Backward-compatible reviewDocument method.
     public function reviewDocument(int $docId, string $status, ?string $reason, int $adminId): bool {
         return $this->updateKycStatus($docId, $status, $reason, $adminId);
     }

@@ -10,9 +10,7 @@ class InvoiceRepository {
         $this->db = Database::getConnection();
     }
 
-    /**
-     * Create a new job invoice record.
-     */
+    // Create a new job invoice record.
     public function createInvoice(
         int $jobId,
         int $workerId,
@@ -45,9 +43,7 @@ class InvoiceRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    /**
-     * Get an invoice by ID with customer, worker, and job metadata.
-     */
+    // Get an invoice by ID with customer, worker, and job metadata.
     public function getInvoiceById(int $invoiceId): ?array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -75,9 +71,7 @@ class InvoiceRepository {
         return $row ?: null;
     }
 
-    /**
-     * Get the latest invoice for a specific job.
-     */
+    // Get the latest invoice for a specific job.
     public function getInvoiceByJobId(int $jobId): ?array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -96,9 +90,7 @@ class InvoiceRepository {
         return $row ?: null;
     }
 
-    /**
-     * Get all invoices for a worker.
-     */
+    // Get all invoices for a worker.
     public function getInvoicesByWorker(int $workerId): array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -118,9 +110,7 @@ class InvoiceRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Get all invoices for a customer.
-     */
+    // Get all invoices for a customer.
     public function getInvoicesByCustomer(int $customerId): array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -141,9 +131,7 @@ class InvoiceRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Mark an invoice as paid conditionally if not already paid.
-     */
+    // Mark an invoice as paid conditionally if not already paid.
     public function markAsPaid(int $invoiceId, string $paymentMethod): bool {
         $stmt = $this->db->prepare("
             UPDATE job_invoices

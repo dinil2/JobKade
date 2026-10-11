@@ -47,18 +47,18 @@ class WorkerService {
         if (isset($data['bio'])) {
             $bio = trim(strip_tags((string)$data['bio']));
             if (strlen($bio) > 2000) {
-                throw new InvalidArgumentException("Bio cannot exceed 2000 characters.");
+                throw new InvalidArgumentException("Bio is too long.");
             }
             $data['bio'] = $bio;
         }
 
         if (isset($data['service_radius_km'])) {
             if (!is_numeric($data['service_radius_km'])) {
-                throw new InvalidArgumentException("Service radius must be a valid number.");
+                throw new InvalidArgumentException("Invalid service radius.");
             }
             $radius = (int)$data['service_radius_km'];
             if ($radius < 1 || $radius > 150) {
-                throw new InvalidArgumentException("Service radius must be between 1 and 150 km.");
+                throw new InvalidArgumentException("Service radius must be 1 to 150 km.");
             }
             $data['service_radius_km'] = $radius;
         }
@@ -66,7 +66,7 @@ class WorkerService {
         if (isset($data['full_name'])) {
             $fullName = trim(strip_tags((string)$data['full_name']));
             if (empty($fullName) || strlen($fullName) < 2 || strlen($fullName) > 100) {
-                throw new InvalidArgumentException("Full name must be between 2 and 100 characters.");
+                throw new InvalidArgumentException("Name must be 2 to 100 characters.");
             }
             $data['full_name'] = $fullName;
         }
@@ -74,7 +74,7 @@ class WorkerService {
         if (isset($data['phone'])) {
             $phone = trim(strip_tags((string)$data['phone']));
             if (!empty($phone) && !preg_match('/^[0-9+\s-]{9,15}$/', $phone)) {
-                throw new InvalidArgumentException("Please provide a valid phone number (9-15 digits).");
+                throw new InvalidArgumentException("Enter a valid phone number.");
             }
             $data['phone'] = $phone;
         }
@@ -82,7 +82,7 @@ class WorkerService {
         if (isset($data['address'])) {
             $data['address'] = trim(strip_tags((string)$data['address']));
             if (strlen($data['address']) > 255) {
-                throw new InvalidArgumentException("Address cannot exceed 255 characters.");
+                throw new InvalidArgumentException("Address is too long.");
             }
         }
 
@@ -107,7 +107,7 @@ class WorkerService {
 
         $title = trim(strip_tags((string)($data['title'] ?? $data['service-title'] ?? '')));
         if (empty($title) || strlen($title) < 3) {
-            throw new InvalidArgumentException("Service title is required (at least 3 characters).");
+            throw new InvalidArgumentException("Service title must be at least 3 characters.");
         }
 
         $description = trim(strip_tags((string)($data['description'] ?? '')));
@@ -165,7 +165,7 @@ class WorkerService {
             if (!$hasCat) {
                 $categoryCount = $this->workerRepo->getCategoryCount($profileId);
                 if ($categoryCount >= 3) {
-                    throw new Exception("You can offer services in up to 3 trade categories.");
+                    throw new Exception("Maximum 3 trade categories allowed.");
                 }
             }
         }

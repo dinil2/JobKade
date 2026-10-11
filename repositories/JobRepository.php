@@ -77,10 +77,7 @@ class JobRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * All job applications made by one worker, with each job's current status.
-     * Used for the worker dashboard's Active / Completed job counts.
-     */
+    // All job applications made by one worker, with each job's current status.
     public function getWorkerJobs(int $workerId): array {
         $stmt = $this->db->prepare("
             SELECT ja.id AS application_id,

@@ -3,7 +3,7 @@
    Modern ES6+, DRY Architecture, Clean UI Handlers
    ========================================== */
 
-// ---- Shared Utilities & Helpers ----
+// shared utilities & helpers
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
 const $id = id => document.getElementById(id);
@@ -52,9 +52,7 @@ function updateAvatarsAcrossUI(imgUrl, initials) {
   });
 }
 
-// ==========================================
-// DOM Ready Controller
-// ==========================================
+// dom ready controller
 document.addEventListener('DOMContentLoaded', () => {
   const user = (typeof requireAuth === 'function') ? requireAuth('customer') : getCustomerUser();
   if (!user) return;
@@ -83,9 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshIcons();
 });
 
-// ==========================================
-// 1. Job Post Form & Leaflet Location Map
-// ==========================================
+// job post form & leaflet location map
 function initJobPostPage() {
   const form = $id('job-post-form');
   const imgUpload = $id('job-images');
@@ -319,9 +315,7 @@ function initJobPostPage() {
   }
 }
 
-// ==========================================
-// 2. Saved Workers Management
-// ==========================================
+// saved workers management
 function initSavedWorkers() {
   const container = $id('saved-workers-container');
   if (!container) return;
@@ -494,9 +488,7 @@ confirmCancelBtn?.addEventListener('click', () => {
   }
 });
 
-// ==========================================
-// 3. Status Filters & Customer Jobs List
-// ==========================================
+// status filters & customer jobs list
 function applyJobFilter(filter = 'ongoing') {
   const cards = $$('#customer-jobs-container .job-card');
   let visibleCount = 0;
@@ -682,9 +674,7 @@ async function loadCustomerJobs() {
   }
 }
 
-// ==========================================
-// 4. Invoice Payment & Receipt Modal
-// ==========================================
+// invoice payment & receipt modal
 function initCustomerInvoicePayment() {
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-pay-job-invoice');
@@ -827,9 +817,7 @@ function showCustomerReceiptModal(details) {
   refreshIcons();
 }
 
-// ==========================================
-// 5. Rate & Review Worker Feature
-// ==========================================
+// rate & review worker feature
 function openReviewWorkerModal(info) {
   if (!$id('review-worker-modal')) return;
 
@@ -939,9 +927,7 @@ function initCustomerReviewModal() {
   });
 }
 
-// ==========================================
-// 6. Customer Profile & Avatar
-// ==========================================
+// customer profile & avatar
 async function initCustomerProfile() {
   const form = $id('customer-profile-form');
   if (!form || !window.location.pathname.includes('profile.html')) return;
@@ -1112,9 +1098,7 @@ async function initCustomerProfile() {
   refreshIcons();
 }
 
-// ==========================================
-// 7. Customer Dashboard Stats
-// ==========================================
+// customer dashboard stats
 async function loadCustomerDashboardStats() {
   if (!window.location.pathname.includes('customer/dashboard.html')) return;
   const activeEl = $id('stat-active-requests');

@@ -25,9 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initWorkerReviews();
 });
 
-// ==========================================
-// Reusable Utilities
-// ==========================================
+// reusable utilities
 
 const $id = id => document.getElementById(id);
 const formatLKR = amt => 'Rs. ' + parseFloat(amt || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -62,9 +60,7 @@ function syncWorkerIdentity(user) {
   });
 }
 
-// ==========================================
-// 1. Service Management & Deletion
-// ==========================================
+// service management & deletion
 
 // Sri Lankan District Coordinates Lookup for Map Centering
 const SRI_LANKA_DISTRICTS = {
@@ -321,9 +317,7 @@ function initServiceManagement() {
   }
 }
 
-// ==========================================
-// 2. Worker Profile & Avatar
-// ==========================================
+// worker profile & avatar
 
 function initProfilePhotoUpload() {
   const avatarClickable = $id('profile-avatar-clickable');
@@ -651,9 +645,7 @@ async function initWorkerProfilePage() {
   });
 }
 
-// ==========================================
-// 3. Subscription & Wallet Handlers
-// ==========================================
+// subscription & wallet handlers
 
 function initSubscriptionFlow() {
   document.querySelectorAll('.choose-plan-btn').forEach(btn => {
@@ -724,9 +716,7 @@ function initSubscriptionFlow() {
   }
 }
 
-// ==========================================
-// 4. Invoices & Marketplace Access Gating
-// ==========================================
+// invoices & marketplace access gating
 
 let workerModalMap = null;
 let workerModalMarker = null;
@@ -853,9 +843,7 @@ function updateInvoiceBreakdown() {
   if ($id('online-net-note')) $id('online-net-note').textContent = formatLKR(net).replace('Rs. ', '');
 }
 
-// ==========================================
-// 5. Jobs & Map Modal
-// ==========================================
+// jobs & map modal
 
 function initWorkerJobMapModal() {
   document.addEventListener('click', e => {
@@ -1132,9 +1120,7 @@ async function loadMyServicesForWorker() {
   }
 }
 
-// ==========================================
-// 6. Worker Settings & Wallet
-// ==========================================
+// worker settings & wallet
 
 async function initWorkerSettings() {
   const form = $id('worker-settings-form');
@@ -1358,9 +1344,7 @@ async function initWorkerWalletPage() {
   });
 }
 
-// ==========================================
-// 7. Dashboard Stats & Real Metrics
-// ==========================================
+// dashboard stats & real metrics
 
 async function loadWorkerDashboardStats() {
   if (!window.location.pathname.includes('worker/dashboard.html')) return;
@@ -1416,9 +1400,7 @@ async function loadWorkerDashboardStats() {
   }
 }
 
-// ==========================================
-// 8. Worker Reviews Management (Read-Only)
-// ==========================================
+// worker reviews management (read-only)
 
 function renderStarsHtml(score, size = 14) {
   const val = Math.min(5, Math.max(0, Math.round(Number(score) || 0)));

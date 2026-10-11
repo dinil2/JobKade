@@ -21,9 +21,7 @@ class InvoiceService {
         $this->walletService = $walletService ?? new WalletService();
     }
 
-    /**
-     * Check if a worker is assigned to or applied for a job.
-     */
+    // Check if a worker is assigned to or applied for a job.
     public function hasJobRelationship(int $workerId, int $jobId, array $job): bool {
         // Direct assignment check on job_requests if column exists
         if (isset($job['assigned_worker_id']) && (int)$job['assigned_worker_id'] === $workerId) {
@@ -52,13 +50,11 @@ class InvoiceService {
         return ((int)$stmt->fetchColumn()) > 0;
     }
 
-    /**
-     * Worker creates an invoice / adds the price for a customer job.
-     */
+    // Worker creates an invoice / adds the price for a customer job.
     public function createInvoice(int $workerId, array $data): array {
         $jobId = (int)($data["job_id"] ?? 0);
         if ($jobId <= 0) {
-            throw new InvalidArgumentException("A valid job ID is required.");
+            throw new InvalidArgumentException("Invalid job ID.");
         }
 
         $job = $this->jobRepo->getById($jobId);
@@ -68,11 +64,11 @@ class InvoiceService {
 
         $jobAmount = (float)($data["amount"] ?? $data["job_amount"] ?? $data["price"] ?? 0);
         if ($jobAmount <= 0) {
-            throw new InvalidArgumentException("Please specify a valid job price greater than 0.");
+            throw new InvalidArgumentException("Price must be greater than 0.");
         }
 
         if (in_array($job['status'], ['completed', 'cancelled'], true)) {
-            throw new InvalidArgumentException("Cannot invoice job #{$jobId} as it is already {$job['status']}.");
+            throw new InvalidArgumentException("Cannot invoice job #{$jobId} because it is {$job['status']}.");
         }
 
         // Verify or auto-establish worker relationship to the job
@@ -122,7 +118,7 @@ class InvoiceService {
         // Check for existing invoice on this job
         $existingInvoice = $this->invoiceRepo->getInvoiceByJobId($jobId);
         if ($existingInvoice && $existingInvoice['payment_status'] === 'paid') {
-            throw new InvalidArgumentException("Job #{$jobId} invoice has already been settled and paid.");
+            throw new InvalidArgumentException("Invoice for job #{$jobId} is already paid.");
         }
 
         if ($existingInvoice && $existingInvoice['payment_status'] === 'pending' && (int)$existingInvoice['worker_id'] === $workerId) {
@@ -172,9 +168,7 @@ class InvoiceService {
         ];
     }
 
-    /**
-     * Customer or Worker pays and settles the invoice.
-     */
+    // Customer or Worker pays and settles the invoice.
     public function payInvoice(int $invoiceId, string $paymentMethod, ?int $callerUserId = null, ?string $callerRole = null): array {
         if ($callerUserId !== null) {
             $invoice = $this->invoiceRepo->getInvoiceById($invoiceId);
@@ -194,7 +188,7 @@ class InvoiceService {
             $isAdmin = ($callerRole === 'admin');
 
             if (!$isCustomer && !$isWorker && !$isAdmin) {
-                throw new InvalidArgumentException("You are not authorized to settle this invoice.");
+                throw new InvalidArgumentException("Not authorized to settle this invoice.");
             }
         }
 

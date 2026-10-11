@@ -13,17 +13,13 @@ class MessageController {
         $this->msgService = $msgService ?? new MessageService();
     }
 
-    /**
-     * Authenticate request and extract user ID and role from JWT payload.
-     *
-     * @return array
-     */
+    // Authenticate request and extract user ID and role from JWT payload.
     private function authenticate(): array {
         $user = JWT::getAuthUser();
         if (!$user) {
             sendJsonResponse(401, [
                 'status'  => 'error',
-                'message' => 'Unauthorized. A valid JWT Bearer token is required to access messaging services.'
+                'message' => 'Unauthorized. Token required.'
             ]);
         }
 
@@ -31,7 +27,7 @@ class MessageController {
         if ($userId <= 0) {
             sendJsonResponse(401, [
                 'status'  => 'error',
-                'message' => 'Unauthorized. Invalid user payload inside JWT token.'
+                'message' => 'Unauthorized. Invalid token.'
             ]);
         }
 
@@ -42,10 +38,7 @@ class MessageController {
         ];
     }
 
-    /**
-     * POST /api/messages/send
-     * Accepts JSON: { receiver_id, job_id, message_text }
-     */
+    // POST /api/messages/send
     public function send(): void {
         $authUser = $this->authenticate();
         $authUserId = $authUser['user_id'];
@@ -78,10 +71,7 @@ class MessageController {
         }
     }
 
-    /**
-     * GET /api/messages/conversation?with_user_id={id}&job_id={id}
-     * Returns chronological messages in JSON format.
-     */
+    // GET /api/messages/conversation?with_user_id={id}&job_id={id}
     public function conversation(): void {
         $authUser = $this->authenticate();
         $authUserId = $authUser['user_id'];
@@ -93,7 +83,7 @@ class MessageController {
         if ($withUserId <= 0) {
             sendJsonResponse(400, [
                 'status'  => 'error',
-                'message' => 'Valid with_user_id or recipient_id query parameter is required.'
+                'message' => 'User ID is required.'
             ]);
         }
 
@@ -116,18 +106,12 @@ class MessageController {
         }
     }
 
-    /**
-     * Legacy alias for conversation() to support existing callers.
-     */
+    // Legacy alias for conversation() to support existing callers.
     public function thread(): void {
         $this->conversation();
     }
 
-    /**
-     * POST /api/messages/read
-     * Marks incoming messages from this user as read.
-     * Accepts JSON: { sender_id } or { with_user_id }
-     */
+    // POST /api/messages/read
     public function read(): void {
         $authUser = $this->authenticate();
         $authUserId = $authUser['user_id'];
@@ -138,7 +122,7 @@ class MessageController {
         if ($senderId <= 0) {
             sendJsonResponse(400, [
                 'status'  => 'error',
-                'message' => 'Valid sender_id, with_user_id, or recipient_id is required.'
+                'message' => 'User ID is required.'
             ]);
         }
 
@@ -162,10 +146,7 @@ class MessageController {
         }
     }
 
-    /**
-     * GET /api/messages/conversations
-     * Returns list of recent conversation threads with unread counts.
-     */
+    // GET /api/messages/conversations
     public function conversations(): void {
         $authUser = $this->authenticate();
         $authUserId = $authUser['user_id'];
@@ -184,10 +165,7 @@ class MessageController {
         }
     }
 
-    /**
-     * GET /api/messages/contact_info?user_id={id}
-     * Returns contact metadata for the chat header.
-     */
+    // GET /api/messages/contact_info?user_id={id}
     public function contactInfo(): void {
         $this->authenticate();
 
@@ -195,7 +173,7 @@ class MessageController {
         if ($targetUserId <= 0) {
             sendJsonResponse(400, [
                 'status'  => 'error',
-                'message' => 'Valid user_id or recipient_id query parameter is required.'
+                'message' => 'User ID is required.'
             ]);
         }
 

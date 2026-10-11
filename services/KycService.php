@@ -21,13 +21,10 @@ class KycService {
         $this->workerRepo = new WorkerRepository();
     }
 
-    /**
-     * Submit a KYC document for worker verification.
-     * Supports either an uploaded $_FILES array or a pre-uploaded/provided file path.
-     */
+    // Submit a KYC document for worker verification.
     public function submitDocument(int $workerId, array $data, ?array $file = null): array {
         if ($workerId <= 0) {
-            throw new InvalidArgumentException("Invalid worker ID provided.");
+            throw new InvalidArgumentException("Invalid worker ID.");
         }
 
         // Validate worker existence
@@ -49,28 +46,26 @@ class KycService {
 
         $filePath = null;
 
-        // 1. Handle uploaded file if present
         if ($file && isset($file['error']) && $file['error'] !== UPLOAD_ERR_NO_FILE) {
             if ($file['error'] !== UPLOAD_ERR_OK) {
                 throw new RuntimeException("File upload failed with error code: " . $file['error']);
             }
 
             if ($file['size'] > self::MAX_FILE_SIZE) {
-                throw new InvalidArgumentException("File size exceeds 5MB limit. Please upload a smaller file.");
+                throw new InvalidArgumentException("File exceeds 5MB.");
             }
 
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             if (!in_array($ext, self::ALLOWED_EXTENSIONS, true)) {
-                throw new InvalidArgumentException("Invalid file format. Allowed formats: PDF, PNG, JPG, JPEG.");
+                throw new InvalidArgumentException("Invalid file format. Use PDF, PNG, or JPG.");
             }
 
-            // Verify MIME type using finfo if available
             if (function_exists('finfo_open')) {
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 $mimeType = finfo_file($finfo, $file['tmp_name']);
                 finfo_close($finfo);
                 if (!in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
-                    throw new InvalidArgumentException("Security check failed: Invalid file MIME type ($mimeType).");
+                    throw new InvalidArgumentException("Invalid file type ($mimeType).");
                 }
             }
 
@@ -88,17 +83,12 @@ class KycService {
 
             $filePath = 'uploads/kyc/' . $uniqueName;
         } elseif (!empty($data['file_path']) || !empty($data['document_path'])) {
-            // Provided file path
             $filePath = trim((string)($data['file_path'] ?? $data['document_path']));
         } else {
-            // Default placeholder path for mock / test payload
             $filePath = 'uploads/kyc/doc_sample_' . time() . '.pdf';
         }
 
-        // Persist record
         $docId = $this->kycRepo->createKycRecord($workerId, $docType, $docName, $filePath);
-
-        // Update worker profile verification status to 'pending'
         $this->workerRepo->updateVerificationStatus($workerId, 'pending');
 
         return [
@@ -111,16 +101,12 @@ class KycService {
         ];
     }
 
-    /**
-     * Retrieve all documents for a worker with human-friendly descriptions.
-     */
+    // Retrieve all documents for a worker with human-friendly descriptions.
     public function getWorkerDocuments(int $workerId): array {
         return $this->kycRepo->getDocumentsByWorkerId($workerId);
     }
 
-    /**
-     * Get computed KYC status summary for a worker.
-     */
+    // Get computed KYC status summary for a worker.
     public function getWorkerStatus(int $workerId): array {
         $profile = $this->workerRepo->getProfileById($workerId);
         if (!$profile) {

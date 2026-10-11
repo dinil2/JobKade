@@ -12,17 +12,13 @@ class NotificationController {
         $this->notifService = $notifService ?? new NotificationService();
     }
 
-    /**
-     * Authenticate JWT Bearer token and extract user ID.
-     *
-     * @return array
-     */
+    // Authenticate JWT Bearer token and extract user ID.
     private function authenticate(): array {
         $user = JWT::getAuthUser();
         if (!$user) {
             sendJsonResponse(401, [
                 'status'  => 'error',
-                'message' => 'Unauthorized. A valid JWT Bearer token is required.'
+                'message' => 'Unauthorized. Token required.'
             ]);
         }
 
@@ -30,7 +26,7 @@ class NotificationController {
         if ($userId <= 0) {
             sendJsonResponse(401, [
                 'status'  => 'error',
-                'message' => 'Unauthorized. Invalid user payload inside JWT token.'
+                'message' => 'Unauthorized. Invalid token.'
             ]);
         }
 
@@ -41,11 +37,7 @@ class NotificationController {
         ];
     }
 
-    /**
-     * GET ?action=list
-     * Returns logged-in user's notifications ordered by newest first:
-     * id, title, message, type, is_read, created_at
-     */
+    // GET ?action=list
     public function list(): void {
         $authUser = $this->authenticate();
 
@@ -64,10 +56,7 @@ class NotificationController {
         }
     }
 
-    /**
-     * POST ?action=read-all
-     * Marks all notifications of logged-in user as read.
-     */
+    // POST ?action=read-all
     public function readAll(): void {
         $authUser = $this->authenticate();
 

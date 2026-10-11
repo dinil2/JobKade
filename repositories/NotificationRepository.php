@@ -10,16 +10,7 @@ class NotificationRepository {
         $this->db = $db ?? Database::getConnection();
     }
 
-    /**
-     * Create a new notification for a user.
-     *
-     * @param int $userId
-     * @param string $title
-     * @param string $message
-     * @param string $type
-     * @param int $isRead
-     * @return int
-     */
+    // Create a new notification for a user.
     public function create(int $userId, string $title, string $message, string $type = 'system', int $isRead = 0): int {
         $stmt = $this->db->prepare("
             INSERT INTO notifications (user_id, title, message, type, is_read)
@@ -35,13 +26,7 @@ class NotificationRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    /**
-     * Get user notifications ordered by newest first.
-     *
-     * @param int $userId
-     * @param int $limit
-     * @return array
-     */
+    // Get user notifications ordered by newest first.
     public function getByUserId(int $userId, int $limit = 50): array {
         $stmt = $this->db->prepare("
             SELECT id, title, message, type, is_read, created_at
@@ -62,12 +47,7 @@ class NotificationRepository {
         }, $results);
     }
 
-    /**
-     * Mark all notifications for a user as read.
-     *
-     * @param int $userId
-     * @return bool
-     */
+    // Mark all notifications for a user as read.
     public function markAllAsRead(int $userId): bool {
         $stmt = $this->db->prepare("
             UPDATE notifications
@@ -77,12 +57,7 @@ class NotificationRepository {
         return $stmt->execute([':uid' => $userId]);
     }
 
-    /**
-     * Count unread notifications for a user.
-     *
-     * @param int $userId
-     * @return int
-     */
+    // Count unread notifications for a user.
     public function getUnreadCount(int $userId): int {
         $stmt = $this->db->prepare("
             SELECT COUNT(*)

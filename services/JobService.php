@@ -22,33 +22,33 @@ class JobService {
         $photo = $data['photo_path'] ?? null;
 
         if (empty($title) || strlen($title) < 3 || strlen($title) > 150) {
-            throw new InvalidArgumentException("Job title is required and must be between 3 and 150 characters.");
+            throw new InvalidArgumentException("Job title must be 3 to 150 characters.");
         }
 
         if (empty($description) || strlen($description) < 10 || strlen($description) > 3000) {
-            throw new InvalidArgumentException("Job description must be between 10 and 3,000 characters.");
+            throw new InvalidArgumentException("Job description must be 10 to 3000 characters.");
         }
 
         if ($categoryId <= 0) {
-            throw new InvalidArgumentException("Please select a valid service category.");
+            throw new InvalidArgumentException("Select a valid service category.");
         }
 
         if (empty($address) || strlen($address) < 2 || strlen($address) > 255) {
-            throw new InvalidArgumentException("Please provide a valid location/address (2-255 characters).");
+            throw new InvalidArgumentException("Enter a valid location.");
         }
 
         $latRaw = $data['latitude'] ?? $data['lat'] ?? 6.9271;
         $lngRaw = $data['longitude'] ?? $data['lng'] ?? 79.8612;
 
         if (!is_numeric($latRaw) || !is_numeric($lngRaw)) {
-            throw new InvalidArgumentException("Valid geographic coordinates (latitude and longitude) are required.");
+            throw new InvalidArgumentException("Coordinates are required.");
         }
 
         $lat = (float)$latRaw;
         $lng = (float)$lngRaw;
 
         if ($lat < -90.0 || $lat > 90.0 || $lng < -180.0 || $lng > 180.0) {
-            throw new InvalidArgumentException("Geographic coordinates are out of valid range.");
+            throw new InvalidArgumentException("Coordinates are out of range.");
         }
 
         $district = trim(strip_tags((string)($data['district'] ?? 'Colombo')));
@@ -90,7 +90,7 @@ class JobService {
         $amount = (float)($data['quote_amount'] ?? 0);
 
         if ($amount <= 0) {
-            throw new InvalidArgumentException("Please specify a valid quote amount.");
+            throw new InvalidArgumentException("Enter a valid quote amount.");
         }
 
         $appId = $this->jobRepo->applyForJob($jobId, $workerId, $note, $amount);

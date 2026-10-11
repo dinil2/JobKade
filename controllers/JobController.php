@@ -141,10 +141,7 @@ class JobController {
         }
     }
 
-    /**
-     * POST /api/jobs.php?action=create-invoice
-     * Worker adds final price for customer job.
-     */
+    // POST /api/jobs.php?action=create-invoice
     public function createInvoice(): void {
         $user = JWT::getAuthUser();
         if (!$user || $user['role'] !== 'worker' || empty($user['worker_id'])) {
@@ -162,14 +159,11 @@ class JobController {
         }
     }
 
-    /**
-     * POST /api/jobs.php?action=pay-invoice
-     * Customer settles invoice (online or cash) with wallet impact.
-     */
+    // POST /api/jobs.php?action=pay-invoice
     public function payInvoice(): void {
         $user = JWT::getAuthUser();
         if (!$user) {
-            sendJsonResponse(401, ['status' => 'error', 'message' => 'Authentication required to pay invoice.']);
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Authentication required.']);
         }
 
         $data = getRequestData();
@@ -177,7 +171,7 @@ class JobController {
         $method = (string)($data['payment_method'] ?? 'online');
 
         if ($invoiceId <= 0) {
-            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid invoice_id is required.']);
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Invoice ID is required.']);
         }
 
         try {
@@ -195,9 +189,7 @@ class JobController {
         }
     }
 
-    /**
-     * GET /api/jobs.php?action=invoices
-     */
+    // GET /api/jobs.php?action=invoices
     public function invoices(): void {
         $user = JWT::getAuthUser();
         if (!$user) {

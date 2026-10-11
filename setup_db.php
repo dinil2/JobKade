@@ -21,7 +21,7 @@ if (!$isCli) {
         .error { background: #450a0a; color: #fca5a5; border-left: 4px solid #ef4444; }
         .btn { display: inline-block; margin-top: 18px; padding: 10px 20px; background: #0284c7; color: white; border-radius: 6px; text-decoration: none; font-weight: bold; }
         .btn:hover { background: #0369a1; }
-    </style></head><body><div class='card'><h1>🛠️ Job Kade Database Auto-Migration</h1>";
+    </style></head><body><div class='card'><h1>Job Kade Database Auto-Migration</h1>";
 }
 
 function logMsg($msg, $type = 'info') {

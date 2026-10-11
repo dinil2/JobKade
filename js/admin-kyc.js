@@ -33,9 +33,7 @@ function showToastMessage(msg, type) {
 
 const $id = id => document.getElementById(id);
 
-// ----------------------------------------------------
-// Initialization
-// ----------------------------------------------------
+// initialization
 document.addEventListener('DOMContentLoaded', async function () {
   const user = (typeof requireAuth === 'function') ? requireAuth('admin') : null;
   if (!user) return;
@@ -87,9 +85,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   loadKycQueue();
 });
 
-// ----------------------------------------------------
-// Stats & Queue Loading
-// ----------------------------------------------------
+// stats & queue loading
 async function loadStats() {
   try {
     const { ok, data } = await adminApi('action=stats');
@@ -279,9 +275,7 @@ function filterAndRenderTable(query) {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// ----------------------------------------------------
-// Single Document Approval & Rejection
-// ----------------------------------------------------
+// single document approval & rejection
 async function handleApprove(kycId, workerName) {
   if (!confirm(`Are you sure you want to APPROVE KYC verification for ${workerName}? This will award the Verified Worker Badge and full bidding access.`)) {
     return;
@@ -371,9 +365,7 @@ async function handleRejectConfirm() {
   }
 }
 
-// ----------------------------------------------------
-// Document Viewer Modal
-// ----------------------------------------------------
+// document viewer modal
 function openViewerModal(filePath, workerName, docType, dateStr) {
   const modal = $id('docViewerModal');
   const content = $id('viewerContent');
@@ -406,9 +398,7 @@ function closeViewerModal() {
   if ($id('viewerContent')) $id('viewerContent').innerHTML = '';
 }
 
-// ----------------------------------------------------
-// Worker Dossier Modal (Police, Selfie & ID)
-// ----------------------------------------------------
+// worker dossier modal (police, selfie & id)
 async function openWorkerDossier(workerId, workerName) {
   const modal = $id('workerDossierModal');
   const workerNameElem = $id('dossierWorkerName');

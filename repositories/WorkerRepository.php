@@ -233,16 +233,7 @@ class WorkerRepository {
         return $row ? (int)$row['id'] : null;
     }
 
-    /**
-     * Search verified workers with optional trade category.
-     * Coordinates/distance calculations are ignored.
-     * Ordered by rating_avg DESC, is_verified DESC only.
-     *
-     * @param float|null $lat
-     * @param float|null $lng
-     * @param int|null $categoryId
-     * @return array
-     */
+    // Search verified workers with optional trade category.
     public function searchWorkers(?float $lat = null, ?float $lng = null, ?int $categoryId = null, ?string $district = null): array {
         $params = [];
 

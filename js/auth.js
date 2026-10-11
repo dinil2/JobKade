@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initPasswordToggles();
 });
 
-// ==========================================
-// Reusable Utilities & Helpers
-// ==========================================
+// reusable utilities & helpers
 
 function getAppUrl(path = '') {
   const prefix = window.location.pathname.includes('/auth/') ? '../' : './';
@@ -81,9 +79,7 @@ function scrollAuthPanelToTop() {
   if (leftPanel) leftPanel.scrollTop = 0;
 }
 
-// ==========================================
-// 1. Role Selection (Register page)
-// ==========================================
+// role selection (register page)
 
 function initRoleSelection() {
   const roleCards = document.querySelectorAll('.role-card, .role-select-box');
@@ -127,9 +123,7 @@ function initRoleSelection() {
   });
 }
 
-// ==========================================
-// 2. Login Form
-// ==========================================
+// login form
 
 function initLoginForm() {
   const loginForm = document.getElementById('login-form');
@@ -176,9 +170,7 @@ function initLoginForm() {
   });
 }
 
-// ==========================================
-// 3. Registration Forms (Worker & Customer)
-// ==========================================
+// registration forms (worker & customer)
 
 function initRegisterForms() {
   const registerForms = document.querySelectorAll('.register-form');
@@ -394,9 +386,7 @@ async function handleCustomerRegistration(form, data) {
   );
 }
 
-// ==========================================
-// 4. File Upload Previews (NIC, Police, Qual, Photo)
-// ==========================================
+// file upload previews (nic, police, qual, photo)
 
 function initUploadPreviews() {
   function setupUploadPreview(inputId, dropzoneId, labelTextId, defaultText) {
@@ -444,9 +434,7 @@ function initUploadPreviews() {
   }
 }
 
-// ==========================================
-// 5. Password Visibility Toggle
-// ==========================================
+// password visibility toggle
 
 function initPasswordToggles() {
   const togglePwBtns = document.querySelectorAll('.toggle-password');

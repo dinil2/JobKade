@@ -10,10 +10,7 @@ class WalletRepository {
         $this->db = Database::getConnection();
     }
 
-    /**
-     * Resolve the worker profile ID given either a worker profile ID or user ID.
-     * Prioritizes worker_profiles.id over user_id.
-     */
+    // Resolve the worker profile ID given either a worker profile ID or user ID.
     public function resolveProfileId(int $workerId): ?int {
         $stmt = $this->db->prepare("SELECT id FROM worker_profiles WHERE id = ? OR user_id = ? ORDER BY (id = ?) DESC LIMIT 1");
         $stmt->execute([$workerId, $workerId, $workerId]);
@@ -21,9 +18,7 @@ class WalletRepository {
         return $val !== false ? (int)$val : null;
     }
 
-    /**
-     * Get worker wallet balance and summary metrics.
-     */
+    // Get worker wallet balance and summary metrics.
     public function getWallet(int $workerId): ?array {
         $profileId = $this->resolveProfileId($workerId);
         if (!$profileId) return null;
@@ -54,9 +49,7 @@ class WalletRepository {
         return $row ?: null;
     }
 
-    /**
-     * Check if a worker has an active subscription.
-     */
+    // Check if a worker has an active subscription.
     public function hasActiveSubscription(int $workerId): bool {
         $profileId = $this->resolveProfileId($workerId);
         if (!$profileId) return false;
@@ -71,9 +64,7 @@ class WalletRepository {
         return ((int)$stmt->fetchColumn()) > 0;
     }
 
-    /**
-     * Check if worker has job viewing access (either one-time payment or active subscription).
-     */
+    // Check if worker has job viewing access (either one-time payment or active subscription).
     public function hasJobAccess(int $workerId): bool {
         $profileId = $this->resolveProfileId($workerId);
         if (!$profileId) return false;
@@ -87,9 +78,7 @@ class WalletRepository {
         return $this->hasActiveSubscription((int)$row["id"]);
     }
 
-    /**
-     * Set job access flag for a worker.
-     */
+    // Set job access flag for a worker.
     public function setJobAccess(int $workerId, bool $access = true): bool {
         $profileId = $this->resolveProfileId($workerId);
         if (!$profileId) return false;
@@ -104,9 +93,7 @@ class WalletRepository {
         ]);
     }
 
-    /**
-     * Record a transaction and atomically update the worker wallet balance.
-     */
+    // Record a transaction and atomically update the worker wallet balance.
     public function applyTransaction(
         int $workerId,
         float $deltaAmount,
@@ -214,9 +201,7 @@ class WalletRepository {
         }
     }
 
-    /**
-     * Get transaction history for a worker.
-     */
+    // Get transaction history for a worker.
     public function getTransactions(int $workerId, int $limit = 50): array {
         $profileId = $this->resolveProfileId($workerId);
         if (!$profileId) return [];

@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!user) return;
 
   // 1. Profile & Session Info
-  const workerName = user.name || user.full_name || 'Kasun Perera';
+  const workerName = user.name || user.full_name || 'Worker';
   const initials = workerName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'KP';
 
   const $id = id => document.getElementById(id);
@@ -302,9 +302,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let uploadedCount = 0;
 
     const statusBadgeMap = {
-      approved: { cls: 'badge-approved', text: 'Approved ✓' },
-      rejected: { cls: 'badge-rejected', text: 'Rejected ⚠️' },
-      pending:  { cls: 'badge-pending',  text: 'Pending Review ⏳' }
+      approved: { cls: 'badge-approved', text: 'Approved' },
+      rejected: { cls: 'badge-rejected', text: 'Rejected' },
+      pending:  { cls: 'badge-pending',  text: 'Pending Review' }
     };
 
     DOC_TYPES.forEach(type => {
@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const progressStat = $id('kycProgressStat');
     if (progressFill) progressFill.style.width = percent + '%';
     if (progressStat) {
-      progressStat.textContent = uploadedCount === 4 ? '4 of 4 Documents Uploaded (Complete! 🎉)' : `${uploadedCount} of 4 Documents Uploaded`;
+      progressStat.textContent = uploadedCount === 4 ? '4 of 4 Documents Uploaded (Complete)' : `${uploadedCount} of 4 Documents Uploaded`;
       progressStat.style.color = uploadedCount >= 3 ? '#059669' : '#2563eb';
     }
 
@@ -388,21 +388,21 @@ document.addEventListener('DOMContentLoaded', function () {
       verified: {
         cls: 'kyc-status-card verified',
         icon: '<i data-lucide="shield-check" width="32" height="32" style="color:#059669;"></i>',
-        title: 'Verified Professional Worker ✓',
+        title: 'Verified Professional Worker',
         desc: 'All required verification credentials have been approved by administrators. You enjoy top marketplace ranking and official badge.',
         badgeCls: 'badge badge-approved', badgeText: 'Verified'
       },
       rejected: {
         cls: 'kyc-status-card rejected',
         icon: '<i data-lucide="alert-circle" width="32" height="32" style="color:#dc2626;"></i>',
-        title: 'Action Required: Re-submission Needed ⚠️',
+        title: 'Action Required: Re-submission Needed',
         desc: 'One or more of your documents were not approved. Check the feedback on the rejected card above, re-upload a clear file, and submit for re-review.',
         badgeCls: 'badge badge-rejected', badgeText: 'Rejected'
       },
       allSubmitted: {
         cls: 'kyc-status-card pending',
         icon: '<i data-lucide="clock" width="32" height="32" style="color:#d97706;"></i>',
-        title: 'Documents Submitted — Under Review ⏳',
+        title: 'Documents Submitted — Under Review',
         desc: 'Your verification packet is currently being reviewed by administrators. Verifications typically conclude within 12–24 hours.',
         badgeCls: 'badge badge-pending', badgeText: 'Under Review'
       },

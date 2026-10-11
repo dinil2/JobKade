@@ -19,29 +19,17 @@ class AdminService {
         $this->db = Database::getConnection();
     }
 
-    /**
-     * Retrieve all pending KYC verification requests.
-     */
+    // Retrieve all pending KYC verification requests.
     public function getPendingKycList(): array {
         return $this->kycRepo->getPendingKycList();
     }
 
-    /**
-     * Retrieve KYC requests by status filter.
-     */
+    // Retrieve KYC requests by status filter.
     public function getKycByStatus(string $status): array {
         return $this->kycRepo->getAllByStatus($status);
     }
 
-    /**
-     * Review and verify a KYC document (Approve or Reject).
-     *
-     * @param int $kycId
-     * @param string $status 'approved' or 'rejected'
-     * @param string|null $notes Admin feedback / rejection reason
-     * @param int $adminId ID of the reviewing administrator
-     * @return array
-     */
+    // Review and verify a KYC document (Approve or Reject).
     public function verifyKyc(int $kycId, string $status, ?string $notes, int $adminId): array {
         if ($kycId <= 0) {
             throw new InvalidArgumentException("Invalid KYC document ID.");
@@ -113,9 +101,7 @@ class AdminService {
         ];
     }
 
-    /**
-     * Verify all KYC documents for a worker at once (NIC, Police Report, Selfie packet).
-     */
+    // Verify all KYC documents for a worker at once (NIC, Police Report, Selfie packet).
     public function verifyWorkerPacket(int $workerId, string $status, ?string $notes, int $adminId): array {
         if ($workerId <= 0) {
             throw new InvalidArgumentException("Invalid worker ID provided.");
@@ -171,9 +157,7 @@ class AdminService {
         ];
     }
 
-    /**
-     * Retrieve platform analytics for charts.
-     */
+    // Retrieve platform analytics for charts.
     public function getAnalytics(): array {
         $labels = [];
         $monthsKeys = [];

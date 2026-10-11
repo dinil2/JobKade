@@ -25,18 +25,14 @@ class WalletService {
         $this->invoiceRepo = $invoiceRepo ?? new InvoiceRepository();
     }
 
-    /**
-     * Get commission rate for a worker (5% if subscribed, 10% if standard).
-     */
+    // Get commission rate for a worker (5% if subscribed, 10% if standard).
     public function getCommissionRate(int $workerId): float {
         return $this->walletRepo->hasActiveSubscription($workerId)
             ? self::SUBSCRIBED_COMMISSION_RATE
             : self::STANDARD_COMMISSION_RATE;
     }
 
-    /**
-     * Compute fee breakdown for a specific job amount.
-     */
+    // Compute fee breakdown for a specific job amount.
     public function calculateBreakdown(int $workerId, float $jobAmount): array {
         if ($jobAmount <= 0) {
             throw new InvalidArgumentException("Job amount must be greater than zero.");
@@ -57,11 +53,7 @@ class WalletService {
         ];
     }
 
-    /**
-     * Process settlement for a paid invoice according to payment method.
-     * Online -> + (Net Earnings credited after platform retains commission)
-     * Cash   -> - (Platform Commission debited from worker wallet)
-     */
+    // Process settlement for a paid invoice according to payment method.
     public function settleInvoice(int $invoiceId, string $paymentMethod): array {
         $pdo = Database::getConnection();
         $ownsTx = false;
@@ -151,9 +143,7 @@ class WalletService {
         }
     }
 
-    /**
-     * Activate worker one-time job viewing access pass.
-     */
+    // Activate worker one-time job viewing access pass.
     public function activateJobAccess(int $workerId, string $paymentMethod = "online"): array {
         $this->walletRepo->setJobAccess($workerId, true);
 
@@ -176,9 +166,7 @@ class WalletService {
         ];
     }
 
-    /**
-     * Get worker wallet balance, commission status, and recent transactions.
-     */
+    // Get worker wallet balance, commission status, and recent transactions.
     public function getWorkerWalletDetails(int $workerId): array {
         $wallet = $this->walletRepo->getWallet($workerId);
         if (!$wallet) {
@@ -204,13 +192,11 @@ class WalletService {
         ];
     }
 
-    /**
-     * Worker requests withdrawal of earned wallet balance to bank account.
-     */
+    // Worker requests withdrawal of earned wallet balance to bank account.
     public function requestPayout(int $workerId, array $data): array {
         $amount = (float)($data['amount'] ?? 0);
         if ($amount < 1000) {
-            throw new InvalidArgumentException("Minimum withdrawal payout amount is Rs. 1,000.");
+            throw new InvalidArgumentException("Minimum withdrawal is Rs. 1,000.");
         }
 
         $bankName = trim(strip_tags((string)($data['bank_name'] ?? '')));
@@ -219,13 +205,13 @@ class WalletService {
         $branch = trim(strip_tags((string)($data['branch'] ?? '')));
 
         if (empty($bankName) || empty($accountNumber) || empty($accountName)) {
-            throw new InvalidArgumentException("Bank name, account number, and account holder name are mandatory.");
+            throw new InvalidArgumentException("Bank name, account number, and holder name are required.");
         }
 
         $wallet = $this->walletRepo->getWallet($workerId);
         if (!$wallet || (float)$wallet['wallet_balance'] < $amount) {
             $available = $wallet ? number_format((float)$wallet['wallet_balance'], 2) : '0.00';
-            throw new InvalidArgumentException("Insufficient available balance. Your balance is Rs. $available.");
+            throw new InvalidArgumentException("Insufficient balance. Current balance is Rs. $available.");
         }
 
         // Apply withdrawal deduction to wallet
@@ -270,12 +256,10 @@ class WalletService {
         ];
     }
 
-    /**
-     * Top-up worker wallet balance (e.g. to clear negative commission balance).
-     */
+    // Top-up worker wallet balance (e.g. to clear negative commission balance).
     public function topUp(int $workerId, float $amount, string $method = 'online'): array {
         if ($amount < 100) {
-            throw new InvalidArgumentException("Minimum top-up amount is Rs. 100.");
+            throw new InvalidArgumentException("Minimum top-up is Rs. 100.");
         }
 
         $tx = $this->walletRepo->applyTransaction(

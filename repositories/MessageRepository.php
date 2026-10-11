@@ -11,15 +11,7 @@ class MessageRepository {
         $this->db = Database::getConnection();
     }
 
-    /**
-     * Save a new message to the database.
-     *
-     * @param int $senderId
-     * @param int $receiverId
-     * @param int|null $jobId
-     * @param string $text
-     * @return int Inserted msg_id
-     */
+    // Save a new message to the database.
     public function saveMessage(int $senderId, int $receiverId, ?int $jobId, string $text): int {
         $stmt = $this->db->prepare("
             INSERT INTO messages (sender_id, receiver_id, job_id, message_text, is_read, created_at)
@@ -35,19 +27,12 @@ class MessageRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    /**
-     * Legacy alias for saveMessage to preserve backward compatibility.
-     */
+    // Legacy alias for saveMessage to preserve backward compatibility.
     public function sendMessage(int $senderId, int $receiverId, string $messageText, ?int $jobId = null): int {
         return $this->saveMessage($senderId, $receiverId, $jobId, $messageText);
     }
 
-    /**
-     * Get a single message by primary key msg_id.
-     *
-     * @param int $msgId
-     * @return array|null
-     */
+    // Get a single message by primary key msg_id.
     public function getMessageById(int $msgId): ?array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -74,14 +59,7 @@ class MessageRepository {
         return $row ?: null;
     }
 
-    /**
-     * Get full chronological conversation between two users, optionally filtered by job_id.
-     *
-     * @param int $userId1
-     * @param int $userId2
-     * @param int|null $jobId
-     * @return array
-     */
+    // Get full chronological conversation between two users, optionally filtered by job_id.
     public function getConversation(int $userId1, int $userId2, ?int $jobId = null): array {
         $sql = "
             SELECT 
@@ -123,20 +101,12 @@ class MessageRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Legacy alias for getConversation.
-     */
+    // Legacy alias for getConversation.
     public function getThread(int $userId1, int $userId2): array {
         return $this->getConversation($userId1, $userId2);
     }
 
-    /**
-     * Mark all unread messages sent by $senderId to $receiverId as read.
-     *
-     * @param int $senderId The user who sent the incoming messages
-     * @param int $receiverId The authenticated user who received them
-     * @return bool
-     */
+    // Mark all unread messages sent by $senderId to $receiverId as read.
     public function markAsRead(int $senderId, int $receiverId): bool {
         $stmt = $this->db->prepare("
             UPDATE messages
@@ -151,12 +121,7 @@ class MessageRepository {
         ]);
     }
 
-    /**
-     * Retrieve all active conversation threads for a specific user with unread counts.
-     *
-     * @param int $userId
-     * @return array
-     */
+    // Retrieve all active conversation threads for a specific user with unread counts.
     public function getUserConversations(int $userId): array {
         $stmt = $this->db->prepare("
             SELECT 
@@ -195,12 +160,7 @@ class MessageRepository {
         return $stmt->fetchAll();
     }
 
-    /**
-     * Retrieve contact details for a chat participant.
-     *
-     * @param int $userId
-     * @return array|null
-     */
+    // Retrieve contact details for a chat participant.
     public function getContactInfo(int $userId): ?array {
         $stmt = $this->db->prepare("
             SELECT 

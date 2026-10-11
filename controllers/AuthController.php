@@ -47,7 +47,7 @@ class AuthController {
     public function me(): void {
         $user = JWT::getAuthUser();
         if (!$user) {
-            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please provide a valid Bearer token.']);
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Bearer token required.']);
         }
         $fullUser = $this->authService->me($user['user_id']);
         sendJsonResponse(200, ['status' => 'success', 'user' => $fullUser]);
@@ -56,7 +56,7 @@ class AuthController {
     public function updateProfile(): void {
         $user = JWT::getAuthUser();
         if (!$user) {
-            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login first.']);
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login.']);
         }
 
         $data = getRequestData();
@@ -73,7 +73,7 @@ class AuthController {
     public function changePassword(): void {
         $user = JWT::getAuthUser();
         if (!$user) {
-            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login first.']);
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login.']);
         }
 
         $data = getRequestData();
@@ -93,7 +93,7 @@ class AuthController {
     public function uploadProfilePhoto(): void {
         $user = JWT::getAuthUser();
         if (!$user) {
-            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login first.']);
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Unauthorized. Please login.']);
         }
 
         $file = null;

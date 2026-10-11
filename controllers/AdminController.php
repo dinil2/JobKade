@@ -72,9 +72,7 @@ class AdminController {
         ]);
     }
 
-    /**
-     * Endpoint: GET /api/admin/kyc/pending or ?action=kyc-pending
-     */
+    // Endpoint: GET /api/admin/kyc/pending or ?action=kyc-pending
     public function kycPending(): void {
         $this->requireAdmin();
         $pending = $this->adminService->getPendingKycList();
@@ -85,16 +83,12 @@ class AdminController {
         ]);
     }
 
-    /**
-     * Backward-compatible alias for kycPending.
-     */
+    // Backward-compatible alias for kycPending.
     public function kycQueue(): void {
         $this->kycPending();
     }
 
-    /**
-     * Endpoint: GET /api/admin/kyc/counts or ?action=kyc-counts
-     */
+    // Endpoint: GET /api/admin/kyc/counts or ?action=kyc-counts
     public function kycCounts(): void {
         $this->requireAdmin();
         $db = Database::getConnection();
@@ -112,9 +106,7 @@ class AdminController {
         ]);
     }
 
-    /**
-     * Endpoint: GET /api/admin/kyc/list?status=...
-     */
+    // Endpoint: GET /api/admin/kyc/list?status=...
     public function kycList(): void {
         $this->requireAdmin();
         $status = $_GET['status'] ?? 'pending';
@@ -126,9 +118,7 @@ class AdminController {
         ]);
     }
 
-    /**
-     * Endpoint: POST /api/admin/kyc/verify or ?action=kyc-verify
-     */
+    // Endpoint: POST /api/admin/kyc/verify or ?action=kyc-verify
     public function kycVerify(): void {
         $admin = $this->requireAdmin();
         $data = getRequestData();
@@ -153,9 +143,7 @@ class AdminController {
         }
     }
 
-    /**
-     * Endpoint: GET /api/admin/kyc/packet?worker_id=...
-     */
+    // Endpoint: GET /api/admin/kyc/packet?worker_id=...
     public function kycWorkerPacket(): void {
         $this->requireAdmin();
         $workerId = (int)($_GET['worker_id'] ?? 0);
@@ -174,9 +162,7 @@ class AdminController {
         ]);
     }
 
-    /**
-     * Backward-compatible alias for kycVerify.
-     */
+    // Backward-compatible alias for kycVerify.
     public function reviewKyc(): void {
         $this->kycVerify();
     }

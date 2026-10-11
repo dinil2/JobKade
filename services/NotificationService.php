@@ -10,15 +10,10 @@ class NotificationService {
         $this->notifRepo = $notifRepo ?? new NotificationRepository();
     }
 
-    /**
-     * Retrieve user notifications and unread count.
-     *
-     * @param int $userId
-     * @return array
-     */
+    // Retrieve user notifications and unread count.
     public function getUserNotifications(int $userId): array {
         if ($userId <= 0) {
-            throw new InvalidArgumentException("Invalid user ID provided.");
+            throw new InvalidArgumentException("Invalid user ID.");
         }
 
         $notifications = $this->notifRepo->getByUserId($userId);
@@ -30,32 +25,19 @@ class NotificationService {
         ];
     }
 
-    /**
-     * Mark all notifications for a user as read.
-     *
-     * @param int $userId
-     * @return bool
-     */
+    // Mark all notifications for a user as read.
     public function markAllAsRead(int $userId): bool {
         if ($userId <= 0) {
-            throw new InvalidArgumentException("Invalid user ID provided.");
+            throw new InvalidArgumentException("Invalid user ID.");
         }
 
         return $this->notifRepo->markAllAsRead($userId);
     }
 
-    /**
-     * Create a notification for a user.
-     *
-     * @param int $userId
-     * @param string $title
-     * @param string $message
-     * @param string $type
-     * @return int
-     */
+    // Create a notification for a user.
     public function createNotification(int $userId, string $title, string $message, string $type = 'system'): int {
         if ($userId <= 0) {
-            throw new InvalidArgumentException("Invalid user ID provided.");
+            throw new InvalidArgumentException("Invalid user ID.");
         }
 
         return $this->notifRepo->create($userId, $title, $message, $type, 0);

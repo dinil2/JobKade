@@ -33,15 +33,15 @@ class AuthService {
         }
 
         if (empty($fullName) || strlen($fullName) < 2) {
-            throw new InvalidArgumentException("Full name is required (at least 2 characters).");
+            throw new InvalidArgumentException("Name must be at least 2 characters.");
         }
 
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException("A valid email address is required.");
+            throw new InvalidArgumentException("Enter a valid email.");
         }
 
         if (strlen($password) < 6) {
-            throw new InvalidArgumentException("Password must be at least 6 characters long.");
+            throw new InvalidArgumentException("Password must be at least 6 characters.");
         }
 
         if (empty($phone)) {
@@ -51,7 +51,7 @@ class AuthService {
         if ($role === 'worker') {
             $nic = trim((string)($data['nic'] ?? ''));
             if (empty($nic)) {
-                throw new InvalidArgumentException("National Identity Card (NIC) number is mandatory for worker registration.");
+                throw new InvalidArgumentException("NIC number is required.");
             }
         }
 
@@ -60,7 +60,7 @@ class AuthService {
         }
 
         if ($this->userRepo->findByEmail($email)) {
-            throw new Exception("A user with this email address already exists.");
+            throw new Exception("Email is already registered.");
         }
 
         if ($this->userRepo->findByUsername($username)) {
@@ -234,11 +234,11 @@ class AuthService {
 
         if ($file && isset($file['error']) && $file['error'] === UPLOAD_ERR_OK) {
             if ($file['size'] > self::MAX_FILE_SIZE) {
-                throw new InvalidArgumentException("File {$file['name']} exceeds 5MB limit.");
+                throw new InvalidArgumentException("File {$file['name']} exceeds 5MB.");
             }
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             if (!in_array($ext, self::ALLOWED_EXTS, true)) {
-                throw new InvalidArgumentException("Invalid file format for {$file['name']}. Allowed: PDF, PNG, JPG, JPEG.");
+                throw new InvalidArgumentException("Invalid file format for {$file['name']}. Use PDF, PNG, or JPG.");
             }
             $uniqueName = $prefix . '_' . $workerId . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
             $dest = $uploadDir . '/' . $uniqueName;
@@ -254,7 +254,7 @@ class AuthService {
             }
         }
 
-        throw new InvalidArgumentException("A valid {$prefix} file upload or approved path starting with 'uploads/kyc/' is required.");
+        throw new InvalidArgumentException("Valid {$prefix} file upload is required.");
     }
 
     public function login(string $email, string $password): array {
@@ -268,7 +268,7 @@ class AuthService {
         }
 
         if ($user['status'] === 'suspended') {
-            throw new Exception("This account has been suspended by administration.");
+            throw new Exception("This account is suspended.");
         }
 
         $isValid = password_verify($password, $user['password_hash']);
@@ -327,7 +327,7 @@ class AuthService {
         if (isset($data['full_name']) || isset($data['name'])) {
             $name = trim(strip_tags((string)($data['full_name'] ?? $data['name'])));
             if (empty($name) || strlen($name) < 2) {
-                throw new InvalidArgumentException("Full name must be at least 2 characters.");
+                throw new InvalidArgumentException("Name must be at least 2 characters.");
             }
             $clean['full_name'] = $name;
         }
@@ -335,7 +335,7 @@ class AuthService {
         if (isset($data['phone'])) {
             $phone = trim(strip_tags((string)$data['phone']));
             if (!empty($phone) && !preg_match('/^[0-9+\s-]{9,15}$/', $phone)) {
-                throw new InvalidArgumentException("Please provide a valid phone number (9-15 digits).");
+                throw new InvalidArgumentException("Enter a valid phone number.");
             }
             $clean['phone'] = $phone;
         }
@@ -360,7 +360,7 @@ class AuthService {
 
     public function changePassword(int $userId, string $oldPassword, string $newPassword): array {
         if (empty($newPassword) || strlen($newPassword) < 6) {
-            throw new InvalidArgumentException("New password must be at least 6 characters long.");
+            throw new InvalidArgumentException("New password must be at least 6 characters.");
         }
 
         $currentHash = $this->userRepo->getPasswordHash($userId);
@@ -369,7 +369,7 @@ class AuthService {
         }
 
         if (empty($oldPassword) || !password_verify($oldPassword, $currentHash)) {
-            throw new InvalidArgumentException("Current password is incorrect.");
+            throw new InvalidArgumentException("Incorrect current password.");
         }
 
         $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
@@ -393,11 +393,11 @@ class AuthService {
 
         if ($file && isset($file['error']) && $file['error'] === UPLOAD_ERR_OK) {
             if ($file['size'] > $maxBytes) {
-                throw new InvalidArgumentException("File exceeds 2MB limit.");
+                throw new InvalidArgumentException("File exceeds 2MB.");
             }
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             if (!in_array($ext, $allowedExts, true)) {
-                throw new InvalidArgumentException("Invalid file format. Only JPG and PNG images are allowed.");
+                throw new InvalidArgumentException("Invalid file format. Use JPG or PNG.");
             }
 
             // Verify MIME type if finfo available
@@ -407,7 +407,7 @@ class AuthService {
                 finfo_close($finfo);
                 $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
                 if (!in_array($mime, $allowedMimes, true)) {
-                    throw new InvalidArgumentException("Invalid image content. Only JPEG and PNG files are allowed.");
+                    throw new InvalidArgumentException("Invalid image. Use JPG or PNG.");
                 }
             }
 
@@ -433,7 +433,7 @@ class AuthService {
             }
 
             if (strlen($decoded) > $maxBytes) {
-                throw new InvalidArgumentException("Profile picture exceeds 2MB limit.");
+                throw new InvalidArgumentException("Profile picture exceeds 2MB.");
             }
 
             $uniqueName = 'profile_' . $userId . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
@@ -443,7 +443,7 @@ class AuthService {
             }
             $relPath = 'uploads/profiles/' . $uniqueName;
         } else {
-            throw new InvalidArgumentException("No profile picture file was uploaded.");
+            throw new InvalidArgumentException("No profile picture uploaded.");
         }
 
         $this->userRepo->updateProfilePicture($userId, $relPath);
