@@ -473,8 +473,31 @@ document.addEventListener('click', (e) => {
             body: JSON.stringify({ job_id: parseInt(jobId, 10) })
           });
           if (res.ok && res.data?.status === 'success') {
+            const arrivedAt = res.data.arrived_at || new Date().toISOString().slice(0, 19).replace('T', ' ');
             showToast('Worker arrival confirmed! Work timer started.', 'success');
+
+            // Immediately display 00:00:00 and active work status on the customer card without waiting
+            const card = confirmArrivalBtn.closest('.job-card') || $id(`job-card-${jobId}`);
+            if (card) {
+              const arrivalContainer = confirmArrivalBtn.closest('div[style*="rgba(245, 158, 11"]') || confirmArrivalBtn.parentElement;
+              if (arrivalContainer) {
+                arrivalContainer.outerHTML = `
+                  <div style="margin-top: 12px; padding: 12px 16px; background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--success); font-weight:700;"><i data-lucide="timer" width="13" height="13" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Work In Progress</div>
+                      <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">⏱️ Time Elapsed: <span class="customer-job-timer-display" data-arrived-at="${arrivedAt}">00:00:00</span></div>
+                    </div>
+                    <span class="badge badge-success" style="font-size:0.8rem; font-weight:700; padding:5px 10px;"><i data-lucide="clock" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Timer Active</span>
+                  </div>`;
+              }
+              const cancelBtn = card.querySelector('.btn-cancel-worker-assignment');
+              if (cancelBtn) cancelBtn.remove();
+              if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+
+            updateCustomerLiveJobTimers();
             await loadCustomerJobs();
+            updateCustomerLiveJobTimers();
           } else {
             showToast(res.data?.message || 'Failed to confirm arrival.', 'error');
             confirmArrivalBtn.disabled = false;
@@ -792,6 +815,7 @@ async function loadCustomerJobs() {
         </div>`;
     }
     refreshIcons();
+    updateCustomerLiveJobTimers();
   } catch (err) {
     console.warn('loadCustomerJobs error:', err);
     container.innerHTML = `
@@ -909,22 +933,37 @@ function initCustomerInvoicePayment() {
   });
 }
 
+function parseCustomerJobArrivedAtMs(dateStr) {
+  if (!dateStr) return NaN;
+  let str = String(dateStr).trim();
+  if (!str) return NaN;
+  // If "YYYY-MM-DD HH:MM:SS" from PHP/MySQL (which writes UTC date in PHP)
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(str)) {
+    str = str.replace(' ', 'T') + 'Z';
+  } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
+    str = str + 'Z';
+  }
+  const time = new Date(str).getTime();
+  return isNaN(time) ? new Date(dateStr).getTime() : time;
+}
+
+function formatCustomerElapsedTimer(arrivedAtStr) {
+  const arrivedMs = parseCustomerJobArrivedAtMs(arrivedAtStr);
+  if (isNaN(arrivedMs)) return '00:00:00';
+  const diffSec = Math.max(0, Math.floor((Date.now() - arrivedMs) / 1000));
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 function updateCustomerLiveJobTimers() {
   const timerEls = document.querySelectorAll('.customer-job-timer-display');
   if (!timerEls.length) return;
-  const now = Date.now();
   timerEls.forEach(el => {
     const arrivedAtStr = el.getAttribute('data-arrived-at');
     if (!arrivedAtStr) return;
-    const cleanStr = arrivedAtStr.replace(' ', 'T');
-    const arrivedTime = new Date(cleanStr).getTime();
-    if (isNaN(arrivedTime)) return;
-    const diff = Math.max(0, now - arrivedTime);
-    const totalSec = Math.floor(diff / 1000);
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    el.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    el.textContent = formatCustomerElapsedTimer(arrivedAtStr);
   });
 }
 setInterval(updateCustomerLiveJobTimers, 1000);

@@ -935,7 +935,7 @@ function renderWorkerJobCard(j, tabType = 'available') {
         <div style="margin-top:12px; padding:12px 16px; background:rgba(16, 185, 129, 0.08); border:1.5px solid rgba(16, 185, 129, 0.25); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
           <div>
             <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--success); font-weight:700;"><i data-lucide="timer" width="13" height="13" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Work Timer Running</div>
-            <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">⏱️ Elapsed: <span class="job-timer-display" data-arrived-at="${j.arrived_at}">00:00:00</span></div>
+            <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">⏱️ Elapsed: <span class="job-timer-display" data-job-id="${jId}" data-arrived-at="${j.arrived_at}">00:00:00</span></div>
           </div>
           <button class="btn btn-success btn-sm btn-worker-done-job" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:700; padding:8px 16px; cursor:pointer;">
             <i data-lucide="check-circle" width="15" height="15"></i> Done (Complete Job)
@@ -1075,6 +1075,7 @@ function renderWorkerJobs() {
   }
 
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  updateWorkerLiveJobTimers();
 }
 
 function switchWorkerJobTab(tabKey) {
@@ -1112,38 +1113,141 @@ function initWorkerJobTabs() {
     });
   });
 
-  startWorkerOngoingPolling();
+  syncWorkerArrivalPolling();
 }
 
-let workerOngoingPollInterval = null;
-function startWorkerOngoingPolling() {
-  if (workerOngoingPollInterval) clearInterval(workerOngoingPollInterval);
-  workerOngoingPollInterval = setInterval(async () => {
-    if (currentWorkerJobTab === 'ongoing' && window.location.pathname.includes('jobs.html')) {
-      await loadOpenJobsForWorker(true);
-    }
-  }, 4000);
+function parseWorkerJobArrivedAtMs(dateStr) {
+  if (!dateStr) return NaN;
+  let str = String(dateStr).trim();
+  if (!str) return NaN;
+  // If "YYYY-MM-DD HH:MM:SS" from PHP/MySQL (which writes UTC date in PHP)
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(str)) {
+    str = str.replace(' ', 'T') + 'Z';
+  } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(str)) {
+    str = str + 'Z';
+  }
+  const time = new Date(str).getTime();
+  return isNaN(time) ? new Date(dateStr).getTime() : time;
+}
+
+function formatWorkerElapsedTimer(arrivedAtStr) {
+  const arrivedMs = parseWorkerJobArrivedAtMs(arrivedAtStr);
+  if (isNaN(arrivedMs)) return '00:00:00';
+  const diffSec = Math.max(0, Math.floor((Date.now() - arrivedMs) / 1000));
+  const hrs = Math.floor(diffSec / 3600);
+  const mins = Math.floor((diffSec % 3600) / 60);
+  const secs = diffSec % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 function updateWorkerLiveJobTimers() {
   const timerEls = document.querySelectorAll('.job-timer-display');
   if (!timerEls.length) return;
-  const now = Date.now();
   timerEls.forEach(el => {
+    if (el.dataset.stopped === 'true') return;
     const arrivedAtStr = el.getAttribute('data-arrived-at');
     if (!arrivedAtStr) return;
-    const cleanStr = arrivedAtStr.replace(' ', 'T');
-    const arrivedTime = new Date(cleanStr).getTime();
-    if (isNaN(arrivedTime)) return;
-    const diff = Math.max(0, now - arrivedTime);
-    const totalSec = Math.floor(diff / 1000);
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    el.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    el.textContent = formatWorkerElapsedTimer(arrivedAtStr);
   });
 }
 setInterval(updateWorkerLiveJobTimers, 1000);
+
+let workerArrivalPollTimer = null;
+let isPollingWorkerArrival = false;
+
+function hasUnconfirmedOngoingJob() {
+  if (!Array.isArray(cachedOngoingJobs) || !cachedOngoingJobs.length) return false;
+  return cachedOngoingJobs.some(j => {
+    const status = (j.status || j.job_status || '').toLowerCase();
+    return status === 'in_progress' && !j.arrived_at;
+  });
+}
+
+function stopWorkerArrivalPolling() {
+  if (workerArrivalPollTimer) {
+    clearInterval(workerArrivalPollTimer);
+    workerArrivalPollTimer = null;
+  }
+  isPollingWorkerArrival = false;
+}
+
+function startWorkerArrivalPolling() {
+  if (!window.location.pathname.includes('jobs.html')) {
+    stopWorkerArrivalPolling();
+    return;
+  }
+
+  // Prevent multiple intervals running simultaneously
+  if (workerArrivalPollTimer) return;
+
+  // Poll job status every 5 seconds while an ongoing job awaits arrival confirmation
+  workerArrivalPollTimer = setInterval(async () => {
+    // Stop if user navigated away from jobs.html
+    if (!window.location.pathname.includes('jobs.html')) {
+      stopWorkerArrivalPolling();
+      return;
+    }
+
+    // Stop if no unconfirmed ongoing jobs remain
+    if (!hasUnconfirmedOngoingJob()) {
+      stopWorkerArrivalPolling();
+      return;
+    }
+
+    if (isPollingWorkerArrival) return;
+    isPollingWorkerArrival = true;
+
+    try {
+      const res = await apiFetch('jobs.php?action=worker');
+      if (res?.ok && res.data?.status === 'success' && Array.isArray(res.data.jobs)) {
+        const myJobs = res.data.jobs;
+        const freshOngoing = myJobs.filter(j => (j.status || j.job_status || '').toLowerCase() === 'in_progress');
+
+        let newlyConfirmed = false;
+        freshOngoing.forEach(fj => {
+          const fjId = String(fj.id || fj.job_id);
+          const existing = cachedOngoingJobs.find(cj => String(cj.id || cj.job_id) === fjId);
+          if (fj.arrived_at && (!existing || !existing.arrived_at)) {
+            newlyConfirmed = true;
+          }
+        });
+
+        cachedOngoingJobs = freshOngoing;
+
+        if (newlyConfirmed) {
+          showToast('Customer confirmed your arrival! Work timer started.', 'success');
+          if (currentWorkerJobTab !== 'ongoing') {
+            switchWorkerJobTab('ongoing');
+          } else {
+            renderWorkerJobs();
+            updateWorkerLiveJobTimers();
+          }
+        }
+
+        // The moment arrived_at appears for all ongoing jobs, stop polling
+        if (!hasUnconfirmedOngoingJob()) {
+          stopWorkerArrivalPolling();
+        }
+      }
+    } catch (err) {
+      console.warn('Worker arrival poll check error:', err);
+    } finally {
+      isPollingWorkerArrival = false;
+    }
+  }, 5000);
+}
+
+function syncWorkerArrivalPolling() {
+  if (hasUnconfirmedOngoingJob()) {
+    startWorkerArrivalPolling();
+  } else {
+    stopWorkerArrivalPolling();
+  }
+}
+
+// Ensure polling stops once the page is left
+window.addEventListener('beforeunload', stopWorkerArrivalPolling);
+window.addEventListener('pagehide', stopWorkerArrivalPolling);
 
 async function loadOpenJobsForWorker(silent = false) {
   const grid = $id('worker-jobs-container');
@@ -1236,6 +1340,8 @@ async function loadOpenJobsForWorker(silent = false) {
     if (!silent || prevOngoingCount !== cachedOngoingJobs.length || prevOngoingArrivals !== newOngoingArrivals) {
       renderWorkerJobs();
     }
+    updateWorkerLiveJobTimers();
+    syncWorkerArrivalPolling();
   } catch (err) {
     console.warn('loadOpenJobsForWorker error:', err);
     if (!silent) {
@@ -1247,6 +1353,10 @@ async function loadOpenJobsForWorker(silent = false) {
 async function executeCompleteHourlyJob(jobId, triggerBtn = null) {
   if (!jobId) return;
   const numJobId = parseInt(jobId, 10);
+
+  // Freeze the timer display immediately upon tapping/confirming Done
+  const timerEls = document.querySelectorAll(`.job-timer-display[data-job-id="${numJobId}"], .job-timer-display`);
+  timerEls.forEach(el => { el.dataset.stopped = 'true'; });
 
   if (triggerBtn) {
     triggerBtn.disabled = true;
@@ -1262,10 +1372,13 @@ async function executeCompleteHourlyJob(jobId, triggerBtn = null) {
     if (res.ok && res.data?.status === 'success') {
       const totalAmt = res.data.job_amount || (res.data.invoice?.job_amount) || 0;
       showToast(`Job completed! Invoice generated for Rs. ${Number(totalAmt).toFixed(2)}`, 'success');
+      cachedOngoingJobs = cachedOngoingJobs.filter(j => String(j.id || j.job_id) !== String(numJobId));
+      syncWorkerArrivalPolling();
       switchWorkerJobTab('completed');
       await loadOpenJobsForWorker();
     } else {
       showToast(res.data?.message || 'Failed to complete job.', 'error');
+      timerEls.forEach(el => { delete el.dataset.stopped; });
       if (triggerBtn) {
         triggerBtn.disabled = false;
         triggerBtn.innerHTML = '<i data-lucide="check-circle" width="15" height="15"></i> Done (Complete Job)';
@@ -1273,6 +1386,7 @@ async function executeCompleteHourlyJob(jobId, triggerBtn = null) {
     }
   } catch (err) {
     showToast('Network error while completing job: ' + err.message, 'error');
+    timerEls.forEach(el => { delete el.dataset.stopped; });
     if (triggerBtn) {
       triggerBtn.disabled = false;
       triggerBtn.innerHTML = '<i data-lucide="check-circle" width="15" height="15"></i> Done (Complete Job)';
@@ -1324,6 +1438,8 @@ document.addEventListener('click', async e => {
     if (updated && updated.arrived_at) {
       showToast('Arrival confirmed! The work timer is running.', 'success');
       renderWorkerJobs();
+      updateWorkerLiveJobTimers();
+      syncWorkerArrivalPolling();
     } else {
       showToast('Waiting for customer. Please ask the customer to tap "Worker is Here" to start the work timer and unlock the Done button.', 'warning');
     }
