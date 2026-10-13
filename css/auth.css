@@ -102,13 +102,27 @@
   font-weight: 600;
 }
 
+/* Form Labels */
+.auth-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 6px;
+  margin-left: 4px;
+  letter-spacing: 0.01em;
+  font-family: inherit;
+  line-height: 1.3;
+}
+
 /* Form Inputs */
 .auth-form-group {
   margin-bottom: 16px;
   position: relative;
 }
 
-.auth-form-row {
+.auth-form-row,
+.auth-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
