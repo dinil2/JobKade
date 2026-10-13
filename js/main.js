@@ -143,9 +143,11 @@ function updateAdminBadge() {
   const badges = document.querySelectorAll('#pendingCounterBadge');
   if (!badges.length) return;
   const token = localStorage.getItem('jobkade_token') || '';
-  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.toLowerCase().includes(s));
-  const rootPath = isSubfolder ? '../' : '';
-  const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+  const headers = token ? { 
+    'Authorization': 'Bearer ' + token,
+    'X-Authorization': 'Bearer ' + token,
+    'X-Jobkade-Token': token
+  } : {};
   fetch(`${rootPath}api/admin.php?action=stats`, { headers })
     .then(res => res.json())
     .then(data => {
@@ -698,8 +700,10 @@ async function apiFetch(endpoint, options = {}) {
   }
 
   const token = localStorage.getItem('jobkade_token');
-  if (token && !headers['Authorization']) {
-    headers['Authorization'] = 'Bearer ' + token;
+  if (token) {
+    if (!headers['Authorization']) headers['Authorization'] = 'Bearer ' + token;
+    if (!headers['X-Authorization']) headers['X-Authorization'] = 'Bearer ' + token;
+    if (!headers['X-Jobkade-Token']) headers['X-Jobkade-Token'] = token;
   }
 
   try {

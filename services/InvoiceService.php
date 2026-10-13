@@ -192,7 +192,285 @@ class InvoiceService {
             }
         }
 
-        return $this->walletService->settleInvoice($invoiceId, $paymentMethod);
+        $result = $this->walletService->settleInvoice($invoiceId, $paymentMethod);
+
+        // Send payment receipt emails to customer and worker after successful payment settlement
+        if (!empty($result) && ($result['status'] ?? '') === 'success') {
+            try {
+                $this->sendPaymentReceiptEmails($invoiceId, $result);
+            } catch (Throwable $e) {
+                error_log("InvoiceService: Failed sending payment receipt emails for invoice #{$invoiceId}: " . $e->getMessage());
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Send automatic payment receipt emails to customer and worker.
+     * Wrapped so any failure is only logged and never breaks the payment flow.
+     */
+    protected function sendPaymentReceiptEmails(int $invoiceId, array $settleResult): void {
+        try {
+            require_once __DIR__ . "/../repositories/UserRepository.php";
+            require_once __DIR__ . "/../repositories/WorkerRepository.php";
+            require_once __DIR__ . "/../repositories/JobRepository.php";
+            require_once __DIR__ . "/EmailService.php";
+
+            $invoice = $this->invoiceRepo->getInvoiceById($invoiceId);
+            if (!$invoice) {
+                error_log("InvoiceService: Invoice #{$invoiceId} not found when generating receipt emails.");
+                return;
+            }
+
+            // 1. Load job title from job_requests via JobRepository
+            $jobId = (int)($invoice['job_id'] ?? 0);
+            $job = $this->jobRepo->getById($jobId);
+            $jobTitle = !empty($job['title']) ? $job['title'] : ($invoice['job_title'] ?? "Job Request #{$jobId}");
+
+            // 2. Load Customer details from users table via UserRepository
+            $userRepo = new UserRepository();
+            $customerUser = $userRepo->findById((int)$invoice['customer_id']);
+            $customerEmail = !empty($customerUser['email']) ? $customerUser['email'] : ($invoice['customer_email'] ?? '');
+            $customerName  = !empty($customerUser['full_name']) ? $customerUser['full_name'] : ($invoice['customer_name'] ?? 'Customer');
+
+            // 3. Load Worker details from users table via WorkerRepository & UserRepository
+            $workerRepo = new WorkerRepository();
+            $workerProfile = $workerRepo->getProfileById((int)$invoice['worker_id']);
+            $workerUserId = ($workerProfile && !empty($workerProfile['user_id'])) ? (int)$workerProfile['user_id'] : 0;
+            $workerUser = ($workerUserId > 0) ? $userRepo->findById($workerUserId) : null;
+            $workerEmail = !empty($workerUser['email']) ? $workerUser['email'] : ($workerProfile['email'] ?? ($invoice['worker_email'] ?? ''));
+            $workerName  = !empty($workerUser['full_name']) ? $workerUser['full_name'] : ($workerProfile['full_name'] ?? ($invoice['worker_name'] ?? 'Worker'));
+
+            // Financial & metadata figures
+            $jobAmount = (float)($invoice['job_amount'] ?? $invoice['amount'] ?? 0.0);
+            $commissionRate = (float)($invoice['commission_rate'] ?? 0.10);
+            $commissionRatePercent = round($commissionRate * 100);
+            $commissionAmount = (float)($invoice['commission_amount'] ?? 0.0);
+            $workerNetAmount = (float)($invoice['worker_net_amount'] ?? ($jobAmount - $commissionAmount));
+
+            $cleanMethod = strtolower((string)($settleResult['payment_method'] ?? $invoice['payment_method'] ?? 'online'));
+            $paymentMethodLabel = ($cleanMethod === 'cash') ? 'Cash' : 'Online';
+
+            $paymentDate = !empty($invoice['paid_at']) ? $invoice['paid_at'] : date('Y-m-d H:i:s');
+
+            $hoursWorked = (isset($invoice['hours_worked']) && $invoice['hours_worked'] !== null && (float)$invoice['hours_worked'] > 0)
+                ? (float)$invoice['hours_worked']
+                : null;
+            $hourlyRate = isset($invoice['worker_hourly_rate']) && (float)$invoice['worker_hourly_rate'] > 0
+                ? (float)$invoice['worker_hourly_rate']
+                : (isset($workerProfile['hourly_rate']) ? (float)$workerProfile['hourly_rate'] : null);
+            $travellingFee = (isset($invoice['travelling_fee']) && (float)$invoice['travelling_fee'] > 0)
+                ? (float)$invoice['travelling_fee']
+                : null;
+
+            $emailService = new EmailService();
+
+            // Customer Email — Subject: JobKade: Payment Receipt - Invoice #[id]
+            if (!empty($customerEmail)) {
+                try {
+                    $customerSubject = "JobKade: Payment Receipt - Invoice #{$invoiceId}";
+                    $customerHtml = $this->buildCustomerReceiptHtml([
+                        'invoice_id'     => $invoiceId,
+                        'job_title'      => $jobTitle,
+                        'worker_name'    => $workerName,
+                        'customer_name'  => $customerName,
+                        'job_amount'     => $jobAmount,
+                        'payment_method' => $paymentMethodLabel,
+                        'payment_date'   => $paymentDate,
+                        'hours_worked'   => $hoursWorked,
+                        'hourly_rate'    => $hourlyRate,
+                        'travelling_fee' => $travellingFee,
+                    ]);
+
+                    $emailService->send($customerEmail, $customerName, $customerSubject, $customerHtml);
+                } catch (Throwable $e) {
+                    error_log("InvoiceService: Customer receipt email failed for invoice #{$invoiceId}: " . $e->getMessage());
+                }
+            }
+
+            // Worker Email — Subject: JobKade: Payment Settled - Invoice #[id]
+            if (!empty($workerEmail)) {
+                try {
+                    $workerSubject = "JobKade: Payment Settled - Invoice #{$invoiceId}";
+                    $workerHtml = $this->buildWorkerSettlementHtml([
+                        'invoice_id'              => $invoiceId,
+                        'job_title'               => $jobTitle,
+                        'worker_name'             => $workerName,
+                        'customer_name'           => $customerName,
+                        'job_amount'              => $jobAmount,
+                        'commission_rate_percent' => $commissionRatePercent,
+                        'commission_amount'       => $commissionAmount,
+                        'worker_net_amount'       => $workerNetAmount,
+                        'payment_method'          => $paymentMethodLabel,
+                        'payment_method_raw'      => $cleanMethod,
+                        'payment_date'            => $paymentDate,
+                        'hours_worked'            => $hoursWorked,
+                        'hourly_rate'             => $hourlyRate,
+                        'travelling_fee'          => $travellingFee,
+                    ]);
+
+                    $emailService->send($workerEmail, $workerName, $workerSubject, $workerHtml);
+                } catch (Throwable $e) {
+                    error_log("InvoiceService: Worker settlement email failed for invoice #{$invoiceId}: " . $e->getMessage());
+                }
+            }
+        } catch (Throwable $ex) {
+            error_log("InvoiceService: sendPaymentReceiptEmails encountered an error: " . $ex->getMessage());
+        }
+    }
+
+    private function buildCustomerReceiptHtml(array $d): string {
+        $safeJobTitle   = htmlspecialchars($d['job_title'], ENT_QUOTES, 'UTF-8');
+        $safeWorkerName = htmlspecialchars($d['worker_name'], ENT_QUOTES, 'UTF-8');
+        $safeCustName   = htmlspecialchars($d['customer_name'], ENT_QUOTES, 'UTF-8');
+        $amountFormatted = number_format($d['job_amount'], 2);
+
+        $hoursLine = '';
+        if ($d['hours_worked'] !== null) {
+            $rateSuffix = ($d['hourly_rate'] !== null) ? " (@ Rs. " . number_format($d['hourly_rate'], 2) . "/hr)" : "";
+            $hoursLine = "<tr><td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Hours Billed:</td><td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">" . number_format($d['hours_worked'], 2) . " hrs{$rateSuffix}</td></tr>";
+        }
+
+        $travelLine = '';
+        if ($d['travelling_fee'] !== null) {
+            $travelLine = "<tr><td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Travelling Fee:</td><td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Rs. " . number_format($d['travelling_fee'], 2) . "</td></tr>";
+        }
+
+        return "
+<!DOCTYPE html>
+<html>
+<head><meta charset=\"UTF-8\"></head>
+<body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color:#f4f6f8; margin:0; padding:20px;\">
+  <div style=\"max-width:580px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e5e7eb; box-shadow:0 2px 6px rgba(0,0,0,0.04);\">
+    <div style=\"background:linear-gradient(135deg, #2563eb, #1d4ed8); padding:24px 30px; color:#ffffff;\">
+      <h1 style=\"margin:0; font-size:24px; font-weight:800; letter-spacing:-0.02em;\">JobKade</h1>
+      <p style=\"margin:4px 0 0; font-size:14px; opacity:0.9;\">Payment Receipt</p>
+    </div>
+    <div style=\"padding:28px 30px;\">
+      <div style=\"font-size:16px; color:#111827; margin-bottom:16px;\">Hello <strong>{$safeCustName}</strong>,</div>
+      <p style=\"color:#4b5563; font-size:14px; line-height:1.5; margin-bottom:20px;\">Thank you for your payment! Here is your official receipt for the completed job service:</p>
+
+      <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px 20px; font-size:14px; margin-bottom:24px;\">
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Invoice Number:</td>
+          <td align=\"right\" style=\"font-weight:700; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">#{$d['invoice_id']}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Job Title:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$safeJobTitle}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Worker:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$safeWorkerName}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Payment Method:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$d['payment_method']}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Payment Date:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$d['payment_date']}</td>
+        </tr>
+        {$hoursLine}
+        {$travelLine}
+        <tr>
+          <td style=\"color:#111827; font-weight:700; font-size:15px; padding-top:14px;\">Amount Paid:</td>
+          <td align=\"right\" style=\"color:#2563eb; font-weight:800; font-size:18px; padding-top:14px;\">Rs. {$amountFormatted}</td>
+        </tr>
+      </table>
+
+      <div style=\"background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:14px 18px; color:#065f46; font-size:13.5px; line-height:1.4;\">
+        <strong>Thank you for choosing JobKade!</strong> We appreciate your business and hope you had a great service experience.
+      </div>
+    </div>
+    <div style=\"background:#f9fafb; border-top:1px solid #e5e7eb; padding:16px 30px; font-size:12px; color:#9ca3af; text-align:center;\">
+      &copy; 2026 JobKade. Verified Local Skilled Services Marketplace. &bull; Contact us: <a href=\"mailto:jobkade7@gmail.com\" style=\"color:#2563eb; text-decoration:none;\">jobkade7@gmail.com</a>
+    </div>
+  </div>
+</body>
+</html>";
+    }
+
+    private function buildWorkerSettlementHtml(array $d): string {
+        $safeJobTitle   = htmlspecialchars($d['job_title'], ENT_QUOTES, 'UTF-8');
+        $safeWorkerName = htmlspecialchars($d['worker_name'], ENT_QUOTES, 'UTF-8');
+        $amountFormatted = number_format($d['job_amount'], 2);
+        $commFormatted   = number_format($d['commission_amount'], 2);
+        $netFormatted    = number_format($d['worker_net_amount'], 2);
+
+        $hoursLine = '';
+        if ($d['hours_worked'] !== null) {
+            $rateSuffix = ($d['hourly_rate'] !== null) ? " (@ Rs. " . number_format($d['hourly_rate'], 2) . "/hr)" : "";
+            $hoursLine = "<tr><td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Hours Worked:</td><td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">" . number_format($d['hours_worked'], 2) . " hrs{$rateSuffix}</td></tr>";
+        }
+
+        $travelLine = '';
+        if ($d['travelling_fee'] !== null) {
+            $travelLine = "<tr><td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Travelling Fee:</td><td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Rs. " . number_format($d['travelling_fee'], 2) . "</td></tr>";
+        }
+
+        $note = ($d['payment_method_raw'] === 'cash')
+            ? "Customer paid in cash. The platform commission of <strong>Rs. {$commFormatted}</strong> has been debited from your wallet."
+            : "The net earnings of <strong>Rs. {$netFormatted}</strong> have been credited to your JobKade wallet.";
+
+        return "
+<!DOCTYPE html>
+<html>
+<head><meta charset=\"UTF-8\"></head>
+<body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color:#f4f6f8; margin:0; padding:20px;\">
+  <div style=\"max-width:580px; margin:0 auto; background:#ffffff; border-radius:10px; overflow:hidden; border:1px solid #e5e7eb; box-shadow:0 2px 6px rgba(0,0,0,0.04);\">
+    <div style=\"background:linear-gradient(135deg, #10b981, #059669); padding:24px 30px; color:#ffffff;\">
+      <h1 style=\"margin:0; font-size:24px; font-weight:800; letter-spacing:-0.02em;\">JobKade</h1>
+      <p style=\"margin:4px 0 0; font-size:14px; opacity:0.9;\">Payment Settled</p>
+    </div>
+    <div style=\"padding:28px 30px;\">
+      <div style=\"font-size:16px; color:#111827; margin-bottom:16px;\">Hello <strong>{$safeWorkerName}</strong>,</div>
+      <p style=\"color:#4b5563; font-size:14px; line-height:1.5; margin-bottom:20px;\">Invoice #{$d['invoice_id']} has been settled. Below is your complete earnings and commission breakdown:</p>
+
+      <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:16px 20px; font-size:14px; margin-bottom:24px;\">
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Invoice Number:</td>
+          <td align=\"right\" style=\"font-weight:700; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">#{$d['invoice_id']}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Job Title:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$safeJobTitle}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Payment Method:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$d['payment_method']}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Payment Date:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">{$d['payment_date']}</td>
+        </tr>
+        {$hoursLine}
+        {$travelLine}
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Gross Job Amount:</td>
+          <td align=\"right\" style=\"font-weight:600; color:#111827; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Rs. {$amountFormatted}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#6b7280; padding:8px 0; border-bottom:1px solid #f3f4f6;\">Commission ({$d['commission_rate_percent']}%):</td>
+          <td align=\"right\" style=\"font-weight:600; color:#ef4444; padding:8px 0; border-bottom:1px solid #f3f4f6;\">- Rs. {$commFormatted}</td>
+        </tr>
+        <tr>
+          <td style=\"color:#111827; font-weight:700; font-size:15px; padding-top:14px;\">Net Amount:</td>
+          <td align=\"right\" style=\"color:#10b981; font-weight:800; font-size:18px; padding-top:14px;\">Rs. {$netFormatted}</td>
+        </tr>
+      </table>
+
+      <div style=\"background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:14px 18px; color:#065f46; font-size:13.5px; line-height:1.4;\">
+        {$note}
+      </div>
+    </div>
+    <div style=\"background:#f9fafb; border-top:1px solid #e5e7eb; padding:16px 30px; font-size:12px; color:#9ca3af; text-align:center;\">
+      &copy; 2026 JobKade. Verified Local Skilled Services Marketplace. &bull; Contact us: <a href=\"mailto:jobkade7@gmail.com\" style=\"color:#10b981; text-decoration:none;\">jobkade7@gmail.com</a>
+    </div>
+  </div>
+</body>
+</html>";
     }
 
     public function getInvoice(int $invoiceId): ?array {

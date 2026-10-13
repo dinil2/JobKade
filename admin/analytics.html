@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analytics & Reports — JobKade Admin</title>
+  <title>Platform Analytics & Reports — JobKade Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="../js/lucide.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <!-- Chart.js for visualization -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
 </head>
@@ -22,51 +20,204 @@
     <main class="dashboard-main">
       <div class="dashboard-header">
         <h1>Platform Analytics & Reports</h1>
-        <p>In-depth insights into platform growth, category demand, subscription revenue, and user engagement.</p>
+        <p>Rich numbers-only executive dashboard covering KPIs, volume breakdown, earnings, and platform operations.</p>
       </div>
 
-      <!-- Key Financial & Growth Metrics -->
-      <div class="admin-stats-grid">
+      <!-- 1. Row of 6 KPI Number Cards -->
+      <div class="admin-stats-grid" id="analytics-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px;">
         <div class="admin-stat-card">
-          <div class="admin-stat-icon green"><i data-lucide="dollar-sign" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>Rs. 287,000</h3><p>Total Revenue YTD</p></div>
+          <div class="admin-stat-icon blue"><i data-lucide="hard-hat" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-total-workers">0</h3>
+            <p>Total Workers</p>
+          </div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon blue"><i data-lucide="trending-up" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>+24.5%</h3><p>Monthly Growth Rate</p></div>
+          <div class="admin-stat-icon purple"><i data-lucide="users" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-total-customers">0</h3>
+            <p>Total Customers</p>
+          </div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon purple"><i data-lucide="award" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>84.2%</h3><p>Worker Retention Rate</p></div>
+          <div class="admin-stat-icon orange"><i data-lucide="clipboard-list" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-jobs-posted">0</h3>
+            <p>Total Jobs Posted</p>
+          </div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon orange"><i data-lucide="star" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>4.82 / 5.0</h3><p>Overall Platform Rating</p></div>
+          <div class="admin-stat-icon green"><i data-lucide="check-circle" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-jobs-completed">0</h3>
+            <p>Total Jobs Completed</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon blue"><i data-lucide="wallet" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-platform-revenue">Rs. 0.00</h3>
+            <p>Platform Revenue</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon green"><i data-lucide="dollar-sign" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-commission-earned">Rs. 0.00</h3>
+            <p>Commission Earned</p>
+          </div>
         </div>
       </div>
 
-      <!-- Charts Row 1 -->
-      <div class="admin-charts-grid">
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <h3>Subscription Revenue Growth (Rs.)</h3>
-            <span class="text-sm text-secondary">2026 Monthly Trend</span>
+      <!-- 2. Monthly Breakdown Table -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Monthly Breakdown</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Last 8 months platform activity, completion rate, gross revenue, and commission earned</p>
           </div>
-          <div class="chart-container">
-            <canvas id="revenue-chart"></canvas>
+          <div class="search-bar-small" style="max-width: 240px;">
+            <i data-lucide="search" width="15" height="15"></i>
+            <input type="text" id="monthly-search" class="table-search" placeholder="Filter months..." aria-label="Filter months">
           </div>
         </div>
-
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <h3>Service Category Distribution</h3>
-            <span class="text-sm text-secondary">By Job Request Volume</span>
-          </div>
-          <div class="chart-container">
-            <canvas id="category-chart"></canvas>
-          </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th style="text-align:right;">Jobs Posted</th>
+                <th style="text-align:right;">Jobs Completed</th>
+                <th style="text-align:right;">Revenue (Rs.)</th>
+                <th style="text-align:right;">Commission (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody id="monthly-breakdown-tbody">
+              <tr>
+                <td colspan="5" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading monthly breakdown...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+
+      <!-- 3. Worker Performance Table -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Worker Performance</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Sorted by total earnings descending (paid invoices only)</p>
+          </div>
+          <div class="search-bar-small" style="max-width: 240px;">
+            <i data-lucide="search" width="15" height="15"></i>
+            <input type="text" id="worker-perf-search" class="table-search" placeholder="Filter workers..." aria-label="Filter workers">
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Worker</th>
+                <th style="text-align:right;">Jobs Completed</th>
+                <th style="text-align:right;">Earnings This Month (Rs.)</th>
+                <th style="text-align:right;">Total Earnings (Rs.)</th>
+              </tr>
+            </thead>
+            <tbody id="worker-performance-tbody">
+              <tr>
+                <td colspan="4" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading worker performance...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. Customer Activity Table -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Customer Activity</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Sorted by jobs posted descending</p>
+          </div>
+          <div class="search-bar-small" style="max-width: 240px;">
+            <i data-lucide="search" width="15" height="15"></i>
+            <input type="text" id="customer-act-search" class="table-search" placeholder="Filter customers..." aria-label="Filter customers">
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th style="text-align:right;">Jobs Posted</th>
+                <th style="text-align:right;">Jobs Completed</th>
+              </tr>
+            </thead>
+            <tbody id="customer-activity-tbody">
+              <tr>
+                <td colspan="3" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading customer activity...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. Workers by Category Ranked List -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Workers by Category</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Trade categories ranked by active registered worker count descending</p>
+          </div>
+          <div class="search-bar-small" style="max-width: 240px;">
+            <i data-lucide="search" width="15" height="15"></i>
+            <input type="text" id="category-search" class="table-search" placeholder="Filter categories..." aria-label="Filter categories">
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 90px;">Rank</th>
+                <th>Trade Category</th>
+                <th style="text-align:right;">Registered Workers</th>
+              </tr>
+            </thead>
+            <tbody id="category-ranking-tbody">
+              <tr>
+                <td colspan="3" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading category ranking...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 6. Recent Activity List -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Recent Activity</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Latest 10 platform events across job requests, settled payments, and new registrations</p>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 140px;">Event</th>
+                <th>Description</th>
+                <th style="text-align:right; width: 200px;">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="recent-activity-tbody">
+              <tr>
+                <td colspan="3" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading recent activity...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </main>
   </div>
 

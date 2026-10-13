@@ -35,6 +35,22 @@ switch ($action) {
     case 'pay_invoice':
         $controller->payInvoice();
         break;
+    case 'take':
+    case 'take-job':
+        $controller->takeJob();
+        break;
+    case 'arrive':
+    case 'confirm-arrival':
+        $controller->confirmArrival();
+        break;
+    case 'cancel-assignment':
+    case 'unassign':
+        $controller->cancelAssignment();
+        break;
+    case 'complete':
+    case 'mark-done':
+        $controller->completeJob();
+        break;
     case 'invoices':
         $controller->invoices();
         break;

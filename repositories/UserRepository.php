@@ -22,6 +22,10 @@ class UserRepository {
         return $stmt->fetch() ?: null;
     }
 
+    public function getById(int $id): ?array {
+        return $this->findById($id);
+    }
+
     public function findByUsername(string $username): ?array {
         $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username LIMIT 1");
         $stmt->execute([':username' => $username]);

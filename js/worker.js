@@ -509,6 +509,11 @@ async function initWorkerProfilePage() {
       const realExp = wp.experience || wp.working_hours || '';
       if (expInput && realExp) expInput.value = realExp;
 
+      const hourlyInput = form.querySelector('[name="hourly-rate"]');
+      const travellingInput = form.querySelector('[name="travelling-fee"]');
+      if (hourlyInput) hourlyInput.value = wp.hourly_rate != null ? wp.hourly_rate : '1000.00';
+      if (travellingInput) travellingInput.value = wp.travelling_fee != null ? wp.travelling_fee : '0.00';
+
       // Select real category
       if (catSelect && wp.categories && wp.categories.length > 0) {
         const catName = wp.categories[0].name || '';
@@ -573,6 +578,8 @@ async function initWorkerProfilePage() {
     const curPassInput = $id('worker-current-password');
     const newPassInput = $id('worker-new-password');
     const confirmPassInput = $id('worker-confirm-password');
+    const hourlyInput = this.querySelector('[name="hourly-rate"]');
+    const travellingInput = this.querySelector('[name="travelling-fee"]');
 
     const fullName = nameInput?.value.trim() || '';
     const phone = phoneInput?.value.trim() || '';
@@ -582,6 +589,8 @@ async function initWorkerProfilePage() {
     const curPass = curPassInput?.value || '';
     const newPass = newPassInput?.value || '';
     const confirmPass = confirmPassInput?.value || '';
+    const hourlyRate = parseFloat(hourlyInput?.value ?? '1000');
+    const travellingFee = parseFloat(travellingInput?.value ?? '0');
 
     let hasError = false;
     if (!fullName || fullName.length < 2) { showFieldError(nameInput, 'Full name must be at least 2 characters.'); hasError = true; }
@@ -589,6 +598,8 @@ async function initWorkerProfilePage() {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError(emailInput, 'Please enter a valid email address.'); hasError = true; }
     if (!bio || bio.length < 10) { showFieldError(bioInput, 'Please write a brief description (at least 10 characters).'); hasError = true; }
     if (!location || location.length < 2) { showFieldError(locInput, 'Please enter your service area or location.'); hasError = true; }
+    if (isNaN(hourlyRate) || hourlyRate < 0) { showFieldError(hourlyInput, 'Hourly rate must be a valid number >= 0.'); hasError = true; }
+    if (isNaN(travellingFee) || travellingFee < 0) { showFieldError(travellingInput, 'Travelling fee must be a valid number >= 0.'); hasError = true; }
 
     if (newPass) {
       if (newPass.length < 6) { showFieldError(newPassInput, 'New password must be at least 6 characters.'); hasError = true; }
@@ -607,7 +618,14 @@ async function initWorkerProfilePage() {
       try {
         const res = await apiFetch('workers.php?action=update', {
           method: 'POST',
-          body: JSON.stringify({ full_name: fullName, phone, bio, address: location })
+          body: JSON.stringify({ 
+            full_name: fullName, 
+            phone, 
+            bio, 
+            address: location,
+            hourly_rate: hourlyRate,
+            travelling_fee: travellingFee
+          })
         });
 
         if (res.ok && res.data?.status === 'success') {
@@ -892,34 +910,125 @@ function initWorkerJobMapModal() {
 
 let currentWorkerJobTab = 'available';
 let cachedAvailableJobs = [];
+let cachedOngoingJobs = [];
 let cachedCompletedJobs = [];
 
-function renderWorkerJobCard(j, isCompleted = false) {
+function renderWorkerJobCard(j, tabType = 'available') {
   const lat = j.latitude || 6.9271;
   const lng = j.longitude || 79.8612;
   const addr = j.address || 'Colombo';
   const custId = j.customer_id || 2;
   const jId = j.id || j.job_id || '';
   const safeTitle = (j.title || j.job_title || 'Job Request').replace(/"/g, '&quot;');
-  const isJobDone = isCompleted || (j.status === 'completed') || (j.job_status === 'completed');
-  const badgeClass = isJobDone ? 'badge-completed' : 'badge-open';
-  const badgeText = isJobDone ? 'Completed' : 'Active';
+  const status = (j.status || j.job_status || '').toLowerCase();
+
+  let badgeHtml = '';
+  let actionsHtml = '';
+  let statusBannerHtml = '';
+
+  if (tabType === 'ongoing' || status === 'in_progress') {
+    badgeHtml = '<span class="badge badge-progress"><i data-lucide="loader" width="12" height="12" class="spin"></i> In Progress</span>';
+    const hasArrived = Boolean(j.arrived_at);
+
+    if (hasArrived) {
+      statusBannerHtml = `
+        <div style="margin-top:12px; padding:12px 16px; background:rgba(16, 185, 129, 0.08); border:1.5px solid rgba(16, 185, 129, 0.25); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--success); font-weight:700;"><i data-lucide="timer" width="13" height="13" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Work Timer Running</div>
+            <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">⏱️ Elapsed: <span class="job-timer-display" data-arrived-at="${j.arrived_at}">00:00:00</span></div>
+          </div>
+          <button class="btn btn-success btn-sm btn-worker-done-job" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:700; padding:8px 16px; cursor:pointer;">
+            <i data-lucide="check-circle" width="15" height="15"></i> Done (Complete Job)
+          </button>
+        </div>`;
+      actionsHtml = `
+        <button class="btn btn-success btn-sm btn-worker-done-job" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:700; cursor:pointer;">
+          <i data-lucide="check-circle" width="14" height="14"></i> Done (Complete Job)
+        </button>
+        <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
+        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+        ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
+      `;
+    } else {
+      statusBannerHtml = `
+        <div style="margin-top:12px; padding:10px 14px; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div style="font-size:0.85rem; color:#d97706; font-weight:600; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="clock" width="16" height="16"></i> Waiting for customer to confirm arrival. Work timer starts automatically upon arrival.
+          </div>
+          <button class="btn btn-ghost btn-sm btn-check-arrival-status" data-job-id="${jId}" style="color:#d97706; font-size:0.8rem; padding:4px 8px; cursor:pointer;">
+            <i data-lucide="refresh-cw" width="13" height="13"></i> Check Status
+          </button>
+        </div>`;
+      actionsHtml = `
+        <button class="btn btn-secondary btn-sm btn-worker-awaiting-arrival" data-job-id="${jId}" data-job-title="${safeTitle}" style="cursor:pointer;" title="Tap to check if customer has confirmed your arrival">
+          <i data-lucide="lock" width="14" height="14"></i> Done (Awaiting Arrival)
+        </button>
+        <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
+        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+        ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
+      `;
+    }
+  } else if (tabType === 'completed' || status === 'completed') {
+    badgeHtml = '<span class="badge badge-completed"><i data-lucide="check" width="12" height="12"></i> Completed</span>';
+    const hoursBilled = j.hours_worked ?? '1.00';
+    const travellingFee = parseFloat(j.travelling_fee || 0);
+    const hourlyRate = parseFloat(j.worker_hourly_rate || 1000);
+    const totalAmount = parseFloat(j.job_amount || j.amount || ((hoursBilled * hourlyRate) + travellingFee));
+
+    statusBannerHtml = `
+      <div style="margin-top:12px; padding:12px 16px; background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius-md); font-size:0.875rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--text-secondary);">Hours Billed:</span>
+          <strong>${hoursBilled} hrs</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--text-secondary);">Hourly Rate:</span>
+          <strong>Rs. ${formatLKR(hourlyRate).replace('Rs. ', '')} / hr</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span style="color:var(--text-secondary);">Travelling Fee:</span>
+          <strong>Rs. ${formatLKR(travellingFee).replace('Rs. ', '')}</strong>
+        </div>
+        <hr style="border:0; border-top:1px dashed var(--border); margin:6px 0;">
+        <div style="display:flex; justify-content:space-between; font-size:1rem; font-weight:700;">
+          <span>Total Earned:</span>
+          <strong style="color:var(--primary); font-size:1.1rem;">${formatLKR(totalAmount)}</strong>
+        </div>
+      </div>`;
+
+    actionsHtml = `
+      <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-outline btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Messages</a>
+      <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+    `;
+  } else {
+    // Available tab
+    badgeHtml = '<span class="badge badge-open">Open Request</span>';
+    actionsHtml = `
+      <button class="btn btn-primary btn-sm btn-take-job" data-job-id="${jId}" style="font-weight:700;">
+        <i data-lucide="briefcase" width="14" height="14"></i> Take Job
+      </button>
+      <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+      <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-ghost btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Contact</a>
+      ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
+    `;
+  }
 
   return `
-    <div class="job-card">
-      <div class="job-card-header"><h3 class="job-card-title">${safeTitle}</h3><span class="badge ${badgeClass}">${badgeText}</span></div>
+    <div class="job-card" id="worker-job-${jId}">
+      <div class="job-card-header">
+        <h3 class="job-card-title">${safeTitle}</h3>
+        ${badgeHtml}
+      </div>
       <div class="job-card-meta">
         <span><i data-lucide="user" width="14" height="14"></i> ${j.customer_name || 'Customer'}</span>
         <span><i data-lucide="map-pin" width="14" height="14"></i> ${addr}</span>
-        <span><i data-lucide="clock" width="14" height="14"></i> ${j.created_at || j.applied_at || 'Recently'}</span>
+        <span><i data-lucide="clock" width="14" height="14"></i> ${j.created_at || 'Recently'}</span>
         <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
       </div>
       <p class="job-card-desc">${j.description || 'No description provided.'}</p>
-      <div class="job-card-actions">
-        <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
-        ${!isJobDone ? `<button class="btn btn-success btn-sm btn-open-invoice-modal" data-job-id="${jId}" data-job-title="${safeTitle}" style="font-weight:600;"><i data-lucide="check-circle" width="14" height="14"></i> Mark Done & Set Price</button>` : ''}
-        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
-        ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
+      ${statusBannerHtml}
+      <div class="job-card-actions" style="margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        ${actionsHtml}
       </div>
     </div>`;
 }
@@ -928,9 +1037,21 @@ function renderWorkerJobs() {
   const grid = $id('worker-jobs-container');
   if (!grid) return;
 
-  if (currentWorkerJobTab === 'completed') {
+  if (currentWorkerJobTab === 'ongoing') {
+    if (cachedOngoingJobs && cachedOngoingJobs.length > 0) {
+      grid.innerHTML = cachedOngoingJobs.map(j => renderWorkerJobCard(j, 'ongoing')).join('');
+    } else {
+      grid.innerHTML = `
+        <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
+          <i data-lucide="clock" style="width: 48px; height: 48px; color: var(--text-muted); margin: 0 auto 12px; display:block;"></i>
+          <h3 style="margin-bottom: 8px;">No Ongoing Jobs</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 16px;">You do not have any jobs currently in progress.</p>
+          <button class="btn btn-outline btn-sm" onclick="switchWorkerJobTab('available')">Browse Available Jobs</button>
+        </div>`;
+    }
+  } else if (currentWorkerJobTab === 'completed') {
     if (cachedCompletedJobs && cachedCompletedJobs.length > 0) {
-      grid.innerHTML = cachedCompletedJobs.map(j => renderWorkerJobCard(j, true)).join('');
+      grid.innerHTML = cachedCompletedJobs.map(j => renderWorkerJobCard(j, 'completed')).join('');
     } else {
       grid.innerHTML = `
         <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
@@ -942,7 +1063,7 @@ function renderWorkerJobs() {
   } else {
     // Available Jobs
     if (cachedAvailableJobs && cachedAvailableJobs.length > 0) {
-      grid.innerHTML = cachedAvailableJobs.map(j => renderWorkerJobCard(j, false)).join('');
+      grid.innerHTML = cachedAvailableJobs.map(j => renderWorkerJobCard(j, 'available')).join('');
     } else {
       grid.innerHTML = `
         <div class="empty-state" style="text-align:center; padding: 48px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);">
@@ -956,34 +1077,95 @@ function renderWorkerJobs() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+function switchWorkerJobTab(tabKey) {
+  currentWorkerJobTab = tabKey;
+  const tabs = document.querySelectorAll('.tabs[data-tabs] .tab');
+  tabs.forEach(t => {
+    const tKey = t.getAttribute('data-tab') ||
+      (t.textContent.trim().toLowerCase().includes('ongoing') ? 'ongoing' :
+      (t.textContent.trim().toLowerCase().includes('completed') ? 'completed' : 'available'));
+    if (tKey === tabKey) {
+      t.classList.add('active');
+    } else {
+      t.classList.remove('active');
+    }
+  });
+  renderWorkerJobs();
+}
+
 function initWorkerJobTabs() {
   const tabsContainer = document.querySelector('.tabs[data-tabs]');
   if (!tabsContainer || !window.location.pathname.includes('jobs.html')) return;
 
   const tabs = tabsContainer.querySelectorAll('.tab');
   tabs.forEach(tab => {
-    tab.addEventListener('click', function () {
+    tab.addEventListener('click', async function () {
       tabs.forEach(t => t.classList.remove('active'));
       this.classList.add('active');
       const tabKey = this.getAttribute('data-tab') ||
-        (this.textContent.trim().toLowerCase().includes('completed') ? 'completed' : 'available');
+        (this.textContent.trim().toLowerCase().includes('ongoing') ? 'ongoing' :
+        (this.textContent.trim().toLowerCase().includes('completed') ? 'completed' : 'available'));
       currentWorkerJobTab = tabKey;
       renderWorkerJobs();
+      // Pull fresh data immediately upon switching tabs
+      await loadOpenJobsForWorker(true);
     });
   });
+
+  startWorkerOngoingPolling();
 }
 
-async function loadOpenJobsForWorker() {
+let workerOngoingPollInterval = null;
+function startWorkerOngoingPolling() {
+  if (workerOngoingPollInterval) clearInterval(workerOngoingPollInterval);
+  workerOngoingPollInterval = setInterval(async () => {
+    if (currentWorkerJobTab === 'ongoing' && window.location.pathname.includes('jobs.html')) {
+      await loadOpenJobsForWorker(true);
+    }
+  }, 4000);
+}
+
+function updateWorkerLiveJobTimers() {
+  const timerEls = document.querySelectorAll('.job-timer-display');
+  if (!timerEls.length) return;
+  const now = Date.now();
+  timerEls.forEach(el => {
+    const arrivedAtStr = el.getAttribute('data-arrived-at');
+    if (!arrivedAtStr) return;
+    const cleanStr = arrivedAtStr.replace(' ', 'T');
+    const arrivedTime = new Date(cleanStr).getTime();
+    if (isNaN(arrivedTime)) return;
+    const diff = Math.max(0, now - arrivedTime);
+    const totalSec = Math.floor(diff / 1000);
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    el.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  });
+}
+setInterval(updateWorkerLiveJobTimers, 1000);
+
+async function loadOpenJobsForWorker(silent = false) {
   const grid = $id('worker-jobs-container');
   if (!grid || !window.location.pathname.includes('jobs.html')) return;
 
   const verifyBanner = $id('job-verification-banner');
   const accessBanner = $id('job-access-banner');
 
+  if (!silent && !cachedAvailableJobs.length && !cachedOngoingJobs.length && !cachedCompletedJobs.length) {
+    grid.innerHTML = `
+      <div class="empty-state" id="worker-jobs-loading" style="text-align:center; padding: 40px 16px;">
+        <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 12px;"></i>
+        <p style="color: var(--text-secondary);">Loading jobs...</p>
+      </div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
   try {
-    const [res, workerRes] = await Promise.all([
+    const [res, workerRes, invRes] = await Promise.all([
       apiFetch('jobs.php?action=list'),
-      apiFetch('jobs.php?action=worker').catch(() => ({ ok: false }))
+      apiFetch('jobs.php?action=worker').catch(() => ({ ok: false })),
+      apiFetch('jobs.php?action=invoices').catch(() => ({ ok: false }))
     ]);
 
     if (res.status === 403 || (!res.ok && res.status === 403)) {
@@ -1016,59 +1198,170 @@ async function loadOpenJobsForWorker() {
     if (res.ok && res.data?.status === 'success') {
       if (res.data.has_job_access && accessBanner) accessBanner.style.display = 'none';
       const openJobs = Array.isArray(res.data.jobs) ? res.data.jobs : [];
-      cachedAvailableJobs = openJobs.filter(j => !j.status || j.status.toLowerCase() === 'open');
+      cachedAvailableJobs = openJobs.filter(j => (!j.status || j.status.toLowerCase() === 'open') && !j.worker_id);
     } else {
       cachedAvailableJobs = [];
     }
 
-    let completedList = [];
-    if (workerRes && workerRes.ok && workerRes.data?.status === 'success' && Array.isArray(workerRes.data.jobs)) {
-      const completedAssigned = workerRes.data.jobs.filter(j => {
-        const jobStatus = (j.job_status || j.status || '').toLowerCase();
-        const appStatus = (j.application_status || '').toLowerCase();
-        return jobStatus === 'completed' && (appStatus !== 'rejected');
+    const invoicesByJobId = {};
+    if (invRes?.ok && invRes.data?.invoices) {
+      invRes.data.invoices.forEach(inv => { invoicesByJobId[inv.job_id] = inv; });
+    }
+
+    const myJobs = (workerRes?.ok && workerRes.data?.status === 'success' && Array.isArray(workerRes.data.jobs))
+      ? workerRes.data.jobs
+      : [];
+
+    const prevOngoingCount = cachedOngoingJobs.length;
+    const prevOngoingArrivals = cachedOngoingJobs.map(j => j.arrived_at).join(',');
+
+    cachedOngoingJobs = myJobs.filter(j => (j.status || j.job_status || '').toLowerCase() === 'in_progress');
+    cachedCompletedJobs = myJobs
+      .filter(j => (j.status || j.job_status || '').toLowerCase() === 'completed')
+      .map(j => {
+        const inv = invoicesByJobId[j.id || j.job_id];
+        if (inv) {
+          return {
+            ...j,
+            hours_worked: inv.hours_worked ?? j.hours_worked,
+            travelling_fee: inv.travelling_fee ?? j.travelling_fee,
+            job_amount: inv.job_amount ?? inv.amount ?? j.job_amount
+          };
+        }
+        return j;
       });
 
-      if (completedAssigned.length > 0) {
-        completedList = await Promise.all(
-          completedAssigned.map(async item => {
-            const jobId = item.job_id || item.id;
-            try {
-              const detailRes = await apiFetch(`jobs.php?action=details&id=${jobId}`);
-              if (detailRes.ok && detailRes.data?.job) {
-                return {
-                  ...detailRes.data.job,
-                  id: jobId,
-                  title: detailRes.data.job.title || item.job_title,
-                  created_at: detailRes.data.job.created_at || item.applied_at || 'Recently'
-                };
-              }
-            } catch (err) {
-              console.warn('Could not fetch completed job details:', err);
-            }
-            return {
-              id: jobId,
-              title: item.job_title || 'Completed Job',
-              customer_name: 'Customer',
-              customer_phone: '',
-              address: 'Colombo',
-              category_name: 'Service',
-              description: item.proposal_note || 'Completed job request.',
-              created_at: item.applied_at || 'Recently',
-              ...item
-            };
-          })
-        );
-      }
-    }
-    cachedCompletedJobs = completedList;
+    const newOngoingArrivals = cachedOngoingJobs.map(j => j.arrived_at).join(',');
 
-    renderWorkerJobs();
+    if (!silent || prevOngoingCount !== cachedOngoingJobs.length || prevOngoingArrivals !== newOngoingArrivals) {
+      renderWorkerJobs();
+    }
   } catch (err) {
     console.warn('loadOpenJobsForWorker error:', err);
-    grid.innerHTML = '<div class="empty-state" style="text-align:center; padding: 40px 16px;"><p style="color: var(--error);">Failed to load jobs. Please check your connection.</p></div>';
+    if (!silent) {
+      grid.innerHTML = '<div class="empty-state" style="text-align:center; padding: 40px 16px;"><p style="color: var(--error);">Failed to load jobs. Please check your connection.</p></div>';
+    }
   }
 }
+
+async function executeCompleteHourlyJob(jobId, triggerBtn = null) {
+  if (!jobId) return;
+  const numJobId = parseInt(jobId, 10);
+
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.innerHTML = '<i data-lucide="loader" width="14" height="14" class="spin"></i> Completing...';
+  }
+
+  try {
+    const res = await apiFetch('jobs.php?action=complete', {
+      method: 'POST',
+      body: JSON.stringify({ job_id: numJobId })
+    });
+
+    if (res.ok && res.data?.status === 'success') {
+      const totalAmt = res.data.job_amount || (res.data.invoice?.job_amount) || 0;
+      showToast(`Job completed! Invoice generated for Rs. ${Number(totalAmt).toFixed(2)}`, 'success');
+      switchWorkerJobTab('completed');
+      await loadOpenJobsForWorker();
+    } else {
+      showToast(res.data?.message || 'Failed to complete job.', 'error');
+      if (triggerBtn) {
+        triggerBtn.disabled = false;
+        triggerBtn.innerHTML = '<i data-lucide="check-circle" width="15" height="15"></i> Done (Complete Job)';
+      }
+    }
+  } catch (err) {
+    showToast('Network error while completing job: ' + err.message, 'error');
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.innerHTML = '<i data-lucide="check-circle" width="15" height="15"></i> Done (Complete Job)';
+    }
+  }
+}
+
+// Global click delegation for worker actions: Take Job & Done Job
+document.addEventListener('click', async e => {
+  const takeBtn = e.target.closest('.btn-take-job');
+  if (takeBtn) {
+    const jobId = takeBtn.getAttribute('data-job-id');
+    if (!jobId) return;
+
+    takeBtn.disabled = true;
+    const oldHtml = takeBtn.innerHTML;
+    takeBtn.innerHTML = '<i data-lucide="loader" width="14" height="14" class="spin"></i> Taking Job...';
+
+    try {
+      const res = await apiFetch('jobs.php?action=take', {
+        method: 'POST',
+        body: JSON.stringify({ job_id: parseInt(jobId, 10) })
+      });
+
+      if (res.ok && res.data?.status === 'success') {
+        showToast('Job assigned to you! Switched to Ongoing jobs.', 'success');
+        switchWorkerJobTab('ongoing');
+        await loadOpenJobsForWorker();
+      } else {
+        const errMsg = res.data?.message || 'Failed to take job.';
+        showToast(errMsg, 'error');
+        await loadOpenJobsForWorker();
+      }
+    } catch (err) {
+      showToast('Network error while taking job.', 'error');
+      takeBtn.disabled = false;
+      takeBtn.innerHTML = oldHtml;
+    }
+    return;
+  }
+
+  // Awaiting Arrival click: friendly guidance & instant server status check
+  const awaitingBtn = e.target.closest('.btn-worker-awaiting-arrival, .btn-check-arrival-status');
+  if (awaitingBtn) {
+    const jobId = awaitingBtn.getAttribute('data-job-id');
+    showToast('Checking if customer has confirmed your arrival...', 'info');
+    await loadOpenJobsForWorker(true);
+    const updated = cachedOngoingJobs.find(j => String(j.id || j.job_id) === String(jobId));
+    if (updated && updated.arrived_at) {
+      showToast('Arrival confirmed! The work timer is running.', 'success');
+      renderWorkerJobs();
+    } else {
+      showToast('Waiting for customer. Please ask the customer to tap "Worker is Here" to start the work timer and unlock the Done button.', 'warning');
+    }
+    return;
+  }
+
+  // Done Job click: opens confirmation modal or falls back gracefully
+  const doneBtn = e.target.closest('.btn-worker-done-job');
+  if (doneBtn) {
+    const jobId = doneBtn.getAttribute('data-job-id');
+    const jobTitle = doneBtn.getAttribute('data-job-title') || 'Job Request';
+    if (!jobId) return;
+
+    const modal = $id('confirm-complete-modal');
+    if (modal) {
+      if ($id('complete-modal-job-id')) $id('complete-modal-job-id').value = jobId;
+      if ($id('complete-modal-title')) $id('complete-modal-title').textContent = jobTitle;
+      openModal('confirm-complete-modal');
+      return;
+    }
+
+    if (!confirm('Mark this job as complete? The final price will be automatically calculated based on your worked time, hourly rate, and travelling fee.')) {
+      return;
+    }
+    await executeCompleteHourlyJob(jobId, doneBtn);
+    return;
+  }
+
+  // Modal confirm submit
+  const confirmCompleteSubmit = e.target.closest('#btn-confirm-complete-submit');
+  if (confirmCompleteSubmit) {
+    const jobId = $id('complete-modal-job-id')?.value;
+    if (!jobId) return;
+    closeModal('confirm-complete-modal');
+    await executeCompleteHourlyJob(jobId, confirmCompleteSubmit);
+    return;
+  }
+});
 
 async function loadMyServicesForWorker() {
   const container = $id('worker-services-container');

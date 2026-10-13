@@ -45,7 +45,7 @@ class JobRepository {
             FROM job_requests jr
             JOIN categories c ON jr.category_id = c.id
             JOIN users u ON jr.customer_id = u.id
-            WHERE jr.status = 'open'
+            WHERE jr.status = 'open' AND jr.worker_id IS NULL
         ";
         $params = [];
         if ($categoryId !== null && $categoryId > 0) {
@@ -67,9 +67,18 @@ class JobRepository {
 
     public function getCustomerJobs(int $customerId): array {
         $stmt = $this->db->prepare("
-            SELECT jr.*, c.name AS category_name, c.icon AS category_icon
+            SELECT jr.*, 
+                   c.name AS category_name, 
+                   c.icon AS category_icon,
+                   u_worker.full_name AS worker_name,
+                   u_worker.phone AS worker_phone,
+                   wp.hourly_rate AS worker_hourly_rate,
+                   wp.travelling_fee AS worker_travelling_fee,
+                   wp.rating_avg AS worker_rating
             FROM job_requests jr
             JOIN categories c ON jr.category_id = c.id
+            LEFT JOIN worker_profiles wp ON jr.worker_id = wp.id
+            LEFT JOIN users u_worker ON wp.user_id = u_worker.id
             WHERE jr.customer_id = :customer_id
             ORDER BY jr.created_at DESC
         ");
@@ -77,20 +86,26 @@ class JobRepository {
         return $stmt->fetchAll();
     }
 
-    // All job applications made by one worker, with each job's current status.
+    // All jobs assigned to or applied by a worker, with details.
     public function getWorkerJobs(int $workerId): array {
         $stmt = $this->db->prepare("
-            SELECT ja.id AS application_id,
-                   ja.status AS application_status,
-                   ja.quote_amount,
-                   ja.created_at AS applied_at,
+            SELECT jr.*,
                    jr.id AS job_id,
                    jr.title AS job_title,
-                   jr.status AS job_status
-            FROM job_applications ja
-            JOIN job_requests jr ON jr.id = ja.job_id
-            WHERE ja.worker_id = :worker_id
-            ORDER BY ja.created_at DESC
+                   jr.status AS job_status,
+                   c.name AS category_name,
+                   c.icon AS category_icon,
+                   u.full_name AS customer_name,
+                   u.phone AS customer_phone,
+                   u.email AS customer_email,
+                   wp.hourly_rate AS worker_hourly_rate,
+                   wp.travelling_fee AS worker_travelling_fee
+            FROM job_requests jr
+            JOIN categories c ON jr.category_id = c.id
+            JOIN users u ON jr.customer_id = u.id
+            LEFT JOIN worker_profiles wp ON jr.worker_id = wp.id
+            WHERE jr.worker_id = :worker_id
+            ORDER BY jr.updated_at DESC, jr.created_at DESC
         ");
         $stmt->execute([':worker_id' => $workerId]);
         return $stmt->fetchAll();
@@ -98,10 +113,21 @@ class JobRepository {
 
     public function getById(int $jobId): ?array {
         $stmt = $this->db->prepare("
-            SELECT jr.*, c.name AS category_name, c.icon AS category_icon, u.full_name AS customer_name, u.phone AS customer_phone, u.email AS customer_email
+            SELECT jr.*, 
+                   c.name AS category_name, 
+                   c.icon AS category_icon, 
+                   u.full_name AS customer_name, 
+                   u.phone AS customer_phone, 
+                   u.email AS customer_email,
+                   u_worker.full_name AS worker_name,
+                   u_worker.phone AS worker_phone,
+                   wp.hourly_rate AS worker_hourly_rate,
+                   wp.travelling_fee AS worker_travelling_fee
             FROM job_requests jr
             JOIN categories c ON jr.category_id = c.id
             JOIN users u ON jr.customer_id = u.id
+            LEFT JOIN worker_profiles wp ON jr.worker_id = wp.id
+            LEFT JOIN users u_worker ON wp.user_id = u_worker.id
             WHERE jr.id = :id LIMIT 1
         ");
         $stmt->execute([':id' => $jobId]);

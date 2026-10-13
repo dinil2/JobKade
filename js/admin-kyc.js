@@ -10,7 +10,9 @@ async function adminApi(endpoint, options = {}) {
   const token = localStorage.getItem('jobkade_token') || '';
   const url = endpoint.startsWith('http') ? endpoint : ('../api/admin.php?' + endpoint);
   const headers = Object.assign({
-    'Authorization': 'Bearer ' + token
+    'Authorization': 'Bearer ' + token,
+    'X-Authorization': 'Bearer ' + token,
+    'X-Jobkade-Token': token
   }, options.headers || {});
 
   if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {

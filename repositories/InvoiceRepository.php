@@ -20,19 +20,23 @@ class InvoiceRepository {
         float $commissionAmount,
         float $workerNetAmount,
         string $paymentMethod,
-        ?string $notes = null
+        ?string $notes = null,
+        ?float $hoursWorked = null,
+        float $travellingFee = 0.00
     ): int {
         $stmt = $this->db->prepare("
             INSERT INTO job_invoices 
-            (job_id, worker_id, customer_id, job_amount, commission_rate, commission_amount, worker_net_amount, payment_method, payment_status, notes, created_at)
+            (job_id, worker_id, customer_id, job_amount, hours_worked, travelling_fee, commission_rate, commission_amount, worker_net_amount, payment_method, payment_status, notes, created_at)
             VALUES 
-            (:job_id, :worker_id, :customer_id, :job_amount, :commission_rate, :commission_amount, :worker_net_amount, :payment_method, 'pending', :notes, NOW())
+            (:job_id, :worker_id, :customer_id, :job_amount, :hours_worked, :travelling_fee, :commission_rate, :commission_amount, :worker_net_amount, :payment_method, 'pending', :notes, NOW())
         ");
         $stmt->execute([
             ":job_id"            => $jobId,
             ":worker_id"         => $workerId,
             ":customer_id"       => $customerId,
             ":job_amount"        => $jobAmount,
+            ":hours_worked"      => $hoursWorked,
+            ":travelling_fee"    => $travellingFee,
             ":commission_rate"   => $commissionRate,
             ":commission_amount" => $commissionAmount,
             ":worker_net_amount" => $workerNetAmount,
@@ -52,6 +56,8 @@ class InvoiceRepository {
                 ji.payment_status AS status,
                 jr.title AS job_title,
                 jr.address AS job_address,
+                wp.hourly_rate AS worker_hourly_rate,
+                wp.travelling_fee AS worker_profile_travelling_fee,
                 u_worker.full_name AS worker_name,
                 u_worker.phone AS worker_phone,
                 u_worker.email AS worker_email,
@@ -78,9 +84,14 @@ class InvoiceRepository {
                 ji.*,
                 ji.job_amount AS amount,
                 ji.payment_status AS status,
-                jr.title AS job_title
+                jr.title AS job_title,
+                wp.hourly_rate AS worker_hourly_rate,
+                wp.travelling_fee AS worker_profile_travelling_fee,
+                u_worker.full_name AS worker_name
             FROM job_invoices ji
             JOIN job_requests jr ON ji.job_id = jr.id
+            JOIN worker_profiles wp ON ji.worker_id = wp.id
+            JOIN users u_worker ON wp.user_id = u_worker.id
             WHERE ji.job_id = :job_id
             ORDER BY ji.id DESC
             LIMIT 1

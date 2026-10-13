@@ -27,7 +27,6 @@ class WorkerController {
         if (!$profile) {
             sendJsonResponse(404, ['status' => 'error', 'message' => 'Worker profile not found.']);
         }
-        unset($profile['hourly_rate']);
         sendJsonResponse(200, ['status' => 'success', 'worker' => $profile]);
     }
 
@@ -38,7 +37,6 @@ class WorkerController {
         }
 
         $data = getRequestData();
-        unset($data['hourly_rate']);
         try {
             $this->workerService->updateProfile((int)$user['worker_id'], $data);
             sendJsonResponse(200, ['status' => 'success', 'message' => 'Profile updated successfully!']);

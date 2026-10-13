@@ -85,17 +85,27 @@ class WorkerRepository {
 
     public function updateProfile(int $workerId, array $data): bool {
         $district = $data['district'] ?? ($data['address'] ?? null);
+        $hourlyRate = isset($data['hourly_rate']) ? (float)$data['hourly_rate'] : null;
+        $travellingFee = isset($data['travelling_fee']) ? (float)$data['travelling_fee'] : null;
+
         $stmt = $this->db->prepare("
             UPDATE worker_profiles 
-            SET bio = :bio, address = :address, district = COALESCE(:district, district), working_hours = :working_hours
+            SET bio = :bio, 
+                address = :address, 
+                district = COALESCE(:district, district), 
+                working_hours = :working_hours,
+                hourly_rate = COALESCE(:hourly_rate, hourly_rate),
+                travelling_fee = COALESCE(:travelling_fee, travelling_fee)
             WHERE id = :id
         ");
         $res = $stmt->execute([
-            ':bio'               => $data['bio'] ?? '',
-            ':address'           => $data['address'] ?? 'Colombo',
-            ':district'          => $district,
-            ':working_hours'     => $data['working_hours'] ?? '8:00 AM - 6:00 PM',
-            ':id'                => $workerId
+            ':bio'            => $data['bio'] ?? '',
+            ':address'        => $data['address'] ?? 'Colombo',
+            ':district'       => $district,
+            ':working_hours'  => $data['working_hours'] ?? '8:00 AM - 6:00 PM',
+            ':hourly_rate'    => $hourlyRate,
+            ':travelling_fee' => $travellingFee,
+            ':id'             => $workerId
         ]);
 
         if (!empty($data['full_name']) || !empty($data['phone'])) {

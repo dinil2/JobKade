@@ -64,6 +64,16 @@
             <div class="form-group"><label class="form-label">Service Location <span>*</span></label><input type="text" name="location" class="form-input" placeholder="e.g. Colombo, Western Province" required></div>
             <div class="form-group"><label class="form-label">Experience</label><input type="text" name="experience" class="form-input" placeholder="e.g. 5+ years"></div>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Hourly Rate (Rs.) <span>*</span></label>
+              <input type="number" name="hourly-rate" id="worker-hourly-rate" class="form-input" placeholder="e.g. 1000.00" min="0" step="50" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Travelling Fee (Rs.) <span>*</span></label>
+              <input type="number" name="travelling-fee" id="worker-travelling-fee" class="form-input" placeholder="e.g. 0.00" min="0" step="50" required>
+            </div>
+          </div>
           <div class="form-group">
             <label class="form-label">Availability</label>
             <select class="form-select" id="availability-status">

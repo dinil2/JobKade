@@ -204,4 +204,97 @@ class JobController {
 
         sendJsonResponse(200, ['status' => 'success', 'invoices' => $list]);
     }
+
+    // POST /api/jobs.php?action=take
+    public function takeJob(): void {
+        $user = JWT::getAuthUser();
+        if (!$user || ($user['role'] ?? '') !== 'worker' || empty($user['worker_id'])) {
+            sendJsonResponse(403, ['status' => 'error', 'message' => 'Only workers can take jobs.']);
+        }
+
+        $workerId = (int)$user['worker_id'];
+        if (!$this->workerRepo->isVerified($workerId)) {
+            sendJsonResponse(403, [
+                'status'  => 'error',
+                'message' => 'Your worker account must be verified by an administrator before you can take jobs.'
+            ]);
+        }
+
+        $data = getRequestData();
+        $jobId = (int)($data['job_id'] ?? 0);
+        if ($jobId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid job ID is required.']);
+        }
+
+        try {
+            $result = $this->jobService->takeJob($jobId, $workerId);
+            sendJsonResponse(200, $result);
+        } catch (Exception $e) {
+            $code = ($e->getMessage() === 'This job was just taken.') ? 409 : 400;
+            sendJsonResponse($code, ['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    // POST /api/jobs.php?action=arrive
+    public function confirmArrival(): void {
+        $user = JWT::getAuthUser();
+        if (!$user) {
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Authentication required.']);
+        }
+
+        $data = getRequestData();
+        $jobId = (int)($data['job_id'] ?? 0);
+        if ($jobId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid job ID is required.']);
+        }
+
+        try {
+            $result = $this->jobService->confirmArrival($jobId, (int)$user['user_id']);
+            sendJsonResponse(200, $result);
+        } catch (Exception $e) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    // POST /api/jobs.php?action=cancel-assignment
+    public function cancelAssignment(): void {
+        $user = JWT::getAuthUser();
+        if (!$user) {
+            sendJsonResponse(401, ['status' => 'error', 'message' => 'Authentication required.']);
+        }
+
+        $data = getRequestData();
+        $jobId = (int)($data['job_id'] ?? 0);
+        if ($jobId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid job ID is required.']);
+        }
+
+        try {
+            $result = $this->jobService->cancelAssignment($jobId, (int)$user['user_id']);
+            sendJsonResponse(200, $result);
+        } catch (Exception $e) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    // POST /api/jobs.php?action=complete
+    public function completeJob(): void {
+        $user = JWT::getAuthUser();
+        if (!$user || ($user['role'] ?? '') !== 'worker' || empty($user['worker_id'])) {
+            sendJsonResponse(403, ['status' => 'error', 'message' => 'Only assigned workers can mark jobs done.']);
+        }
+
+        $data = getRequestData();
+        $jobId = (int)($data['job_id'] ?? 0);
+        if ($jobId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid job ID is required.']);
+        }
+
+        try {
+            $result = $this->jobService->completeHourlyJob($jobId, (int)$user['worker_id']);
+            sendJsonResponse(200, $result);
+        } catch (Exception $e) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
 }

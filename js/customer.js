@@ -448,12 +448,75 @@ document.addEventListener('click', (e) => {
       worker_id: viewReceiptBtn.dataset.workerId,
       receipt_no: viewReceiptBtn.dataset.receiptNo,
       amount: viewReceiptBtn.dataset.amount,
+      hours_worked: viewReceiptBtn.dataset.hoursWorked,
+      hourly_rate: viewReceiptBtn.dataset.hourlyRate,
+      travelling_fee: viewReceiptBtn.dataset.travellingFee,
       job_title: viewReceiptBtn.dataset.jobTitle,
       worker_name: viewReceiptBtn.dataset.workerName,
       date: viewReceiptBtn.dataset.date,
       method: viewReceiptBtn.dataset.method
     };
     showCustomerReceiptModal(currentReceiptDetails);
+  }
+
+  const confirmArrivalBtn = e.target.closest('.btn-confirm-arrival');
+  if (confirmArrivalBtn) {
+    const jobId = confirmArrivalBtn.getAttribute('data-job-id');
+    if (jobId) {
+      confirmArrivalBtn.disabled = true;
+      const oldHtml = confirmArrivalBtn.innerHTML;
+      confirmArrivalBtn.innerHTML = '<i data-lucide="loader" width="14" height="14" class="spin"></i> Confirming...';
+      (async () => {
+        try {
+          const res = await apiFetch('jobs.php?action=arrive', {
+            method: 'POST',
+            body: JSON.stringify({ job_id: parseInt(jobId, 10) })
+          });
+          if (res.ok && res.data?.status === 'success') {
+            showToast('Worker arrival confirmed! Work timer started.', 'success');
+            await loadCustomerJobs();
+          } else {
+            showToast(res.data?.message || 'Failed to confirm arrival.', 'error');
+            confirmArrivalBtn.disabled = false;
+            confirmArrivalBtn.innerHTML = oldHtml;
+          }
+        } catch (err) {
+          showToast('Network error confirming arrival.', 'error');
+          confirmArrivalBtn.disabled = false;
+          confirmArrivalBtn.innerHTML = oldHtml;
+        }
+      })();
+    }
+    return;
+  }
+
+  const cancelAssignBtn = e.target.closest('.btn-cancel-worker-assignment');
+  if (cancelAssignBtn) {
+    const jobId = cancelAssignBtn.getAttribute('data-job-id');
+    if (jobId) {
+      if (confirm('Cancel this worker assignment? The job request will return to Available Jobs.')) {
+        cancelAssignBtn.disabled = true;
+        (async () => {
+          try {
+            const res = await apiFetch('jobs.php?action=cancel-assignment', {
+              method: 'POST',
+              body: JSON.stringify({ job_id: parseInt(jobId, 10) })
+            });
+            if (res.ok && res.data?.status === 'success') {
+              showToast('Worker assignment cancelled. The job is back in open requests.', 'info');
+              await loadCustomerJobs();
+            } else {
+              showToast(res.data?.message || 'Failed to cancel assignment.', 'error');
+              cancelAssignBtn.disabled = false;
+            }
+          } catch (err) {
+            showToast('Network error cancelling assignment.', 'error');
+            cancelAssignBtn.disabled = false;
+          }
+        })();
+      }
+    }
+    return;
   }
 
   const openReviewBtn = e.target.closest('.btn-open-review');
@@ -575,43 +638,106 @@ async function loadCustomerJobs() {
         const safeTitle = (j.title || 'Job Request').replace(/"/g, '&quot;');
         const inv = invoicesByJobId[j.id];
 
+        let workerInfoBanner = '';
+        if (j.worker_id && (status === 'in_progress' || j.worker_name)) {
+          const wName = j.worker_name || 'Verified Skilled Worker';
+          const hRate = parseFloat(j.worker_hourly_rate || 1000);
+          const tFee = parseFloat(j.worker_travelling_fee || 0);
+
+          workerInfoBanner = `
+            <div style="margin-top: 12px; padding: 10px 14px; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="user-check" width="16" height="16" style="color:var(--primary);"></i>
+                <span>Assigned Worker: <strong style="color:var(--text-primary);">${wName}</strong></span>
+              </div>
+              <div style="font-size:0.875rem;">
+                <span style="color:var(--text-secondary);">Hourly Rate:</span>
+                <strong style="color:var(--primary);">Rs. ${formatLKR(hRate).replace('Rs. ', '')} / hr</strong>
+                ${tFee > 0 ? `<span style="font-size:0.8rem; color:var(--text-muted); margin-left:6px;">(+ Rs. ${formatLKR(tFee).replace('Rs. ', '')} travel)</span>` : ''}
+              </div>
+            </div>`;
+        }
+
+        let arrivalBanner = '';
+        let cancelButton = '';
+
+        if (status === 'in_progress') {
+          if (!j.arrived_at) {
+            arrivalBanner = `
+              <div style="margin-top: 12px; padding: 12px 16px; background: rgba(245, 158, 11, 0.08); border: 1.5px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <strong style="display:block; color:#b45309; font-size:0.9rem;"><i data-lucide="clock" width="14" height="14" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Worker En Route</strong>
+                  <span style="font-size:0.82rem; color:var(--text-secondary);">Tap below when the worker arrives at your location to start the live timer.</span>
+                </div>
+                <button class="btn btn-warning btn-sm btn-confirm-arrival" data-job-id="${j.id}" style="background:#f59e0b; border:none; color:#ffffff; font-weight:700; padding:8px 16px;">
+                  <i data-lucide="map-pin" width="14" height="14"></i> Worker is Here
+                </button>
+              </div>`;
+            cancelButton = `<button class="btn btn-ghost btn-sm btn-cancel-worker-assignment" data-job-id="${j.id}" style="color:var(--error); font-weight:600;"><i data-lucide="user-x" width="14" height="14"></i> Cancel Assignment</button>`;
+          } else {
+            arrivalBanner = `
+              <div style="margin-top: 12px; padding: 12px 16px; background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div>
+                  <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--success); font-weight:700;"><i data-lucide="timer" width="13" height="13" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Work In Progress</div>
+                  <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">⏱️ Time Elapsed: <span class="customer-job-timer-display" data-arrived-at="${j.arrived_at}">00:00:00</span></div>
+                </div>
+                <span class="badge badge-success" style="font-size:0.8rem; font-weight:700; padding:5px 10px;"><i data-lucide="clock" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Timer Active</span>
+              </div>`;
+          }
+        } else if (status === 'open') {
+          cancelButton = '<button class="btn btn-ghost btn-sm cancel-job-btn" style="color:var(--error);"><i data-lucide="x" width="14" height="14"></i> Cancel Request</button>';
+        }
+
         let invoiceBanner = '';
         let payButton = '';
         let reviewButton = '';
 
         if (inv) {
-          const rawAmt = inv.amount ?? inv.job_amount ?? 0;
+          const hoursWorked = inv.hours_worked ?? j.hours_worked ?? '1.00';
+          const hourlyRate = parseFloat(inv.worker_hourly_rate ?? j.worker_hourly_rate ?? 1000);
+          const travellingFee = parseFloat(inv.travelling_fee ?? j.worker_travelling_fee ?? 0);
+          const rawAmt = inv.amount ?? inv.job_amount ?? ((parseFloat(hoursWorked) * hourlyRate) + travellingFee);
           const invAmount = formatLKR(rawAmt).replace('Rs. ', '');
           const invStatus = inv.status || inv.payment_status;
           const safeNotes = (inv.notes || '').replace(/"/g, '&quot;');
-          const workerName = inv.worker_name || 'Verified Skilled Worker';
-          const workerId = inv.worker_id || 1;
+          const workerName = inv.worker_name || j.worker_name || 'Verified Skilled Worker';
+          const workerId = inv.worker_id || j.worker_id || 1;
+
+          const priceBreakdownCard = `
+            <div style="margin-top:10px; padding:12px 14px; background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.85rem; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Hours Billed:</span><strong>${hoursWorked} hrs</strong></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Hourly Rate:</span><strong>Rs. ${formatLKR(hourlyRate).replace('Rs. ', '')} / hr</strong></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Travelling Fee:</span><strong>Rs. ${formatLKR(travellingFee).replace('Rs. ', '')}</strong></div>
+              <hr style="border:0; border-top:1px dashed var(--border); margin:4px 0;">
+              <div style="display:flex; justify-content:space-between; font-weight:700; font-size:0.95rem;"><span>Total:</span><strong style="color:var(--primary); font-size:1.05rem;">Rs. ${invAmount}</strong></div>
+            </div>`;
 
           if (invStatus === 'pending') {
             invoiceBanner = `
-              <div style="margin-top: 14px; padding: 12px 16px; background: linear-gradient(135deg, rgba(89,150,255,0.08), rgba(89,150,255,0.14)); border: 1.5px solid rgba(89,150,255,0.35); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <div>
-                  <div style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;"><i data-lucide="receipt" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--primary);margin-right:4px;"></i> Worker Final Price Added</div>
-                  <div style="font-size:1.15rem; font-weight:800; color:var(--primary); margin-top:2px;">Rs. ${invAmount} <span style="font-size:0.75rem; font-weight:500; color:var(--text-secondary);">&bull; by ${workerName}</span></div>
-                  ${safeNotes ? `<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:4px;">Notes: <em>${safeNotes}</em></div>` : ''}
+              <div style="margin-top: 14px; padding: 14px 16px; background: linear-gradient(135deg, rgba(89,150,255,0.08), rgba(89,150,255,0.14)); border: 1.5px solid rgba(89,150,255,0.35); border-radius: var(--radius-md);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;"><i data-lucide="receipt" width="14" height="14" style="display:inline;vertical-align:middle;color:var(--primary);margin-right:4px;"></i> Work Completed &bull; Price Breakdown</span>
+                  <span class="badge badge-warning" style="font-size:0.8rem; font-weight:700; padding:4px 8px;"><i data-lucide="clock" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Payment Due</span>
                 </div>
-                <span class="badge badge-warning" style="font-size:0.8rem; font-weight:700; padding:5px 10px;"><i data-lucide="clock" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Payment Due</span>
+                ${priceBreakdownCard}
+                ${safeNotes ? `<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:8px;">Notes: <em>${safeNotes}</em></div>` : ''}
               </div>`;
             payButton = `<button class="btn btn-primary btn-sm btn-pay-job-invoice" data-invoice-id="${inv.id}" data-amount="${rawAmt}" data-job-title="${safeTitle}" data-notes="${safeNotes}" style="font-weight:700;"><i data-lucide="credit-card" width="15" height="15"></i> Pay Rs. ${invAmount}</button>`;
           } else if (invStatus === 'paid') {
             const methodLabel = inv.payment_method === 'cash' ? 'Paid via Cash' : 'Paid Online (Mockup IPG)';
             invoiceBanner = `
-              <div style="margin-top: 14px; padding: 12px 16px; background: rgba(102,187,106,0.08); border: 1.5px solid rgba(102,187,106,0.3); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <div>
-                  <div style="font-size:0.8rem; color:var(--success); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;"><i data-lucide="check-circle" width="14" height="14" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Invoice Settled</div>
-                  <div style="font-size:1.15rem; font-weight:800; color:var(--success); margin-top:2px;">Rs. ${invAmount} <span style="font-size:0.75rem; font-weight:500; color:var(--text-secondary);">&bull; ${methodLabel}</span></div>
+              <div style="margin-top: 14px; padding: 14px 16px; background: rgba(102,187,106,0.08); border: 1.5px solid rgba(102,187,106,0.3); border-radius: var(--radius-md);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                  <span style="font-size:0.8rem; color:var(--success); text-transform:uppercase; letter-spacing:0.04em; font-weight:700;"><i data-lucide="check-circle" width="14" height="14" style="display:inline;vertical-align:middle;margin-right:4px;"></i> Invoice Settled &bull; ${methodLabel}</span>
+                  <span class="badge badge-success" style="font-size:0.8rem; font-weight:700; padding:4px 8px;"><i data-lucide="check" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Paid & Completed</span>
                 </div>
-                <span class="badge badge-success" style="font-size:0.8rem; font-weight:700; padding:5px 10px;"><i data-lucide="check" width="12" height="12" style="display:inline;vertical-align:middle;margin-right:3px;"></i> Paid & Completed</span>
+                ${priceBreakdownCard}
               </div>`;
             payButton = `
               <button class="btn btn-outline btn-sm btn-view-receipt"
                 data-invoice-id="${inv.id}" data-job-id="${j.id}" data-worker-id="${workerId}"
                 data-receipt-no="${inv.receipt_number || `REC-JOB-${inv.id}`}" data-amount="${rawAmt}"
+                data-hours-worked="${hoursWorked}" data-hourly-rate="${hourlyRate}" data-travelling-fee="${travellingFee}"
                 data-job-title="${safeTitle}" data-worker-name="${workerName}"
                 data-date="${inv.paid_at || j.created_at || 'Recently'}" data-method="${inv.payment_method || 'online'}">
                 <i data-lucide="receipt" width="14" height="14"></i> View Digital Receipt
@@ -626,7 +752,7 @@ async function loadCustomerJobs() {
         } else if (status === 'completed') {
           reviewButton = `
             <button class="btn btn-sm btn-open-review"
-              data-job-id="${j.id}" data-worker-id="${j.worker_id || 1}" data-worker-name="Assigned Worker" data-job-title="${safeTitle}"
+              data-job-id="${j.id}" data-worker-id="${j.worker_id || 1}" data-worker-name="${j.worker_name || 'Assigned Worker'}" data-job-title="${safeTitle}"
               style="background:#F59E0B; border-color:#F59E0B; color:#ffffff; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
               <i data-lucide="star" width="14" height="14" style="fill:#ffffff;"></i> Rate Worker
             </button>`;
@@ -641,12 +767,14 @@ async function loadCustomerJobs() {
               <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
             </div>
             <p class="job-card-desc">${j.description}</p>
+            ${workerInfoBanner}
+            ${arrivalBanner}
             ${invoiceBanner}
             <div class="job-card-actions" style="margin-top: 14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
               ${payButton}
               ${reviewButton}
               <a href="../messages.html?job_id=${j.id}" class="btn btn-outline btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Messages</a>
-              ${status === 'open' ? '<button class="btn btn-ghost btn-sm cancel-job-btn" style="color:var(--error);"><i data-lucide="x" width="14" height="14"></i> Cancel Request</button>' : ''}
+              ${cancelButton}
             </div>
           </div>`;
       }).join('');
@@ -781,6 +909,26 @@ function initCustomerInvoicePayment() {
   });
 }
 
+function updateCustomerLiveJobTimers() {
+  const timerEls = document.querySelectorAll('.customer-job-timer-display');
+  if (!timerEls.length) return;
+  const now = Date.now();
+  timerEls.forEach(el => {
+    const arrivedAtStr = el.getAttribute('data-arrived-at');
+    if (!arrivedAtStr) return;
+    const cleanStr = arrivedAtStr.replace(' ', 'T');
+    const arrivedTime = new Date(cleanStr).getTime();
+    if (isNaN(arrivedTime)) return;
+    const diff = Math.max(0, now - arrivedTime);
+    const totalSec = Math.floor(diff / 1000);
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    el.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  });
+}
+setInterval(updateCustomerLiveJobTimers, 1000);
+
 function showCustomerReceiptModal(details) {
   const user = getCustomerUser();
   const custName = user?.full_name || user?.name || 'Customer';
@@ -788,6 +936,9 @@ function showCustomerReceiptModal(details) {
   const fieldMap = {
     'receipt-number': details.receipt_no || `REC-JOB-${details.invoice_id || '2026'}`,
     'receipt-amount-display': formatLKR(details.amount),
+    'receipt-hours-billed': (details.hours_worked ? details.hours_worked + ' hrs' : '1.00 hrs'),
+    'receipt-hourly-rate': `Rs. ${formatLKR(details.hourly_rate || 1000).replace('Rs. ', '')} / hr`,
+    'receipt-travelling-fee': formatLKR(details.travelling_fee || 0),
     'receipt-date': details.date || new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
     'receipt-job-title': details.job_title || 'Service Job',
     'receipt-worker-name': details.worker_name || 'Verified Skilled Worker',

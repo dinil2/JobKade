@@ -86,6 +86,20 @@ class WorkerService {
             }
         }
 
+        if (isset($data['hourly_rate'])) {
+            if (!is_numeric($data['hourly_rate']) || (float)$data['hourly_rate'] < 0) {
+                throw new InvalidArgumentException("Hourly rate must be a valid number greater than or equal to 0.");
+            }
+            $data['hourly_rate'] = (float)$data['hourly_rate'];
+        }
+
+        if (isset($data['travelling_fee'])) {
+            if (!is_numeric($data['travelling_fee']) || (float)$data['travelling_fee'] < 0) {
+                throw new InvalidArgumentException("Travelling fee must be a valid number greater than or equal to 0.");
+            }
+            $data['travelling_fee'] = (float)$data['travelling_fee'];
+        }
+
         return $this->workerRepo->updateProfile($workerId, $data);
     }
 

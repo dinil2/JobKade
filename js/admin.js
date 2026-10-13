@@ -7,8 +7,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const user = (typeof requireAuth === 'function') ? requireAuth('admin') : null;
   if (!user) return;
 
-  loadAdminStats();
-  initAdminCharts();
+  if (document.getElementById('worker-performance-tbody') || window.location.pathname.includes('analytics.html')) {
+    loadAnalyticsTables();
+  } else {
+    loadAdminStats();
+    initAdminCharts();
+  }
 
   if (document.getElementById('manage-workers-tbody')) {
     initManageWorkers();
@@ -98,10 +102,173 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /* ==========================================
+   Analytics: Numbers-Only Tables & Summary Cards
+   ========================================== */
+function formatLKR(amount) {
+  const num = Number(amount) || 0;
+  return 'Rs. ' + num.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatPlainNumber(amount) {
+  const num = Number(amount) || 0;
+  return num.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function loadAnalyticsTables() {
+  const monthlyTbody = document.getElementById('monthly-breakdown-tbody');
+  const workerTbody = document.getElementById('worker-performance-tbody');
+  const customerTbody = document.getElementById('customer-activity-tbody');
+  const categoryTbody = document.getElementById('category-ranking-tbody');
+  const recentTbody = document.getElementById('recent-activity-tbody');
+
+  // Return early if not on analytics page
+  if (!workerTbody && !customerTbody && !monthlyTbody && !categoryTbody && !recentTbody) return;
+
+  try {
+    const res = await apiFetch('admin.php?action=analytics');
+    if (!res.ok || res.data?.status !== 'success') {
+      const isAuthErr = (res.status === 401 || res.status === 403);
+      const errMsg = isAuthErr
+        ? 'Administrator sign-in required. <a href="../auth/login.html?redirect=admin/analytics.html" style="color:var(--primary); font-weight:600; text-decoration:underline;">Click here to log in as Admin (admin@jobkade.lk)</a>'
+        : (res.data?.message || 'Failed to load analytics data.');
+      if (monthlyTbody) monthlyTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
+      if (workerTbody) workerTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
+      if (customerTbody) customerTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
+      if (categoryTbody) categoryTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
+      if (recentTbody) recentTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
+      return;
+    }
+
+    const a = res.data.analytics || {};
+
+    // 1. Row of 6 KPI Number Cards
+    const k = a.kpis || a;
+    const totalWorkersEl = document.getElementById('stat-total-workers');
+    const totalCustomersEl = document.getElementById('stat-total-customers');
+    const jobsPostedEl = document.getElementById('stat-jobs-posted');
+    const jobsCompletedEl = document.getElementById('stat-jobs-completed');
+    const platformRevEl = document.getElementById('stat-platform-revenue');
+    const commissionEl = document.getElementById('stat-commission-earned');
+
+    if (totalWorkersEl) totalWorkersEl.textContent = Number(k.total_workers || 0).toLocaleString();
+    if (totalCustomersEl) totalCustomersEl.textContent = Number(k.total_customers || 0).toLocaleString();
+    if (jobsPostedEl) jobsPostedEl.textContent = Number(k.total_jobs_posted || 0).toLocaleString();
+    if (jobsCompletedEl) jobsCompletedEl.textContent = Number(k.total_jobs_completed || 0).toLocaleString();
+    if (platformRevEl) platformRevEl.textContent = formatLKR(k.platform_revenue || 0);
+    if (commissionEl) commissionEl.textContent = formatLKR(k.commission_earned || 0);
+
+    // 2. Monthly Breakdown Table (Month | Jobs Posted | Jobs Completed | Revenue (Rs.) | Commission (Rs.))
+    const monthly = Array.isArray(a.monthly_breakdown) ? a.monthly_breakdown : [];
+    if (monthlyTbody) {
+      if (!monthly.length) {
+        monthlyTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:2.5rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+      } else {
+        monthlyTbody.innerHTML = monthly.map(m => `
+          <tr>
+            <td style="font-weight:600; color:var(--text-primary);">${escapeHtml(m.month || '-')}</td>
+            <td style="text-align:right; font-weight:600;">${Number(m.jobs_posted || 0).toLocaleString()}</td>
+            <td style="text-align:right; font-weight:600; color:var(--success);">${Number(m.jobs_completed || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${formatPlainNumber(m.revenue || 0)}</td>
+            <td style="text-align:right; font-weight:700; color:var(--primary);">${formatPlainNumber(m.commission || 0)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 3. Worker Performance Table (Worker | Jobs Completed | Earnings This Month (Rs.) | Total Earnings (Rs.))
+    const workers = Array.isArray(a.worker_performance) ? a.worker_performance : [];
+    if (workerTbody) {
+      if (!workers.length) {
+        workerTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2.5rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+      } else {
+        workerTbody.innerHTML = workers.map(w => `
+          <tr>
+            <td style="font-weight:600; color:var(--text-primary);">${escapeHtml(w.worker_name || 'Worker')}</td>
+            <td style="text-align:right; font-weight:600;">${Number(w.jobs_completed || 0).toLocaleString()}</td>
+            <td style="text-align:right;">${formatPlainNumber(w.earnings_this_month || 0)}</td>
+            <td style="text-align:right; font-weight:700; color:var(--primary);">${formatPlainNumber(w.total_earnings || 0)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 4. Customer Activity Table (Customer | Jobs Posted | Jobs Completed)
+    const customers = Array.isArray(a.customer_activity) ? a.customer_activity : [];
+    if (customerTbody) {
+      if (!customers.length) {
+        customerTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+      } else {
+        customerTbody.innerHTML = customers.map(c => `
+          <tr>
+            <td style="font-weight:600; color:var(--text-primary);">${escapeHtml(c.customer_name || 'Customer')}</td>
+            <td style="text-align:right; font-weight:600;">${Number(c.jobs_posted || 0).toLocaleString()}</td>
+            <td style="text-align:right; font-weight:600; color:var(--success);">${Number(c.jobs_completed || 0).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 5. Workers by Category Ranked List (Rank | Category Name | Worker Count)
+    const categories = Array.isArray(a.category_ranking) ? a.category_ranking : [];
+    if (categoryTbody) {
+      if (!categories.length) {
+        categoryTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+      } else {
+        categoryTbody.innerHTML = categories.map((cat, idx) => `
+          <tr>
+            <td><span class="badge ${idx === 0 ? 'badge-completed' : (idx < 3 ? 'badge-verified' : 'badge-pending')}" style="font-weight:700;">#${idx + 1}</span></td>
+            <td style="font-weight:600; color:var(--text-primary);">${escapeHtml(cat.category_name || '-')}</td>
+            <td style="text-align:right; font-weight:700; color:var(--primary);">${Number(cat.worker_count || 0).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // 6. Recent Activity List (latest 10 events with timestamps)
+    const events = Array.isArray(a.recent_activity) ? a.recent_activity : [];
+    if (recentTbody) {
+      if (!events.length) {
+        recentTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+      } else {
+        recentTbody.innerHTML = events.map(ev => {
+          let badgeHtml = '<span class="badge badge-pending">Event</span>';
+          if (ev.type === 'job_request') {
+            badgeHtml = '<span class="badge badge-pending"><i data-lucide="clipboard-list" width="12" height="12"></i> Job</span>';
+          } else if (ev.type === 'paid_invoice') {
+            badgeHtml = '<span class="badge badge-verified"><i data-lucide="check" width="12" height="12"></i> Paid</span>';
+          } else if (ev.type === 'registration') {
+            badgeHtml = '<span class="badge badge-completed"><i data-lucide="user" width="12" height="12"></i> User</span>';
+          }
+
+          return `
+            <tr>
+              <td>${badgeHtml}</td>
+              <td style="color:var(--text-primary); font-size:0.9rem; font-weight:500;">${escapeHtml(ev.description || '-')}</td>
+              <td style="text-align:right; font-size:0.85rem; color:var(--text-secondary); white-space:nowrap;">${escapeHtml(ev.timestamp || '-')}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  } catch (err) {
+    console.error('Failed to load analytics tables:', err);
+    if (monthlyTbody) monthlyTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:2.5rem; color:var(--error);">Failed to load monthly breakdown data.</td></tr>`;
+    if (workerTbody) workerTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2.5rem; color:var(--error);">Failed to load worker performance data.</td></tr>`;
+    if (customerTbody) customerTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--error);">Failed to load customer activity data.</td></tr>`;
+    if (categoryTbody) categoryTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--error);">Failed to load category ranking data.</td></tr>`;
+    if (recentTbody) recentTbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:2.5rem; color:var(--error);">Failed to load recent activity data.</td></tr>`;
+  }
+}
+
+/* ==========================================
    Chart Initialization
    ========================================== */
 async function initAdminCharts() {
   if (typeof Chart === 'undefined') return;
+  if (window.location.pathname.includes('analytics.html')) return;
 
   const commonOptions = {
     responsive: true,

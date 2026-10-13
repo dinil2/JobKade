@@ -69,14 +69,35 @@ class JWT {
      * @return string|null
      */
     public static function getBearerToken(): ?string {
-        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] 
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
+            ?? $_SERVER['HTTP_X_AUTHORIZATION'] 
+            ?? $_SERVER['HTTP_X_JOBKADE_TOKEN'] 
+            ?? null;
+
         if (!$authHeader && function_exists('apache_request_headers')) {
             $headers = apache_request_headers();
-            $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+            $authHeader = $headers['Authorization'] 
+                ?? $headers['authorization'] 
+                ?? $headers['X-Authorization'] 
+                ?? $headers['x-authorization'] 
+                ?? $headers['X-Jobkade-Token'] 
+                ?? $headers['x-jobkade-token'] 
+                ?? null;
         }
 
-        if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            return $matches[1];
+        if (!$authHeader) {
+            $authHeader = $_GET['token'] ?? $_POST['token'] ?? $_COOKIE['jobkade_token'] ?? null;
+        }
+
+        if ($authHeader) {
+            if (preg_match('/Bearer\s(\S+)/i', $authHeader, $matches)) {
+                return $matches[1];
+            }
+            $trimmed = trim($authHeader);
+            if (count(explode('.', $trimmed)) === 3) {
+                return $trimmed;
+            }
         }
 
         return null;
