@@ -1058,6 +1058,25 @@ paths:
                 address:
                   type: string
                   example: 78 Havelock Road, Colombo 05
+                district:
+                  type: string
+                  example: Colombo
+                city:
+                  type: string
+                  example: Colombo 05
+                preferred_date:
+                  type: string
+                  format: date
+                  description: Preferred date for job execution (minimum = today)
+                  example: "2026-10-20"
+                start_time:
+                  type: string
+                  description: Expected start time
+                  example: "12:30:00"
+                end_time:
+                  type: string
+                  description: Expected end time (must be after start_time)
+                  example: "14:30:00"
                 latitude:
                   type: number
                   default: 6.9271
@@ -2949,6 +2968,19 @@ components:
           type: string
           enum: [open, in_progress, completed, cancelled]
           example: open
+        preferred_date:
+          type: string
+          format: date
+          nullable: true
+          example: "2026-10-20"
+        start_time:
+          type: string
+          nullable: true
+          example: "12:30:00"
+        end_time:
+          type: string
+          nullable: true
+          example: "14:30:00"
         created_at:
           type: string
           example: "2026-10-01 14:30:00"

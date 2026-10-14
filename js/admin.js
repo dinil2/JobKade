@@ -20,7 +20,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   loadAdminStats();
 
-  if (document.getElementById('monthly-breakdown-tbody') ||
+  if (document.getElementById('worker-earnings-tbody')) {
+    initAdminDashboardRebuild();
+  } else if (document.getElementById('monthly-breakdown-tbody') ||
       document.getElementById('worker-performance-tbody') ||
       document.getElementById('stat-total-workers') ||
       window.location.pathname.includes('analytics.html')) {
@@ -131,6 +133,343 @@ function formatLKR(amount) {
 function formatPlainNumber(amount) {
   const num = Number(amount) || 0;
   return num.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* ==========================================
+   Admin Dashboard Rebuild: Focused Overview with Charts & Auto-Refresh
+   ========================================== */
+let dashboardCountdownTimer = null;
+let dashboardCountdownSec = 30;
+let lastDashboardAnalytics = null;
+let workerEarningsChartInstance = null;
+let monthlyRevenueChartInstance = null;
+
+function stopDashboardAutoRefresh() {
+  if (dashboardCountdownTimer) {
+    clearInterval(dashboardCountdownTimer);
+    dashboardCountdownTimer = null;
+  }
+}
+
+function startDashboardAutoRefresh() {
+  stopDashboardAutoRefresh();
+  dashboardCountdownSec = 30;
+  updateCountdownBadge();
+
+  dashboardCountdownTimer = setInterval(() => {
+    dashboardCountdownSec--;
+    if (dashboardCountdownSec <= 0) {
+      dashboardCountdownSec = 30;
+      fetchAndUpdateDashboard(false);
+    }
+    updateCountdownBadge();
+  }, 1000);
+}
+
+function updateCountdownBadge() {
+  const el = document.getElementById('refresh-status-text');
+  if (el) {
+    el.textContent = `Auto-refresh: ${dashboardCountdownSec}s`;
+  }
+}
+
+function renderInitialError(msg) {
+  const workerTbody = document.getElementById('worker-earnings-tbody');
+  const customerTbody = document.getElementById('customer-transactions-tbody');
+  if (workerTbody) {
+    workerTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--error);">${escapeHtml(msg)}</td></tr>`;
+  }
+  if (customerTbody) {
+    customerTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--error);">${escapeHtml(msg)}</td></tr>`;
+  }
+}
+
+async function fetchAndUpdateDashboard(isManual = false) {
+  const refreshBtn = document.getElementById('btn-refresh-analytics');
+  const refreshIcon = document.getElementById('refresh-icon');
+
+  if (isManual && refreshIcon) {
+    refreshIcon.classList.add('spin-anim');
+    if (refreshBtn) refreshBtn.disabled = true;
+  }
+
+  try {
+    const res = await apiFetch('admin.php?action=analytics');
+    if (!res.ok || res.data?.status !== 'success' || !res.data?.analytics) {
+      console.warn('Analytics fetch failed; retaining existing dashboard data:', res);
+      if (!lastDashboardAnalytics) {
+        renderInitialError(res.data?.message || 'Failed to load analytics data.');
+      }
+      return;
+    }
+
+    const a = res.data.analytics;
+    lastDashboardAnalytics = a;
+
+    // 1. Update KPI Numbers
+    updateDashboardKPIs(a);
+
+    // 2. Worker Earnings table (primary) + Bar chart beside it
+    updateWorkerEarningsSection(a.worker_performance || []);
+
+    // 3. Customer Transactions table + Line chart beside it
+    updateCustomerTransactionsSection(a.customer_activity || []);
+
+    // 4. Monthly Revenue Line Chart (Sep and Oct 2026 only, 2 points)
+    updateMonthlyRevenueChartSection(a.monthly_breakdown || []);
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  } catch (err) {
+    console.warn('Dashboard auto-refresh error; retaining existing data:', err);
+    if (!lastDashboardAnalytics) {
+      renderInitialError('Failed to load analytics.');
+    }
+  } finally {
+    if (refreshIcon) refreshIcon.classList.remove('spin-anim');
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+function updateDashboardKPIs(a) {
+  const k = a.kpis || a;
+  const totalCustomersEl = document.getElementById('stat-total-customers');
+  const totalWorkersEl = document.getElementById('stat-total-workers');
+  const jobsPostedEl = document.getElementById('stat-jobs-posted');
+  const jobsCompletedEl = document.getElementById('stat-jobs-completed');
+  const platformRevEl = document.getElementById('stat-platform-revenue');
+  const commissionEl = document.getElementById('stat-commission-earned');
+
+  if (totalCustomersEl) totalCustomersEl.textContent = Number(k.total_customers || 0).toLocaleString();
+  if (totalWorkersEl) totalWorkersEl.textContent = Number(k.total_workers || 0).toLocaleString();
+  if (jobsPostedEl) jobsPostedEl.textContent = Number(k.total_jobs_posted || 0).toLocaleString();
+  if (jobsCompletedEl) jobsCompletedEl.textContent = Number(k.total_jobs_completed || 0).toLocaleString();
+  if (platformRevEl) platformRevEl.textContent = formatLKR(k.platform_revenue || 0);
+  if (commissionEl) commissionEl.textContent = formatLKR(k.commission_earned || 0);
+}
+
+function updateWorkerEarningsSection(workers) {
+  const tbody = document.getElementById('worker-earnings-tbody');
+  const canvas = document.getElementById('worker-earnings-chart');
+  const emptyEl = document.getElementById('worker-chart-empty');
+
+  // Sort descending by total earnings, top 3
+  const sorted = [...workers].sort((a, b) => (Number(b.total_earnings) || 0) - (Number(a.total_earnings) || 0));
+  const top3 = sorted.slice(0, 3);
+
+  // 1. Worker Earnings table (primary source of truth)
+  if (tbody) {
+    if (top3.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+    } else {
+      tbody.innerHTML = top3.map(w => `
+        <tr>
+          <td style="font-weight:600; color:var(--text-primary);">${escapeHtml(w.worker_name || 'Worker')}</td>
+          <td style="text-align:right; font-weight:600;">${Number(w.jobs_completed || 0).toLocaleString()}</td>
+          <td style="text-align:right;">${formatPlainNumber(w.earnings_this_month || 0)}</td>
+          <td style="text-align:right; font-weight:700; color:var(--primary);">${formatPlainNumber(w.total_earnings || 0)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  // 2. Bar chart: Earnings per Worker (top 3 workers, total earnings in Rs.)
+  if (canvas && typeof Chart !== 'undefined') {
+    if (top3.length === 0) {
+      canvas.style.display = 'none';
+      if (emptyEl) emptyEl.style.display = 'flex';
+      if (workerEarningsChartInstance) {
+        workerEarningsChartInstance.destroy();
+        workerEarningsChartInstance = null;
+      }
+    } else {
+      canvas.style.display = 'block';
+      if (emptyEl) emptyEl.style.display = 'none';
+
+      const labels = top3.map(w => {
+        const full = w.worker_name || 'Worker';
+        return full.split('(')[0].trim();
+      });
+      const data = top3.map(w => Number(w.total_earnings || 0));
+
+      if (workerEarningsChartInstance) {
+        workerEarningsChartInstance.data.labels = labels;
+        workerEarningsChartInstance.data.datasets[0].data = data;
+        workerEarningsChartInstance.update();
+      } else {
+        const ctx = canvas.getContext('2d');
+        workerEarningsChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Total Earnings (Rs.)',
+              data: data,
+              backgroundColor: 'rgba(59, 130, 246, 0.75)',
+              borderColor: '#2563eb',
+              borderWidth: 1,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            events: [], // Display-only: no clicks, filters, or actions wired into them
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(v) { return 'Rs. ' + Number(v).toLocaleString(); },
+                  font: { size: 11 },
+                  color: '#6b7280'
+                },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+              },
+              x: {
+                ticks: {
+                  font: { size: 11, weight: '600' },
+                  color: '#374151'
+                },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+}
+
+function updateCustomerTransactionsSection(customers) {
+  const tbody = document.getElementById('customer-transactions-tbody');
+
+  // Sort descending by total spent, top 3
+  const sorted = [...customers].sort((a, b) => (Number(b.total_spent) || 0) - (Number(a.total_spent) || 0));
+  const top3 = sorted.slice(0, 3);
+
+  // Customer Transactions table: Customer | Jobs Posted | Transactions | Total Spent (Rs.)
+  if (tbody) {
+    if (top3.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.95rem;">No data yet</td></tr>`;
+    } else {
+      tbody.innerHTML = top3.map(c => `
+        <tr>
+          <td style="font-weight:600; color:var(--text-primary);">${escapeHtml(c.customer_name || 'Customer')}</td>
+          <td style="text-align:right; font-weight:600;">${Number(c.jobs_posted || 0).toLocaleString()}</td>
+          <td style="text-align:right; font-weight:600; color:var(--success);">${Number(c.transactions || 0).toLocaleString()}</td>
+          <td style="text-align:right; font-weight:700; color:var(--primary);">${formatPlainNumber(c.total_spent || 0)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+function updateMonthlyRevenueChartSection(monthly) {
+  const canvas = document.getElementById('monthly-revenue-chart');
+  const emptyEl = document.getElementById('revenue-chart-empty');
+
+  // Line chart: Monthly Revenue for September and October 2026 only (2 points)
+  let points = monthly.filter(m => m.month_key === '2026-09' || m.month_key === '2026-10');
+  if (points.length === 0 && monthly.length > 0) {
+    points = monthly.slice(0, 2);
+  }
+
+  if (canvas && typeof Chart !== 'undefined') {
+    if (points.length === 0) {
+      canvas.style.display = 'none';
+      if (emptyEl) emptyEl.style.display = 'flex';
+      if (monthlyRevenueChartInstance) {
+        monthlyRevenueChartInstance.destroy();
+        monthlyRevenueChartInstance = null;
+      }
+    } else {
+      canvas.style.display = 'block';
+      if (emptyEl) emptyEl.style.display = 'none';
+
+      const labels = points.map(m => m.month || (m.month_key === '2026-09' ? 'September 2026' : 'October 2026'));
+      const data = points.map(m => Number(m.revenue || 0));
+
+      if (monthlyRevenueChartInstance) {
+        monthlyRevenueChartInstance.data.labels = labels;
+        monthlyRevenueChartInstance.data.datasets[0].data = data;
+        monthlyRevenueChartInstance.update();
+      } else {
+        const ctx = canvas.getContext('2d');
+        monthlyRevenueChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Monthly Revenue (Rs.)',
+              data: data,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+              fill: true,
+              tension: 0.3,
+              borderWidth: 3,
+              pointRadius: 6,
+              pointBackgroundColor: '#10b981',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            events: [], // Display-only: no clicks, filters, or actions wired into them
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(v) { return 'Rs. ' + Number(v).toLocaleString(); },
+                  font: { size: 11 },
+                  color: '#6b7280'
+                },
+                grid: { color: 'rgba(0,0,0,0.05)' }
+              },
+              x: {
+                ticks: {
+                  font: { size: 11, weight: '600' },
+                  color: '#374151'
+                },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+}
+
+function initAdminDashboardRebuild() {
+  // Initial load
+  fetchAndUpdateDashboard(false);
+
+  // Start 30-second recurring timer
+  startDashboardAutoRefresh();
+
+  // Manual refresh button immediately updates and resets 30s timer
+  const refreshBtn = document.getElementById('btn-refresh-analytics');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      fetchAndUpdateDashboard(true);
+      startDashboardAutoRefresh();
+    });
+  }
+
+  // Stop 30-second timer when admin leaves dashboard
+  window.addEventListener('beforeunload', stopDashboardAutoRefresh);
+  window.addEventListener('pagehide', stopDashboardAutoRefresh);
 }
 
 async function loadAnalyticsTables() {
@@ -419,12 +758,14 @@ async function loadAdminStats() {
     const res = await apiFetch('admin.php?action=stats');
     if (res.ok && res.data?.status === 'success') {
       const s = res.data.stats;
-      const cards = document.querySelectorAll('.admin-stat-card');
-      if (cards.length >= 4) {
-        if (s.verified_workers !== undefined) cards[0].querySelector('h3')?.replaceChildren(document.createTextNode(s.verified_workers));
-        if (s.total_users !== undefined) cards[1].querySelector('h3')?.replaceChildren(document.createTextNode(s.total_users));
-        if (s.pending_kyc !== undefined) cards[2].querySelector('h3')?.replaceChildren(document.createTextNode(s.pending_kyc));
-        if (s.total_jobs !== undefined) cards[3].querySelector('h3')?.replaceChildren(document.createTextNode(s.total_jobs));
+      if (!document.getElementById('worker-earnings-tbody')) {
+        const cards = document.querySelectorAll('.admin-stat-card');
+        if (cards.length >= 4) {
+          if (s.verified_workers !== undefined) cards[0].querySelector('h3')?.replaceChildren(document.createTextNode(s.verified_workers));
+          if (s.total_users !== undefined) cards[1].querySelector('h3')?.replaceChildren(document.createTextNode(s.total_users));
+          if (s.pending_kyc !== undefined) cards[2].querySelector('h3')?.replaceChildren(document.createTextNode(s.pending_kyc));
+          if (s.total_jobs !== undefined) cards[3].querySelector('h3')?.replaceChildren(document.createTextNode(s.total_jobs));
+        }
       }
       if (s.pending_kyc !== undefined) {
         document.querySelectorAll('#pendingCounterBadge').forEach(el => {

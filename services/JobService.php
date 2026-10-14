@@ -61,7 +61,61 @@ class JobService {
             throw new InvalidArgumentException("Job city is required.");
         }
 
-        $jobId = $this->jobRepo->create($customerId, $categoryId, $title, $description, $lat, $lng, $address, $photo, $district, $city);
+        $preferredDateRaw = trim(strip_tags((string)($data['preferred_date'] ?? $data['preferred-date'] ?? '')));
+        $startTimeRaw = trim(strip_tags((string)($data['start_time'] ?? $data['start-time'] ?? '')));
+        $endTimeRaw = trim(strip_tags((string)($data['end_time'] ?? $data['end-time'] ?? '')));
+
+        if (empty($preferredDateRaw)) {
+            throw new InvalidArgumentException("Preferred date is required.");
+        }
+        if (empty($startTimeRaw)) {
+            throw new InvalidArgumentException("Start time is required.");
+        }
+        if (empty($endTimeRaw)) {
+            throw new InvalidArgumentException("End time is required.");
+        }
+
+        $d = DateTime::createFromFormat('Y-m-d', $preferredDateRaw);
+        if (!$d || $d->format('Y-m-d') !== $preferredDateRaw) {
+            throw new InvalidArgumentException("Invalid preferred date format. Expected YYYY-MM-DD.");
+        }
+
+        $today = date('Y-m-d');
+        if ($preferredDateRaw < $today) {
+            throw new InvalidArgumentException("Preferred date cannot be in the past.");
+        }
+
+        $t1 = strtotime("1970-01-01 " . $startTimeRaw);
+        $t2 = strtotime("1970-01-01 " . $endTimeRaw);
+        if ($t1 === false) {
+            throw new InvalidArgumentException("Invalid start time format.");
+        }
+        if ($t2 === false) {
+            throw new InvalidArgumentException("Invalid end time format.");
+        }
+        if ($t2 <= $t1) {
+            throw new InvalidArgumentException("End time must be after start time.");
+        }
+
+        $preferredDate = $d->format('Y-m-d');
+        $startTime = date('H:i:s', $t1);
+        $endTime = date('H:i:s', $t2);
+
+        $jobId = $this->jobRepo->create(
+            $customerId,
+            $categoryId,
+            $title,
+            $description,
+            $lat,
+            $lng,
+            $address,
+            $photo,
+            $district,
+            $city,
+            $preferredDate,
+            $startTime,
+            $endTime
+        );
 
         return [
             'status'  => 'success',

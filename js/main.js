@@ -159,6 +159,9 @@ function isItemActive(item, currentPath, currentFile, role) {
 function updateAdminBadge() {
   const badges = document.querySelectorAll('#pendingCounterBadge');
   if (!badges.length) return;
+  const currentPath = window.location.pathname.toLowerCase();
+  const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => currentPath.includes(s));
+  const rootPath = isSubfolder ? '../' : '';
   const token = localStorage.getItem('jobkade_token') || '';
   const headers = token ? { 
     'Authorization': 'Bearer ' + token,
@@ -515,12 +518,28 @@ function initImageFallbacks() {
 function initLogoutBindings() {
   document.querySelectorAll('a[href*="login.html"], .nav-logout-btn, .sidebar-logout-btn, #navLogoutBtn, #sidebarLogoutBtn, #logoutBtn, #adminLogoutBtn, #adminHeaderLogoutBtn').forEach(link => {
     if (link.dataset.logoutBound) return;
-    if (link.textContent.toLowerCase().includes('logout') || link.classList.contains('nav-logout-btn') || link.classList.contains('sidebar-logout-btn')) {
-      link.dataset.logoutBound = 'true';
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        logoutUser();
-      });
+    link.dataset.logoutBound = 'true';
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      logoutUser();
+    });
+  });
+}
+
+// Global delegated logout listener to catch any click on a logout element (including inner icons/spans)
+if (typeof document !== 'undefined' && !window.__jobkade_logout_delegated) {
+  window.__jobkade_logout_delegated = true;
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('#navLogoutBtn, #sidebarLogoutBtn, #adminLogoutBtn, #logoutBtn, #adminHeaderLogoutBtn, .nav-logout-btn, .sidebar-logout-btn, [data-action="logout"]');
+    if (target) {
+      e.preventDefault();
+      logoutUser();
+      return;
+    }
+    const link = e.target.closest('a[href*="login.html"]');
+    if (link && link.textContent && link.textContent.toLowerCase().includes('logout')) {
+      e.preventDefault();
+      logoutUser();
     }
   });
 }
@@ -634,17 +653,29 @@ function setLoggedInUser(role, name, email) {
   });
 }
 
-let isLoggingOut = false;
+var isLoggingOut = false;
 function logoutUser() {
   if (isLoggingOut) return;
   isLoggingOut = true;
-  ['jobkade_token', 'jodkade_logged_user', 'jobkade_user', 'jobkade_worker_avatar'].forEach(k => localStorage.removeItem(k));
-  showToast('Logged out successfully.', 'info');
+  try {
+    ['jobkade_token', 'jodkade_logged_user', 'jobkade_user', 'jobkade_worker_avatar'].forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+    sessionStorage.clear();
+  } catch (e) {}
+
+  try {
+    if (typeof showToast === 'function') {
+      showToast('Logged out successfully.', 'info');
+    }
+  } catch (e) {}
+
   const isSubfolder = ['/admin/', '/customer/', '/worker/', '/auth/'].some(s => window.location.pathname.toLowerCase().includes(s));
   setTimeout(() => {
     window.location.href = (isSubfolder ? '../' : '') + 'auth/login.html';
-  }, 400);
+  }, 350);
 }
+window.logoutUser = logoutUser;
 
 // dynamic navbar & mobile bottom nav
 
@@ -928,4 +959,40 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+
+function formatJobTimeFrame(date, startTime, endTime) {
+  if (!date || String(date).trim() === '' || date === 'null' || date === '0000-00-00') {
+    return 'Not specified';
+  }
+  const cleanDate = String(date).trim();
+
+  function formatTime(t) {
+    if (!t || String(t).trim() === '' || t === 'null') return '';
+    const str = String(t).trim();
+    if (str.toUpperCase().includes('AM') || str.toUpperCase().includes('PM')) {
+      return str;
+    }
+    const parts = str.split(':');
+    if (parts.length < 2) return str;
+    let h = parseInt(parts[0], 10);
+    const m = parts[1].padStart(2, '0');
+    if (isNaN(h)) return str;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${h}:${m} ${ampm}`;
+  }
+
+  const sTime = formatTime(startTime);
+  const eTime = formatTime(endTime);
+
+  if (sTime && eTime) {
+    return `${cleanDate}, ${sTime} - ${eTime}`;
+  } else if (sTime) {
+    return `${cleanDate}, ${sTime}`;
+  } else {
+    return cleanDate;
+  }
+}
+window.formatJobTimeFrame = formatJobTimeFrame;
 

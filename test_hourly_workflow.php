@@ -79,7 +79,10 @@ $postRes = $jobService->postJob($customerId, [
     'district'    => 'Colombo',
     'city'        => 'Colombo 03',
     'latitude'    => 6.9034,
-    'longitude'   => 79.8540
+    'longitude'   => 79.8540,
+    'preferred_date' => date('Y-m-d'),
+    'start_time'  => '10:00:00',
+    'end_time'    => '12:00:00'
 ]);
 $jobId = (int)$postRes['job_id'];
 assertTest($jobId > 0, "Job created successfully with ID $jobId");

@@ -168,7 +168,10 @@ $plumbingJobRes = $jobService->postJob($customerId, [
     'district'    => 'Colombo',
     'city'        => 'Colombo 03',
     'latitude'    => 6.9034,
-    'longitude'   => 79.8540
+    'longitude'   => 79.8540,
+    'preferred_date' => date('Y-m-d'),
+    'start_time'  => '09:00:00',
+    'end_time'    => '11:00:00'
 ]);
 $plumbingJobId = (int)$plumbingJobRes['job_id'];
 
@@ -197,7 +200,10 @@ $acJobRes = $jobService->postJob($customerId, [
     'district'    => 'Colombo',
     'city'        => 'Colombo 03',
     'latitude'    => 6.9034,
-    'longitude'   => 79.8540
+    'longitude'   => 79.8540,
+    'preferred_date' => date('Y-m-d'),
+    'start_time'  => '13:00:00',
+    'end_time'    => '15:00:00'
 ]);
 $acJobId = (int)$acJobRes['job_id'];
 
@@ -223,7 +229,10 @@ $paintJobRes = $jobService->postJob($customerId, [
     'district'    => 'Colombo',
     'city'        => 'Colombo 03',
     'latitude'    => 6.9034,
-    'longitude'   => 79.8540
+    'longitude'   => 79.8540,
+    'preferred_date' => date('Y-m-d'),
+    'start_time'  => '14:00:00',
+    'end_time'    => '17:00:00'
 ]);
 $paintJobId = (int)$paintJobRes['job_id'];
 

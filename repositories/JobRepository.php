@@ -20,23 +20,29 @@ class JobRepository {
         string $address,
         ?string $photoPath = null,
         string $district = 'Colombo',
-        ?string $city = null
+        ?string $city = null,
+        ?string $preferredDate = null,
+        ?string $startTime = null,
+        ?string $endTime = null
     ): int {
         $stmt = $this->db->prepare("
-            INSERT INTO job_requests (customer_id, category_id, title, description, latitude, longitude, address, district, city, photo_path, status)
-            VALUES (:customer_id, :category_id, :title, :description, :lat, :lng, :address, :district, :city, :photo_path, 'open')
+            INSERT INTO job_requests (customer_id, category_id, title, description, latitude, longitude, address, district, city, photo_path, preferred_date, start_time, end_time, status)
+            VALUES (:customer_id, :category_id, :title, :description, :lat, :lng, :address, :district, :city, :photo_path, :preferred_date, :start_time, :end_time, 'open')
         ");
         $stmt->execute([
-            ':customer_id' => $customerId,
-            ':category_id' => $categoryId,
-            ':title'       => $title,
-            ':description' => $description,
-            ':lat'         => $lat,
-            ':lng'         => $lng,
-            ':address'     => $address,
-            ':district'    => $district,
-            ':city'        => $city,
-            ':photo_path'  => $photoPath
+            ':customer_id'    => $customerId,
+            ':category_id'    => $categoryId,
+            ':title'          => $title,
+            ':description'    => $description,
+            ':lat'            => $lat,
+            ':lng'            => $lng,
+            ':address'        => $address,
+            ':district'       => $district,
+            ':city'           => $city,
+            ':photo_path'     => $photoPath,
+            ':preferred_date' => $preferredDate,
+            ':start_time'     => $startTime,
+            ':end_time'       => $endTime
         ]);
         return (int)$this->db->lastInsertId();
     }

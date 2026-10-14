@@ -10,6 +10,34 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .overview-chart-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+      align-items: stretch;
+    }
+    @media (max-width: 1024px) {
+      .overview-chart-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .customer-kpi-substats {
+        border-left: none !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        justify-content: space-between !important;
+      }
+    }
+    @keyframes spin-cw {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spin-anim {
+      animation: spin-cw 0.8s linear infinite !important;
+    }
+  </style>
   <script>
     (function(){
       function purge(){
@@ -34,86 +62,142 @@
 
     <!-- Main Content -->
     <main class="dashboard-main">
-      <div class="dashboard-header">
-        <h1>Platform Overview</h1>
-        <p>Comprehensive overview of platform analytics, financial performance, registered workers, and customer activity.</p>
-      </div>
-
-      <!-- 1. Row of 6 KPI Stat Cards -->
-      <div class="admin-stats-grid" id="analytics-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 28px;">
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon blue"><i data-lucide="hard-hat" width="22" height="22"></i></div>
-          <div class="admin-stat-content">
-            <h3 id="stat-total-workers">0</h3>
-            <p>Total Workers</p>
+      <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <h1 style="margin:0;">Platform Overview</h1>
+            <button id="btn-refresh-analytics" type="button" class="btn btn-outline btn-sm" title="Refresh analytics immediately" style="display:inline-flex; align-items:center; gap:6px; font-size:0.82rem; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:600; background:var(--white); border:1px solid var(--border);">
+              <i data-lucide="refresh-cw" width="14" height="14" id="refresh-icon"></i>
+              <span>Refresh</span>
+            </button>
           </div>
+          <p style="margin:4px 0 0; color:var(--text-secondary); font-size:0.9rem;">Real-time overview of top workers, customer volume, and monthly revenue performance.</p>
         </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon purple"><i data-lucide="users" width="22" height="22"></i></div>
-          <div class="admin-stat-content">
-            <h3 id="stat-total-customers">0</h3>
-            <p>Total Customers</p>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon orange"><i data-lucide="clipboard-list" width="22" height="22"></i></div>
-          <div class="admin-stat-content">
-            <h3 id="stat-jobs-posted">0</h3>
-            <p>Total Jobs Posted</p>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon green"><i data-lucide="check-circle" width="22" height="22"></i></div>
-          <div class="admin-stat-content">
-            <h3 id="stat-jobs-completed">0</h3>
-            <p>Total Jobs Completed</p>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon blue"><i data-lucide="wallet" width="22" height="22"></i></div>
-          <div class="admin-stat-content">
-            <h3 id="stat-platform-revenue">Rs. 0.00</h3>
-            <p>Platform Revenue</p>
-          </div>
-        </div>
-        <div class="admin-stat-card">
-          <div class="admin-stat-icon green"><i data-lucide="dollar-sign" width="22" height="22"></i></div>
-          <div class="admin-stat-content">
-            <h3 id="stat-commission-earned">Rs. 0.00</h3>
-            <p>Commission Earned</p>
-          </div>
+        <div id="refresh-status-badge" style="display:inline-flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-secondary); background:var(--white); border:1px solid var(--border); padding:6px 14px; border-radius:20px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;" id="refresh-live-dot"></span>
+          <span id="refresh-status-text">Auto-refresh: 30s</span>
         </div>
       </div>
 
-      <!-- 2. Monthly Financial & Volume Breakdown Table -->
-      <div class="table-card" style="margin-bottom: 28px;">
-        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding: 16px 20px;">
-          <div>
-            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Monthly Platform Breakdown</h3>
-            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Last 8 months platform activity, completion rate, gross revenue, and commission earned</p>
+      <!-- 1. Worker Earnings Table (Primary) + Bar Chart beside -->
+      <div class="overview-chart-grid" style="display:grid; grid-template-columns: 1.3fr 1fr; gap:20px; margin-bottom:28px; align-items:stretch;">
+        <!-- Worker Earnings Table Card (Primary Source of Truth) -->
+        <div class="table-card" style="margin-bottom:0; display:flex; flex-direction:column;">
+          <div class="table-header" style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h3 style="margin:0; font-size:1.05rem; font-weight:700;">Worker Earnings</h3>
+                <span class="badge badge-verified" style="font-size:0.72rem; padding:2px 8px;">Top 3 &bull; Primary</span>
+              </div>
+              <p style="margin:3px 0 0; font-size:0.82rem; color:var(--text-secondary);">Ranked by total earnings descending (paid invoices only)</p>
+            </div>
           </div>
-          <div class="search-bar-small" style="max-width: 240px;">
-            <i data-lucide="search" width="15" height="15"></i>
-            <input type="text" id="monthly-search" class="table-search" placeholder="Filter months..." aria-label="Filter months">
+          <div class="table-wrapper" style="flex:1;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Worker</th>
+                  <th style="text-align:right;">Jobs Completed</th>
+                  <th style="text-align:right;">Earnings This Month (Rs.)</th>
+                  <th style="text-align:right;">Total Earnings (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody id="worker-earnings-tbody">
+                <tr><td colspan="4" style="text-align:center; padding:2.5rem; color:var(--text-secondary);">Loading worker earnings...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th style="text-align:right;">Jobs Posted</th>
-                <th style="text-align:right;">Jobs Completed</th>
-                <th style="text-align:right;">Revenue (Rs.)</th>
-                <th style="text-align:right;">Commission (Rs.)</th>
-              </tr>
-            </thead>
-            <tbody id="monthly-breakdown-tbody">
-              <tr>
-                <td colspan="5" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading monthly breakdown...</td>
-              </tr>
-            </tbody>
-          </table>
+
+        <!-- Bar Chart Card: Earnings per Worker -->
+        <div class="table-card" style="margin-bottom:0; display:flex; flex-direction:column; padding:18px 20px;">
+          <div style="margin-bottom:12px;">
+            <h3 style="margin:0; font-size:1.02rem; font-weight:700;">Earnings per Worker</h3>
+            <p style="margin:3px 0 0; font-size:0.82rem; color:var(--text-secondary);">Top 3 workers (total earnings in Rs.)</p>
+          </div>
+          <div class="chart-container" style="position:relative; flex:1; min-height:220px; width:100%; display:flex; align-items:center; justify-content:center;">
+            <canvas id="worker-earnings-chart" style="max-height:220px; width:100%;"></canvas>
+            <div id="worker-chart-empty" class="chart-empty-state" style="display:none; text-align:center; padding:2rem; color:var(--text-muted); font-size:0.95rem; font-weight:500;">
+              No data yet
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Customers KPI Card (Kept Prominent) -->
+      <div class="customers-kpi-container" style="margin-bottom:28px;">
+        <div class="admin-stat-card prominent-customer-card" style="padding:22px 28px; background:linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%); border:1.5px solid rgba(99, 102, 241, 0.25); border-radius:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;">
+          <div style="display:flex; align-items:center; gap:20px;">
+            <div class="admin-stat-icon purple" style="width:60px; height:60px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:rgba(124, 58, 237, 0.15); color:#7c3aed;">
+              <i data-lucide="users" width="32" height="32"></i>
+            </div>
+            <div>
+              <span style="font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary);">Customer Metrics</span>
+              <div style="display:flex; align-items:baseline; gap:12px; margin-top:2px;">
+                <h2 id="stat-total-customers" style="margin:0; font-size:2.4rem; font-weight:800; color:var(--text-primary); line-height:1;">0</h2>
+                <span class="badge badge-verified" style="font-size:0.8rem; font-weight:700; padding:4px 10px;">Total Registered Customers</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; gap:36px; border-left:1px solid rgba(0,0,0,0.08); padding-left:28px;" class="customer-kpi-substats">
+            <div>
+              <div style="font-size:0.8rem; color:var(--text-secondary); font-weight:600;">Total Jobs Posted</div>
+              <div id="stat-jobs-posted" style="font-size:1.35rem; font-weight:700; color:var(--text-primary); margin-top:2px;">0</div>
+            </div>
+            <div>
+              <div style="font-size:0.8rem; color:var(--text-secondary); font-weight:600;">Platform Revenue</div>
+              <div id="stat-platform-revenue" style="font-size:1.35rem; font-weight:700; color:var(--primary); margin-top:2px;">Rs. 0.00</div>
+            </div>
+            <div>
+              <div style="font-size:0.8rem; color:var(--text-secondary); font-weight:600;">Registered Workers</div>
+              <div id="stat-total-workers" style="font-size:1.35rem; font-weight:700; color:var(--text-primary); margin-top:2px;">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Customer Transactions Table + Line Chart beside -->
+      <div class="overview-chart-grid" style="display:grid; grid-template-columns: 1.3fr 1fr; gap:20px; margin-bottom:32px; align-items:stretch;">
+        <!-- Customer Transactions Table Card (Primary Source of Truth) -->
+        <div class="table-card" style="margin-bottom:0; display:flex; flex-direction:column;">
+          <div class="table-header" style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h3 style="margin:0; font-size:1.05rem; font-weight:700;">Customer Transactions</h3>
+                <span class="badge badge-pending" style="font-size:0.72rem; padding:2px 8px;">Top 3 &bull; Activity</span>
+              </div>
+              <p style="margin:3px 0 0; font-size:0.82rem; color:var(--text-secondary);">Customer | Jobs Posted | Transactions | Total Spent (Rs.)</p>
+            </div>
+          </div>
+          <div class="table-wrapper" style="flex:1;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th style="text-align:right;">Jobs Posted</th>
+                  <th style="text-align:right;">Transactions</th>
+                  <th style="text-align:right;">Total Spent (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody id="customer-transactions-tbody">
+                <tr><td colspan="4" style="text-align:center; padding:2.5rem; color:var(--text-secondary);">Loading customer transactions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Line Chart Card: Monthly Revenue (Sep - Oct 2026) -->
+        <div class="table-card" style="margin-bottom:0; display:flex; flex-direction:column; padding:18px 20px;">
+          <div style="margin-bottom:12px;">
+            <h3 style="margin:0; font-size:1.02rem; font-weight:700;">Monthly Revenue</h3>
+            <p style="margin:3px 0 0; font-size:0.82rem; color:var(--text-secondary);">September & October 2026 only (Revenue in Rs.)</p>
+          </div>
+          <div class="chart-container" style="position:relative; flex:1; min-height:220px; width:100%; display:flex; align-items:center; justify-content:center;">
+            <canvas id="monthly-revenue-chart" style="max-height:220px; width:100%;"></canvas>
+            <div id="revenue-chart-empty" class="chart-empty-state" style="display:none; text-align:center; padding:2rem; color:var(--text-muted); font-size:0.95rem; font-weight:500;">
+              No data yet
+            </div>
+          </div>
         </div>
       </div>
 
@@ -210,34 +294,6 @@
                   </div>
                 </td>
               </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 5. Workers by Trade Category -->
-      <div class="table-card" style="margin-bottom: 28px;">
-        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
-          <div>
-            <h3 style="margin:0; font-size:1.05rem; font-weight:700;">Workers by Category</h3>
-            <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-secondary);">Ranked by registered worker count</p>
-          </div>
-          <div class="search-bar-small" style="max-width: 240px;">
-            <i data-lucide="search" width="14" height="14"></i>
-            <input type="text" id="category-search" class="table-search" placeholder="Filter categories..." aria-label="Filter categories">
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th style="width: 90px;">Rank</th>
-                <th>Trade Category</th>
-                <th style="text-align:right;">Registered Workers</th>
-              </tr>
-            </thead>
-            <tbody id="category-ranking-tbody">
-              <tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-secondary);">Loading category ranking...</td></tr>
             </tbody>
           </table>
         </div>

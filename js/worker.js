@@ -1023,6 +1023,7 @@ function initWorkerJobMapModal() {
     const title = btn.getAttribute('data-title') || 'Job Location';
     const customerId = btn.getAttribute('data-customer-id') || '2';
     const jobId = btn.getAttribute('data-job-id') || '';
+    const timeframe = btn.getAttribute('data-timeframe') || 'Not specified';
 
     const titleEl = $id('modal-map-title');
     const addrEl = $id('modal-map-address');
@@ -1030,7 +1031,10 @@ function initWorkerJobMapModal() {
 
     if (titleEl) titleEl.textContent = title;
     if (addrEl) {
-      addrEl.innerHTML = `<i data-lucide="map-pin" width="14" height="14" style="display:inline; vertical-align:middle; color:var(--primary);"></i> <span>${address} (${lat.toFixed(4)}, ${lng.toFixed(4)})</span>`;
+      addrEl.innerHTML = `
+        <div style="margin-bottom: 4px;"><i data-lucide="map-pin" width="14" height="14" style="display:inline; vertical-align:middle; color:var(--primary);"></i> <span>${address} (${lat.toFixed(4)}, ${lng.toFixed(4)})</span></div>
+        <div style="font-size:0.85rem; color:var(--primary); font-weight:600;"><i data-lucide="calendar" width="14" height="14" style="display:inline; vertical-align:middle;"></i> Preferred: ${timeframe}</div>
+      `;
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }
     if (msgBtn) {
@@ -1070,6 +1074,9 @@ function renderWorkerJobCard(j, tabType = 'available') {
   const jId = j.id || j.job_id || '';
   const safeTitle = (j.title || j.job_title || 'Job Request').replace(/"/g, '&quot;');
   const status = (j.status || j.job_status || '').toLowerCase();
+  const timeFrameStr = (typeof formatJobTimeFrame === 'function')
+    ? formatJobTimeFrame(j.preferred_date, j.start_time, j.end_time)
+    : (j.preferred_date ? `${j.preferred_date}` : 'Not specified');
 
   let badgeHtml = '';
   let actionsHtml = '';
@@ -1095,7 +1102,7 @@ function renderWorkerJobCard(j, tabType = 'available') {
           <i data-lucide="check-circle" width="14" height="14"></i> Done (Complete Job)
         </button>
         <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
-        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}" data-timeframe="${timeFrameStr}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
         ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
       `;
     } else {
@@ -1113,7 +1120,7 @@ function renderWorkerJobCard(j, tabType = 'available') {
           <i data-lucide="lock" width="14" height="14"></i> Done (Awaiting Arrival)
         </button>
         <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-primary btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Message Customer</a>
-        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+        <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}" data-timeframe="${timeFrameStr}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
         ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
       `;
     }
@@ -1147,7 +1154,7 @@ function renderWorkerJobCard(j, tabType = 'available') {
 
     actionsHtml = `
       <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-outline btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Messages</a>
-      <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+      <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}" data-timeframe="${timeFrameStr}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
     `;
   } else {
     // Available tab
@@ -1156,7 +1163,7 @@ function renderWorkerJobCard(j, tabType = 'available') {
       <button class="btn btn-primary btn-sm btn-take-job" data-job-id="${jId}" style="font-weight:700;">
         <i data-lucide="briefcase" width="14" height="14"></i> Take Job
       </button>
-      <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
+      <button class="btn btn-outline btn-sm btn-view-job-map" data-lat="${lat}" data-lng="${lng}" data-address="${addr}" data-title="${safeTitle}" data-customer-id="${custId}" data-job-id="${jId}" data-timeframe="${timeFrameStr}"><i data-lucide="map-pin" width="14" height="14"></i> Map</button>
       <a href="../messages.html?user_id=${custId}&job_id=${jId}" class="btn btn-ghost btn-sm"><i data-lucide="message-square" width="14" height="14"></i> Contact</a>
       ${j.customer_phone ? `<a href="tel:${j.customer_phone}" class="btn btn-ghost btn-sm"><i data-lucide="phone" width="14" height="14"></i> Call</a>` : ''}
     `;
@@ -1171,6 +1178,7 @@ function renderWorkerJobCard(j, tabType = 'available') {
       <div class="job-card-meta">
         <span><i data-lucide="user" width="14" height="14"></i> ${j.customer_name || 'Customer'}</span>
         <span><i data-lucide="map-pin" width="14" height="14"></i> ${addr}</span>
+        <span><i data-lucide="calendar" width="14" height="14"></i> Preferred: <strong>${timeFrameStr}</strong></span>
         <span><i data-lucide="clock" width="14" height="14"></i> ${j.created_at || 'Recently'}</span>
         <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
       </div>
@@ -1914,6 +1922,34 @@ async function loadWorkerDashboardStats() {
 
     const banner = $id('subscription-banner');
     if (banner) banner.style.display = (res.ok && res.data?.has_job_access) ? '' : 'none';
+
+    const dashJobsContainer = $id('worker-dashboard-jobs');
+    if (dashJobsContainer && res.ok && res.data?.status === 'success' && Array.isArray(res.data.jobs) && res.data.jobs.length > 0) {
+      dashJobsContainer.innerHTML = res.data.jobs.slice(0, 5).map(j => {
+        const timeFrameStr = (typeof formatJobTimeFrame === 'function')
+          ? formatJobTimeFrame(j.preferred_date, j.start_time, j.end_time)
+          : 'Not specified';
+        const addr = j.address || 'Colombo';
+        const safeTitle = (j.title || 'Job Request').replace(/"/g, '&quot;');
+        return `
+          <div class="job-card">
+            <div class="job-card-header">
+              <h4 class="job-card-title" style="margin:0;font-size:1.05rem;">${safeTitle}</h4>
+              <span class="badge badge-open">Open Request</span>
+            </div>
+            <div class="job-card-meta" style="margin-top:6px;">
+              <span><i data-lucide="map-pin" width="14" height="14"></i> ${addr}</span>
+              <span><i data-lucide="calendar" width="14" height="14"></i> Preferred: <strong>${timeFrameStr}</strong></span>
+              <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
+            </div>
+            <p class="job-card-desc" style="margin-top:8px;">${j.description || ''}</p>
+            <div class="job-card-actions" style="margin-top:10px;">
+              <a href="jobs.html" class="btn btn-primary btn-sm"><i data-lucide="briefcase" width="14" height="14"></i> View Available Jobs</a>
+            </div>
+          </div>`;
+      }).join('');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
   } catch (err) {
     console.warn('Worker dashboard available-jobs failed:', err);
   }

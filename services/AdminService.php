@@ -217,13 +217,16 @@ class AdminService {
         $platformRevenue = (float)($revRow['platform_revenue'] ?? 0);
         $commissionEarned = (float)($revRow['commission_earned'] ?? 0);
 
-        // 2. Monthly Breakdown: last 8 months, one row per month —
+        // 2. Monthly Breakdown: restricted to September and October 2026 only (2 points) —
         // month name, jobs posted, jobs completed, revenue in Rs., commission in Rs.
+        $targetMonths = [
+            ['ym' => '2026-09', 'label' => 'September 2026'],
+            ['ym' => '2026-10', 'label' => 'October 2026']
+        ];
         $monthlyBreakdown = [];
-        for ($i = 0; $i < 8; $i++) {
-            $dt = (new DateTime('first day of this month'))->modify("-$i month");
-            $ym = $dt->format('Y-m');
-            $monthName = $dt->format('F Y');
+        foreach ($targetMonths as $tm) {
+            $ym = $tm['ym'];
+            $monthName = $tm['label'];
 
             // Jobs posted in this month
             $jpStmt = $this->db->prepare("SELECT COUNT(*) FROM job_requests WHERE DATE_FORMAT(created_at, '%Y-%m') = :ym");
@@ -263,7 +266,7 @@ class AdminService {
         }
 
         // 3. Worker Performance: one row per worker —
-        // worker name, jobs completed (count of their invoices),
+        // worker name, jobs completed (count of their paid invoices),
         // earnings this month in Rs. (sum of worker_net_amount on paid invoices this month),
         // total earnings in Rs. (sum of worker_net_amount on paid invoices, all time).
         // Sort by total earnings descending.
@@ -294,20 +297,36 @@ class AdminService {
         }, $workerRows);
 
         // 4. Customer Activity: one row per customer —
-        // customer name, jobs posted (count of job_requests),
-        // jobs completed (count with status completed).
-        // Sort by jobs posted descending.
+        // customer name, jobs posted, transactions (paid invoices count), and total spent (sum of job_amount on paid invoices).
+        // Sort by total spent descending.
         $customerStmt = $this->db->query("
             SELECT 
                 u.id AS customer_id,
                 u.full_name AS customer_name,
-                COUNT(jr.id) AS jobs_posted,
-                COUNT(CASE WHEN jr.status = 'completed' THEN 1 END) AS jobs_completed
+                COALESCE(jr_counts.jobs_posted, 0) AS jobs_posted,
+                COALESCE(jr_counts.jobs_completed, 0) AS jobs_completed,
+                COALESCE(inv_counts.transactions, 0) AS transactions,
+                COALESCE(inv_counts.total_spent, 0.00) AS total_spent
             FROM users u
-            LEFT JOIN job_requests jr ON jr.customer_id = u.id
+            LEFT JOIN (
+                SELECT 
+                    customer_id, 
+                    COUNT(*) AS jobs_posted,
+                    COUNT(CASE WHEN status = 'completed' THEN 1 END) AS jobs_completed
+                FROM job_requests
+                GROUP BY customer_id
+            ) jr_counts ON jr_counts.customer_id = u.id
+            LEFT JOIN (
+                SELECT 
+                    customer_id,
+                    COUNT(*) AS transactions,
+                    SUM(job_amount) AS total_spent
+                FROM job_invoices
+                WHERE payment_status = 'paid'
+                GROUP BY customer_id
+            ) inv_counts ON inv_counts.customer_id = u.id
             WHERE u.role = 'customer'
-            GROUP BY u.id, u.full_name
-            ORDER BY jobs_posted DESC, jobs_completed DESC, u.full_name ASC
+            ORDER BY total_spent DESC, transactions DESC, jobs_posted DESC, u.full_name ASC
         ");
         $customerRows = $customerStmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -316,7 +335,9 @@ class AdminService {
                 'customer_id'    => (int)$c['customer_id'],
                 'customer_name'  => (string)$c['customer_name'],
                 'jobs_posted'    => (int)$c['jobs_posted'],
-                'jobs_completed' => (int)$c['jobs_completed']
+                'jobs_completed' => (int)$c['jobs_completed'],
+                'transactions'   => (int)$c['transactions'],
+                'total_spent'    => (float)$c['total_spent']
             ];
         }, $customerRows);
 

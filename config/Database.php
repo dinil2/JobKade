@@ -1,12 +1,12 @@
 <?php
 // config/Database.php
-// Robust PDO Singleton for MySQL & phpMyAdmin
+
 
 class Database {
     private static string $host = '127.0.0.1';
     private static string $dbName = 'jobkade_db';
     private static string $username = 'root';
-    private static string $password = ''; // Default WampServer / phpMyAdmin MySQL root password
+    private static string $password = ''; 
     private static string $port = '3306';
     private static ?PDO $pdo = null;
 

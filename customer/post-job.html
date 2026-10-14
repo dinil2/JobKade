@@ -110,13 +110,17 @@
           </div>
 
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Preferred Date</label>
-              <input type="date" class="form-input">
+            <div class="form-group" style="flex: 1; min-width: 180px;">
+              <label class="form-label" for="job-preferred-date">Preferred Date <span>*</span></label>
+              <input type="date" id="job-preferred-date" name="preferred_date" class="form-input" required aria-label="Preferred Date">
             </div>
-            <div class="form-group">
-              <label class="form-label">Preferred Time</label>
-              <input type="time" class="form-input">
+            <div class="form-group" style="flex: 1; min-width: 140px;">
+              <label class="form-label" for="job-start-time">Start Time <span>*</span></label>
+              <input type="time" id="job-start-time" name="start_time" class="form-input" required aria-label="Start Time">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 140px;">
+              <label class="form-label" for="job-end-time">End Time <span>*</span></label>
+              <input type="time" id="job-end-time" name="end_time" class="form-input" required aria-label="End Time">
             </div>
           </div>
 

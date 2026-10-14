@@ -87,6 +87,15 @@ function initJobPostPage() {
   const imgUpload = $id('job-images');
   const previewGrid = $id('image-preview-grid');
   const mapContainer = $id('job-location-map');
+  const preferredDateInput = $id('job-preferred-date');
+
+  if (preferredDateInput) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    preferredDateInput.min = `${yyyy}-${mm}-${dd}`;
+  }
 
   if (imgUpload && previewGrid) {
     imgUpload.addEventListener('change', () => {
@@ -298,11 +307,48 @@ function initJobPostPage() {
       const district = districtSelect?.value || 'Colombo';
       const city = citySelect?.value || '';
 
+      const prefDateInput = $id('job-preferred-date');
+      const startTimeInput = $id('job-start-time');
+      const endTimeInput = $id('job-end-time');
+
+      const prefDate = prefDateInput?.value ? prefDateInput.value.trim() : '';
+      const startTime = startTimeInput?.value ? startTimeInput.value.trim() : '';
+      const endTime = endTimeInput?.value ? endTimeInput.value.trim() : '';
+
+      const todayStr = (function() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })();
+
       let firstInvalid = null;
       if (!title || title.length < 3 || title.length > 150) { showFieldError(titleInput, 'Job title is required (3–150 characters).'); firstInvalid = firstInvalid || titleInput; }
       if (!catSelect?.value) { showFieldError(catSelect, 'Please select a service category.'); firstInvalid = firstInvalid || catSelect; }
       if (districtSelect && !districtSelect.value) { showFieldError(districtSelect, 'Please select a district.'); firstInvalid = firstInvalid || districtSelect; }
       if (citySelect && !city) { showFieldError(citySelect, 'Please select a city.'); firstInvalid = firstInvalid || citySelect; }
+
+      // Validate preferred date
+      if (!prefDate) {
+        showFieldError(prefDateInput, 'Preferred date is required.');
+        firstInvalid = firstInvalid || prefDateInput;
+      } else if (prefDate < todayStr) {
+        showFieldError(prefDateInput, 'Preferred date cannot be in the past.');
+        firstInvalid = firstInvalid || prefDateInput;
+      }
+
+      // Validate start & end time
+      if (!startTime) {
+        showFieldError(startTimeInput, 'Start time is required.');
+        firstInvalid = firstInvalid || startTimeInput;
+      }
+      if (!endTime) {
+        showFieldError(endTimeInput, 'End time is required.');
+        firstInvalid = firstInvalid || endTimeInput;
+      }
+      if (startTime && endTime && endTime <= startTime) {
+        showFieldError(endTimeInput, 'End time must be after start time.');
+        firstInvalid = firstInvalid || endTimeInput;
+      }
+
       if (!desc || desc.length < 10 || desc.length > 3000) { showFieldError(descInput, 'Please provide a detailed description (10–3,000 characters).'); firstInvalid = firstInvalid || descInput; }
       if (!location || location.length < 2) { showFieldError(locInput, 'Please provide a valid location/address.'); firstInvalid = firstInvalid || locInput; }
       if (isNaN(finalLat) || finalLat < -90 || finalLat > 90 || isNaN(finalLng) || finalLng < -180 || finalLng > 180) {
@@ -328,7 +374,19 @@ function initJobPostPage() {
         try {
           const res = await apiFetch('jobs.php?action=create', {
             method: 'POST',
-            body: JSON.stringify({ title, description: desc, category_id: catId, address: location, district, city, latitude: finalLat, longitude: finalLng })
+            body: JSON.stringify({
+              title,
+              description: desc,
+              category_id: catId,
+              address: location,
+              district,
+              city,
+              latitude: finalLat,
+              longitude: finalLng,
+              preferred_date: prefDate,
+              start_time: startTime,
+              end_time: endTime
+            })
           });
 
           if (res.ok && res.data?.status === 'success') {
@@ -816,6 +874,7 @@ async function loadCustomerJobs() {
             <div class="job-card-header"><h3 class="job-card-title">${j.title}</h3><span class="badge ${badgeClass}">${badgeLabel}</span></div>
             <div class="job-card-meta">
               <span><i data-lucide="map-pin" width="14" height="14"></i> ${j.address || 'Colombo'}</span>
+              <span><i data-lucide="calendar" width="14" height="14"></i> Preferred: <strong>${formatJobTimeFrame(j.preferred_date, j.start_time, j.end_time)}</strong></span>
               <span><i data-lucide="clock" width="14" height="14"></i> ${j.created_at || 'Recently'}</span>
               <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
             </div>
