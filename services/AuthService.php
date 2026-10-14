@@ -63,6 +63,95 @@ class AuthService {
             if (!$coverAll && is_array($cities) && count($cities) > 3) {
                 throw new InvalidArgumentException("Maximum 3 cities can be selected.");
             }
+
+            // Parse and validate worker services (1 or 2 required at registration)
+            $parsedServices = [];
+            if (!empty($data['services'])) {
+                if (is_string($data['services'])) {
+                    $decodedSrv = json_decode($data['services'], true);
+                    if (is_array($decodedSrv)) {
+                        $parsedServices = $decodedSrv;
+                    }
+                } elseif (is_array($data['services'])) {
+                    $parsedServices = $data['services'];
+                }
+            }
+
+            // Fallback to individual fields if $data['services'] was not a list
+            if (empty($parsedServices) && (!empty($data['service_1_title']) || !empty($data['service_1_category']))) {
+                $parsedServices[] = [
+                    'category_id' => (int)($data['service_1_category'] ?? 0),
+                    'title'       => trim((string)($data['service_1_title'] ?? '')),
+                    'hourly_rate' => (float)($data['service_1_rate'] ?? 0)
+                ];
+                if (!empty($data['has_service_2']) || !empty($data['service_2_title']) || !empty($data['service_2_category'])) {
+                    $parsedServices[] = [
+                        'category_id' => (int)($data['service_2_category'] ?? 0),
+                        'title'       => trim((string)($data['service_2_title'] ?? '')),
+                        'hourly_rate' => (float)($data['service_2_rate'] ?? 0)
+                    ];
+                }
+            }
+
+            // Fallback for legacy registration payload
+            if (empty($parsedServices)) {
+                $legacyCat = (int)($data['category_id'] ?? 0);
+                if ($legacyCat <= 0 && !empty($data['service'])) {
+                    $catMap = [
+                        'electrical' => 1, 'plumbing' => 2, 'ac repair' => 3, 'ac-repair' => 3,
+                        'painting' => 4, 'carpentry' => 5, 'masonry' => 6, 'cleaning' => 7,
+                        'appliance repair' => 8, 'appliance-repair' => 8, 'other' => 9
+                    ];
+                    $legacyCat = $catMap[strtolower(trim((string)$data['service']))] ?? 1;
+                }
+                $legacyRate = (float)($data['hourly_rate'] ?? 1000.00);
+                $legacyTitle = !empty($data['service']) ? (string)$data['service'] : 'General Service';
+                if ($legacyCat > 0) {
+                    $parsedServices[] = [
+                        'category_id' => $legacyCat,
+                        'title'       => $legacyTitle,
+                        'hourly_rate' => $legacyRate > 0 ? $legacyRate : 1000.00
+                    ];
+                }
+            }
+
+            if (count($parsedServices) < 1 || count($parsedServices) > 2) {
+                throw new InvalidArgumentException("Please configure 1 or 2 services for registration.");
+            }
+
+            // Validate Service 1
+            $s1 = $parsedServices[0];
+            $s1Cat = (int)($s1['category_id'] ?? 0);
+            $s1Title = trim((string)($s1['title'] ?? ''));
+            $s1Rate = (float)($s1['hourly_rate'] ?? ($s1['price'] ?? 0));
+
+            if ($s1Cat <= 0) {
+                throw new InvalidArgumentException("Please select a category for Service 1.");
+            }
+            if (empty($s1Title) || strlen($s1Title) < 3) {
+                throw new InvalidArgumentException("Service 1 title must be at least 3 characters.");
+            }
+            if ($s1Rate <= 0) {
+                throw new InvalidArgumentException("Service 1 hourly rate must be greater than 0.");
+            }
+
+            // Validate Service 2 if present
+            if (count($parsedServices) > 1) {
+                $s2 = $parsedServices[1];
+                $s2Cat = (int)($s2['category_id'] ?? 0);
+                $s2Title = trim((string)($s2['title'] ?? ''));
+                $s2Rate = (float)($s2['hourly_rate'] ?? ($s2['price'] ?? 0));
+
+                if ($s2Cat <= 0) {
+                    throw new InvalidArgumentException("Please select a category for Service 2.");
+                }
+                if (empty($s2Title) || strlen($s2Title) < 3) {
+                    throw new InvalidArgumentException("Service 2 title must be at least 3 characters.");
+                }
+                if ($s2Rate <= 0) {
+                    throw new InvalidArgumentException("Service 2 hourly rate must be greater than 0.");
+                }
+            }
         }
 
         if (empty($username)) {
@@ -90,12 +179,19 @@ class AuthService {
                     $district = 'Colombo';
                 }
 
+                $primaryRate = (float)($parsedServices[0]['hourly_rate'] ?? ($parsedServices[0]['price'] ?? 1000.00));
                 $workerProfileId = $this->workerRepo->createProfile($userId, [
                     'bio'           => $data['bio'] ?? 'Skilled service professional.',
                     'address'       => $district,
                     'district'      => $district,
-                    'working_hours' => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
+                    'working_hours' => $data['working_hours'] ?? '8:00 AM - 6:00 PM',
+                    'hourly_rate'   => $primaryRate
                 ]);
+
+                try {
+                    $pdo->prepare("UPDATE worker_profiles SET hourly_rate = :hr WHERE id = :wid")
+                        ->execute([':hr' => $primaryRate, ':wid' => $workerProfileId]);
+                } catch (Throwable $e) {}
 
                 // Save worker coverage
                 $coverAll = !empty($data['cover_all_cities']) || (!empty($data['coverage_mode']) && $data['coverage_mode'] === 'all');
@@ -116,55 +212,48 @@ class AuthService {
                     $pdo->prepare("UPDATE users SET address = :addr WHERE id = :uid")->execute([':addr' => $district, ':uid' => $userId]);
                 } catch (Throwable $e) {}
 
-                // Assign category by ID or name
-                $catMap = [
-                    'electrical' => 1, 'plumbing' => 2, 'ac repair' => 3, 'ac-repair' => 3,
-                    'painting' => 4, 'carpentry' => 5, 'masonry' => 6, 'cleaning' => 7,
-                    'appliance repair' => 8, 'appliance-repair' => 8, 'other' => 9
-                ];
-                $catId = (int)($data['category_id'] ?? 0);
-                if ($catId <= 0 && !empty($data['service'])) {
-                    $slug = strtolower(trim((string)$data['service']));
-                    $catId = $catMap[$slug] ?? (is_numeric($data['service']) ? (int)$data['service'] : 1);
-                }
-                if ($catId <= 0) {
-                    $catId = 1;
-                }
-                $this->workerRepo->setWorkerCategories($workerProfileId, [$catId], $catId);
+                // Save 1 or 2 services to worker_services with pricing_type = 'hourly' and rate stored in price
+                $savedCatIds = [];
+                $srvInsertStmt = $pdo->prepare("
+                    INSERT INTO worker_services 
+                    (worker_id, category_id, title, description, price, pricing_type, location, district, is_available, created_at)
+                    VALUES 
+                    (:wid, :cid, :title, :desc, :price, 'hourly', :loc, :dist, 1, NOW())
+                ");
 
-                // Create an actual service record in worker_services using selected category and district
-                $catName = 'General Service';
-                try {
-                    $cStmt = $pdo->prepare("SELECT name FROM categories WHERE id = :cid LIMIT 1");
-                    $cStmt->execute([':cid' => $catId]);
-                    $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
-                    if ($cRow && !empty($cRow['name'])) {
-                        $catName = $cRow['name'];
-                    }
-                } catch (Throwable $ce) {}
+                foreach ($parsedServices as $srv) {
+                    $srvCatId = (int)$srv['category_id'];
+                    $srvTitle = trim((string)$srv['title']);
+                    $srvRate = (float)($srv['hourly_rate'] ?? ($srv['price'] ?? 1000.00));
 
-                $srvTitle = $catName;
-                $srvDesc = "Professional {$catName} services in {$district} and surrounding areas.";
-                $srvPrice = 0.00;
+                    $catName = 'Professional Service';
+                    try {
+                        $cStmt = $pdo->prepare("SELECT name FROM categories WHERE id = :cid LIMIT 1");
+                        $cStmt->execute([':cid' => $srvCatId]);
+                        $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+                        if ($cRow && !empty($cRow['name'])) {
+                            $catName = $cRow['name'];
+                        }
+                    } catch (Throwable $ce) {}
 
-                try {
-                    $srvStmt = $pdo->prepare("
-                        INSERT INTO worker_services 
-                        (worker_id, category_id, title, description, price, pricing_type, location, district, is_available, created_at)
-                        VALUES 
-                        (:wid, :cid, :title, :desc, :price, 'fixed', :loc, :dist, 1, NOW())
-                    ");
-                    $srvStmt->execute([
+                    $srvDesc = "Professional {$catName} ({$srvTitle}) services in {$district} and surrounding areas.";
+
+                    $srvInsertStmt->execute([
                         ':wid'   => $workerProfileId,
-                        ':cid'   => $catId,
+                        ':cid'   => $srvCatId,
                         ':title' => $srvTitle,
                         ':desc'  => $srvDesc,
-                        ':price' => $srvPrice,
+                        ':price' => $srvRate,
                         ':loc'   => $district,
                         ':dist'  => $district
                     ]);
-                } catch (Throwable $se) {
-                    error_log("Failed to auto-create worker service: " . $se->getMessage());
+
+                    $savedCatIds[] = $srvCatId;
+                }
+
+                // Update worker categories mapping
+                if (!empty($savedCatIds)) {
+                    $this->workerRepo->setWorkerCategories($workerProfileId, $savedCatIds, $savedCatIds[0]);
                 }
 
                 $hasUploadedDocs = false;

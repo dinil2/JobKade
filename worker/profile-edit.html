@@ -58,8 +58,15 @@
             <div class="form-group"><label class="form-label">Phone <span>*</span></label><input type="tel" name="phone" class="form-input" placeholder="e.g. +94 77 123 4567" required></div>
           </div>
           <div class="form-group"><label class="form-label">Email <span>*</span></label><input type="email" name="email" class="form-input" placeholder="Your email address" required></div>
-          <div class="form-group"><label class="form-label">Description / Bio <span>*</span></label><textarea name="bio" class="form-textarea" placeholder="Tell customers about your skills, experience, and services..." required></textarea></div>
-          <div class="form-group"><label class="form-label">Service Category <span>*</span></label><select name="category" class="form-select"><option value="">Select Category</option><option>Electrical</option><option>Plumbing</option><option>AC Repair</option><option>Carpentry</option><option>Painting</option><option>Cleaning</option><option>Appliance Repair</option><option>Masonry</option></select></div>
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Registered Services &amp; Categories</span>
+              <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:normal;">Fixed at registration</span>
+            </label>
+            <div id="worker-registered-services-display" style="display:flex; flex-wrap:wrap; gap:8px; padding:10px 14px; background:var(--bg-light); border:1px solid var(--border); border-radius:var(--radius-md);">
+              <span style="font-size:0.85rem; color:var(--text-secondary);">Loading registered services...</span>
+            </div>
+          </div>
           <!-- Worker Service District & Coverage Area -->
           <div class="form-row">
             <div class="form-group">

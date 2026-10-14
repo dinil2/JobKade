@@ -56,7 +56,14 @@ class InvoiceRepository {
                 ji.payment_status AS status,
                 jr.title AS job_title,
                 jr.address AS job_address,
-                wp.hourly_rate AS worker_hourly_rate,
+                COALESCE(
+                    (SELECT ws.price FROM worker_services ws 
+                     WHERE ws.worker_id = wp.id 
+                       AND ws.category_id = jr.category_id 
+                       AND ws.pricing_type = 'hourly' 
+                     ORDER BY ws.id DESC LIMIT 1),
+                    wp.hourly_rate
+                ) AS worker_hourly_rate,
                 wp.travelling_fee AS worker_profile_travelling_fee,
                 u_worker.full_name AS worker_name,
                 u_worker.phone AS worker_phone,
@@ -85,7 +92,14 @@ class InvoiceRepository {
                 ji.job_amount AS amount,
                 ji.payment_status AS status,
                 jr.title AS job_title,
-                wp.hourly_rate AS worker_hourly_rate,
+                COALESCE(
+                    (SELECT ws.price FROM worker_services ws 
+                     WHERE ws.worker_id = wp.id 
+                       AND ws.category_id = jr.category_id 
+                       AND ws.pricing_type = 'hourly' 
+                     ORDER BY ws.id DESC LIMIT 1),
+                    wp.hourly_rate
+                ) AS worker_hourly_rate,
                 wp.travelling_fee AS worker_profile_travelling_fee,
                 u_worker.full_name AS worker_name
             FROM job_invoices ji

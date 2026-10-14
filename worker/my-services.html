@@ -3,45 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Services — JobKade</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="../js/lucide.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <title>Services Configured at Registration — JobKade</title>
+  <meta http-equiv="refresh" content="0; url=dashboard.html">
+  <script>
+    window.location.replace('dashboard.html');
+  </script>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/worker.css">
 </head>
-<body>
-  <div id="navbar-container"></div>
-
-  <div class="dashboard-layout">
-    <div id="sidebar-container"></div>
-
-    <main class="dashboard-main">
-      <div class="services-header">
-        <div><h1>My Services</h1><p>Manage your service listings and professional gigs.</p></div>
-        <a href="add-service.html" class="btn btn-primary"><i data-lucide="plus" width="18" height="18"></i> Add New Service</a>
-      </div>
-
-      <div class="services-grid" id="worker-services-container">
-        <div class="empty-state" id="worker-services-loading" style="text-align:center; padding: 40px 16px; grid-column: 1 / -1;">
-          <i data-lucide="loader" class="spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 12px;"></i>
-          <p style="color: var(--text-secondary);">Loading your services...</p>
-        </div>
-      </div>
-
-      <!-- Delete Confirmation Modal -->
-      <div class="modal-overlay" id="delete-service-modal">
-        <div class="modal">
-          <div class="modal-header"><h3>Delete Service</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
-          <div class="modal-body"><div class="modal-confirm-icon warning"><i data-lucide="alert-triangle"></i></div><p class="text-center">Are you sure you want to delete this service? This action cannot be undone.</p></div>
-          <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirm-delete-service">Delete Service</button></div>
-        </div>
-      </div>
-    </main>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--bg); font-family:Inter,sans-serif; padding:20px;">
+  <div style="background:var(--bg-card, #fff); border:1px solid var(--border); border-radius:12px; padding:32px 24px; text-align:center; max-width:480px; box-shadow:0 10px 25px rgba(0,0,0,0.05);">
+    <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:10px; color:var(--text-primary);">Services Fixed at Registration</h2>
+    <p style="color:var(--text-secondary); font-size:0.9rem; line-height:1.5; margin-bottom:20px;">
+      Worker services are permanently configured during registration and can no longer be added, edited, or removed.
+    </p>
+    <a href="dashboard.html" class="btn btn-primary" style="display:inline-block; padding:10px 20px; text-decoration:none; border-radius:8px; font-weight:600;">Go to Dashboard</a>
   </div>
-
-  <script src="../js/main.js"></script>
-  <script src="../js/worker.js"></script>
 </body>
 </html>

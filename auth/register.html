@@ -134,52 +134,128 @@
               <input type="text" id="worker-nic" name="nic" class="auth-pill-input" placeholder="National Identity Card (NIC) Number *" required>
             </div>
 
-            <div class="auth-grid-2">
-              <div class="auth-form-group" style="margin-bottom:0;">
-                <label for="worker-service-select" class="auth-label">Primary Trade / Service</label>
-                <select name="service" id="worker-service-select" class="auth-pill-select" required>
-                  <option value="">Select Service *</option>
-                  <option value="1">Electrical</option>
-                  <option value="2">Plumbing</option>
-                  <option value="3">AC Repair</option>
-                  <option value="4">Painting</option>
-                  <option value="5">Carpentry</option>
-                  <option value="6">Masonry</option>
-                  <option value="7">Cleaning</option>
-                  <option value="8">Appliance Repair</option>
-                  <option value="9">Other Services</option>
-                </select>
+            <div class="auth-form-group">
+              <label for="worker-district-select" class="auth-label">Service District</label>
+              <select name="district" id="worker-district-select" class="auth-pill-select" required>
+                <option value="" disabled selected>Service Location District *</option>
+                <option value="Colombo">Colombo</option>
+                <option value="Gampaha">Gampaha</option>
+                <option value="Kalutara">Kalutara</option>
+                <option value="Kandy">Kandy</option>
+                <option value="Matale">Matale</option>
+                <option value="Nuwara Eliya">Nuwara Eliya</option>
+                <option value="Galle">Galle</option>
+                <option value="Matara">Matara</option>
+                <option value="Hambantota">Hambantota</option>
+                <option value="Jaffna">Jaffna</option>
+                <option value="Kilinochchi">Kilinochchi</option>
+                <option value="Mannar">Mannar</option>
+                <option value="Vavuniya">Vavuniya</option>
+                <option value="Mullaitivu">Mullaitivu</option>
+                <option value="Batticaloa">Batticaloa</option>
+                <option value="Ampara">Ampara</option>
+                <option value="Trincomalee">Trincomalee</option>
+                <option value="Kurunegala">Kurunegala</option>
+                <option value="Puttalam">Puttalam</option>
+                <option value="Anuradhapura">Anuradhapura</option>
+                <option value="Polonnaruwa">Polonnaruwa</option>
+                <option value="Badulla">Badulla</option>
+                <option value="Moneragala">Moneragala</option>
+                <option value="Ratnapura">Ratnapura</option>
+                <option value="Kegalle">Kegalle</option>
+              </select>
+            </div>
+
+            <!-- Your Services Section (1 or 2 Services) -->
+            <div id="worker-services-section" style="margin-top:14px; margin-bottom:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <label class="auth-label" style="margin-bottom:0; font-weight:700; color:#0F172A; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="briefcase" width="16" height="16" style="color:var(--primary);"></i>
+                  Your Services (1 or 2)
+                </label>
+                <span style="font-size:0.75rem; color:#64748B;">Configured at registration</span>
               </div>
-              <div class="auth-form-group" style="margin-bottom:0;">
-                <label for="worker-district-select" class="auth-label">Service District</label>
-                <select name="district" id="worker-district-select" class="auth-pill-select" required>
-                  <option value="" disabled selected>Service Location District *</option>
-                  <option value="Colombo">Colombo</option>
-                  <option value="Gampaha">Gampaha</option>
-                  <option value="Kalutara">Kalutara</option>
-                  <option value="Kandy">Kandy</option>
-                  <option value="Matale">Matale</option>
-                  <option value="Nuwara Eliya">Nuwara Eliya</option>
-                  <option value="Galle">Galle</option>
-                  <option value="Matara">Matara</option>
-                  <option value="Hambantota">Hambantota</option>
-                  <option value="Jaffna">Jaffna</option>
-                  <option value="Kilinochchi">Kilinochchi</option>
-                  <option value="Mannar">Mannar</option>
-                  <option value="Vavuniya">Vavuniya</option>
-                  <option value="Mullaitivu">Mullaitivu</option>
-                  <option value="Batticaloa">Batticaloa</option>
-                  <option value="Ampara">Ampara</option>
-                  <option value="Trincomalee">Trincomalee</option>
-                  <option value="Kurunegala">Kurunegala</option>
-                  <option value="Puttalam">Puttalam</option>
-                  <option value="Anuradhapura">Anuradhapura</option>
-                  <option value="Polonnaruwa">Polonnaruwa</option>
-                  <option value="Badulla">Badulla</option>
-                  <option value="Moneragala">Moneragala</option>
-                  <option value="Ratnapura">Ratnapura</option>
-                  <option value="Kegalle">Kegalle</option>
-                </select>
+
+              <!-- Service 1 (Required) -->
+              <div class="service-block-card" style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:12px; padding:14px 16px; margin-bottom:10px;">
+                <div style="font-size:0.78rem; font-weight:700; color:#0284C7; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                  <span style="width:18px; height:18px; border-radius:50%; background:#0284C7; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:800;">1</span>
+                  Service 1 (Required)
+                </div>
+
+                <div class="auth-form-group" style="margin-bottom:8px;">
+                  <label for="service-1-category" class="auth-label" style="font-size:0.8rem;">Category *</label>
+                  <select id="service-1-category" name="service_1_category" class="auth-pill-select" required>
+                    <option value="" disabled selected>Select Primary Category *</option>
+                    <option value="1">Electrical</option>
+                    <option value="2">Plumbing</option>
+                    <option value="3">AC Repair</option>
+                    <option value="4">Painting</option>
+                    <option value="5">Carpentry</option>
+                    <option value="6">Masonry</option>
+                    <option value="7">Cleaning</option>
+                    <option value="8">Appliance Repair</option>
+                    <option value="9">Other Services</option>
+                  </select>
+                </div>
+
+                <div class="auth-form-row" style="margin-bottom:0;">
+                  <div class="auth-form-group" style="margin-bottom:0;">
+                    <label for="service-1-title" class="auth-label" style="font-size:0.8rem;">Service Title *</label>
+                    <input type="text" id="service-1-title" name="service_1_title" class="auth-pill-input" placeholder="e.g. Master Electrical Wiring" required>
+                  </div>
+                  <div class="auth-form-group" style="margin-bottom:0;">
+                    <label for="service-1-rate" class="auth-label" style="font-size:0.8rem;">Hourly Rate (Rs.) *</label>
+                    <input type="number" id="service-1-rate" name="service_1_rate" class="auth-pill-input" placeholder="e.g. 1500" min="1" step="50" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Service 2 Toggle Button -->
+              <div id="service-2-toggle-wrap" style="margin-bottom:12px;">
+                <button type="button" id="btn-toggle-service-2" class="btn btn-outline btn-sm" style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; padding:6px 14px; border-radius:999px; border-color:#CBD5E1; color:#0F172A; background:#FFFFFF;">
+                  <i data-lucide="plus" width="14" height="14"></i> Add Second Service (Optional)
+                </button>
+              </div>
+
+              <!-- Service 2 (Optional) -->
+              <div id="service-2-card" class="service-block-card" style="display:none; background:#F8FAFC; border:1px solid #CBD5E1; border-radius:12px; padding:14px 16px; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                  <div style="font-size:0.78rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px;">
+                    <span style="width:18px; height:18px; border-radius:50%; background:#64748B; color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:800;">2</span>
+                    Service 2 (Optional)
+                  </div>
+                  <button type="button" id="btn-remove-service-2" style="background:none; border:none; color:#EF4444; font-size:0.8rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:2px 6px;">
+                    <i data-lucide="trash-2" width="13" height="13"></i> Remove
+                  </button>
+                </div>
+
+                <div class="auth-form-group" style="margin-bottom:8px;">
+                  <label for="service-2-category" class="auth-label" style="font-size:0.8rem;">Category</label>
+                  <select id="service-2-category" name="service_2_category" class="auth-pill-select">
+                    <option value="" disabled selected>Select Second Category</option>
+                    <option value="1">Electrical</option>
+                    <option value="2">Plumbing</option>
+                    <option value="3">AC Repair</option>
+                    <option value="4">Painting</option>
+                    <option value="5">Carpentry</option>
+                    <option value="6">Masonry</option>
+                    <option value="7">Cleaning</option>
+                    <option value="8">Appliance Repair</option>
+                    <option value="9">Other Services</option>
+                  </select>
+                </div>
+
+                <div class="auth-form-row" style="margin-bottom:0;">
+                  <div class="auth-form-group" style="margin-bottom:0;">
+                    <label for="service-2-title" class="auth-label" style="font-size:0.8rem;">Service Title</label>
+                    <input type="text" id="service-2-title" name="service_2_title" class="auth-pill-input" placeholder="e.g. Plumbing Repair & Fitting">
+                  </div>
+                  <div class="auth-form-group" style="margin-bottom:0;">
+                    <label for="service-2-rate" class="auth-label" style="font-size:0.8rem;">Hourly Rate (Rs.)</label>
+                    <input type="number" id="service-2-rate" name="service_2_rate" class="auth-pill-input" placeholder="e.g. 1200" min="1" step="50">
+                  </div>
+                </div>
               </div>
             </div>
 

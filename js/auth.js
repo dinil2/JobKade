@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initLoginForm();
   initRegisterForms();
   initWorkerCoverageUI();
+  initWorkerServicesToggle();
   initUploadPreviews();
   initPasswordToggles();
 });
@@ -192,10 +193,22 @@ function initRegisterForms() {
 
       if (isWorker) {
         baseRules.push(
-          { name: 'service', test: v => Boolean(v), message: 'Please select your primary service.' },
+          { name: 'service_1_category', test: v => Boolean(v), message: 'Please select a category for Service 1.' },
+          { name: 'service_1_title', test: v => v && v.trim().length >= 3, message: 'Please enter a title for Service 1 (at least 3 characters).' },
+          { name: 'service_1_rate', test: v => Boolean(v) && !isNaN(parseFloat(v)) && parseFloat(v) > 0, message: 'Service 1 hourly rate must be greater than 0.' },
           { name: 'district', test: v => Boolean(v), message: 'Please select your service location district.' },
           { name: 'nic', test: v => Boolean(v), message: 'NIC number is required for worker verification.' }
         );
+
+        const s2Card = document.getElementById('service-2-card');
+        const isS2Visible = s2Card && s2Card.style.display !== 'none';
+        if (isS2Visible) {
+          baseRules.push(
+            { name: 'service_2_category', test: v => Boolean(v), message: 'Please select a category for Service 2.' },
+            { name: 'service_2_title', test: v => v && v.trim().length >= 3, message: 'Please enter a title for Service 2 (at least 3 characters).' },
+            { name: 'service_2_rate', test: v => Boolean(v) && !isNaN(parseFloat(v)) && parseFloat(v) > 0, message: 'Service 2 hourly rate must be greater than 0.' }
+          );
+        }
       }
 
       if (!validateFields(form, baseRules)) {
@@ -219,12 +232,33 @@ function initRegisterForms() {
 }
 
 async function handleWorkerRegistration(form, data) {
-  const serviceInput = form.querySelector('[name="service"]');
   const nicInput = form.querySelector('[name="nic"]');
   const districtInput = form.querySelector('[name="district"]');
-  const serviceVal = serviceInput ? serviceInput.value : '';
   const nic = nicInput ? nicInput.value.trim() : '';
   const district = (districtInput?.value || data.district || data.location || 'Colombo').trim();
+
+  const s1Cat = form.querySelector('[name="service_1_category"]')?.value || '';
+  const s1Title = (form.querySelector('[name="service_1_title"]')?.value || '').trim();
+  const s1Rate = parseFloat(form.querySelector('[name="service_1_rate"]')?.value || 0);
+
+  const s2Card = document.getElementById('service-2-card');
+  const hasService2 = s2Card && s2Card.style.display !== 'none';
+  const s2Cat = hasService2 ? (form.querySelector('[name="service_2_category"]')?.value || '') : '';
+  const s2Title = hasService2 ? (form.querySelector('[name="service_2_title"]')?.value || '').trim() : '';
+  const s2Rate = hasService2 ? parseFloat(form.querySelector('[name="service_2_rate"]')?.value || 0) : 0;
+
+  if (!s1Cat || !s1Title || isNaN(s1Rate) || s1Rate <= 0) {
+    showToast('Please complete Service 1 with a valid hourly rate greater than 0.', 'error');
+    return;
+  }
+
+  const services = [
+    { category_id: parseInt(s1Cat, 10), title: s1Title, hourly_rate: s1Rate }
+  ];
+
+  if (hasService2 && s2Cat && s2Title && s2Rate > 0) {
+    services.push({ category_id: parseInt(s2Cat, 10), title: s2Title, hourly_rate: s2Rate });
+  }
 
   const coverAllCb = form.querySelector('#worker-cover-all-cities');
   const checkedCities = Array.from(form.querySelectorAll('.worker-city-cb:checked')).map(cb => cb.value);
@@ -256,9 +290,23 @@ async function handleWorkerRegistration(form, data) {
   formData.append('district', district);
   formData.append('address', district);
   formData.append('location', district);
-  formData.append('service', serviceVal);
-  formData.append('category_id', parseInt(serviceVal, 10) || 1);
+  formData.append('service', s1Cat);
+  formData.append('category_id', parseInt(s1Cat, 10) || 1);
   formData.append('nic', nic);
+
+  // Append services payload
+  formData.append('services', JSON.stringify(services));
+  formData.append('service_1_category', s1Cat);
+  formData.append('service_1_title', s1Title);
+  formData.append('service_1_rate', s1Rate);
+  if (hasService2) {
+    formData.append('has_service_2', '1');
+    formData.append('service_2_category', s2Cat);
+    formData.append('service_2_title', s2Title);
+    formData.append('service_2_rate', s2Rate);
+  } else {
+    formData.append('has_service_2', '0');
+  }
 
   if (isCoverAll) {
     formData.append('cover_all_cities', '1');
@@ -588,4 +636,36 @@ function initWorkerCoverageUI() {
     renderCities(districtSelect.value);
   }
 }
+
+// Toggle Service 2 block in worker registration
+function initWorkerServicesToggle() {
+  const toggleBtn = document.getElementById('btn-toggle-service-2');
+  const toggleWrap = document.getElementById('service-2-toggle-wrap');
+  const s2Card = document.getElementById('service-2-card');
+  const removeBtn = document.getElementById('btn-remove-service-2');
+
+  if (!toggleBtn || !s2Card) return;
+
+  toggleBtn.addEventListener('click', function () {
+    s2Card.style.display = 'block';
+    if (toggleWrap) toggleWrap.style.display = 'none';
+    const s2Cat = document.getElementById('service-2-category');
+    if (s2Cat) s2Cat.focus();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function () {
+      s2Card.style.display = 'none';
+      if (toggleWrap) toggleWrap.style.display = 'block';
+      const s2Cat = document.getElementById('service-2-category');
+      const s2Title = document.getElementById('service-2-title');
+      const s2Rate = document.getElementById('service-2-rate');
+      if (s2Cat) s2Cat.value = '';
+      if (s2Title) s2Title.value = '';
+      if (s2Rate) s2Rate.value = '';
+    });
+  }
+}
+
 

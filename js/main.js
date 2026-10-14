@@ -131,7 +131,6 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Dashboard') return currentFile === 'dashboard.html' && currentPath.includes('/worker/');
     if (item.label === 'My Profile') return currentFile === 'profile-edit.html' || currentFile === 'settings.html';
     if (item.label === 'Identity and KYC') return currentFile === 'kyc.html';
-    if (item.label === 'My Services') return currentFile === 'my-services.html' || currentFile === 'add-service.html';
     if (item.label === 'Customer Jobs') return currentFile === 'jobs.html' && currentPath.includes('/worker/');
     if (item.label === 'Wallet and Earnings') return currentFile === 'wallet.html';
     if (item.label === 'Subscriptions') return currentFile === 'subscription.html';
@@ -256,7 +255,6 @@ function renderSharedComponents(roleOverride) {
         { label: 'Dashboard', icon: 'layout-dashboard', href: `${rootPath}worker/dashboard.html` },
         { label: 'My Profile', icon: 'user', href: `${rootPath}worker/profile-edit.html` },
         { label: 'Identity and KYC', icon: 'shield-check', href: `${rootPath}worker/kyc.html` },
-        { label: 'My Services', icon: 'briefcase', href: `${rootPath}worker/my-services.html` },
         { label: 'Customer Jobs', icon: 'file-text', href: `${rootPath}worker/jobs.html` },
         { label: 'Wallet and Earnings', icon: 'wallet', href: `${rootPath}worker/wallet.html` },
         { label: 'Subscriptions', icon: 'credit-card', href: `${rootPath}worker/subscription.html` },
@@ -896,15 +894,16 @@ function initMobileBottomNav() {
 
   const isHomeActive = path.endsWith('/index.html') || path.endsWith('/') || (!isSubfolder && !path.includes('.html'));
   const isWorkersActive = ['workers.html', 'worker-profile.html', 'services.html'].some(s => path.includes(s));
-  const isActionActive = ['post-job.html', 'add-service.html'].some(s => path.includes(s));
+  const isActionActive = role === 'worker' ? path.includes('jobs.html') : path.includes('post-job.html');
   const isMessagesActive = path.includes('messages.html');
   const isAccountActive = !isActionActive && [
-    'dashboard.html', 'profile.html', 'profile-edit.html', 'jobs.html', 'saved-workers.html',
+    'dashboard.html', 'profile.html', 'profile-edit.html', 'saved-workers.html',
     'wallet.html', 'subscription.html', 'kyc.html', 'settings.html', 'login.html'
   ].some(s => path.includes(s));
 
-  const actionUrl = role === 'worker' ? (rel + 'worker/add-service.html') : (rel + 'customer/post-job.html');
-  const actionLabel = role === 'worker' ? 'Add Service' : 'Post Job';
+  const actionUrl = role === 'worker' ? (rel + 'worker/jobs.html') : (rel + 'customer/post-job.html');
+  const actionLabel = role === 'worker' ? 'Jobs' : 'Post Job';
+  const actionIcon = role === 'worker' ? 'briefcase' : 'plus';
 
   let accountUrl = rel + 'auth/login.html';
   let accountLabel = 'Login';
@@ -936,7 +935,7 @@ function initMobileBottomNav() {
       <i data-lucide="search"></i><span>Workers</span>
     </a>
     <a href="${actionUrl}" class="mobile-nav-item mobile-nav-action ${isActionActive ? 'active' : ''}">
-      <div class="action-circle"><i data-lucide="plus"></i></div><span>${actionLabel}</span>
+      <div class="action-circle"><i data-lucide="${actionIcon}"></i></div><span>${actionLabel}</span>
     </a>
     <a href="${rel}messages.html" class="mobile-nav-item ${isMessagesActive ? 'active' : ''}">
       <i data-lucide="message-square"></i><span>Chat</span>

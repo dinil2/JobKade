@@ -77,6 +77,7 @@ $postRes = $jobService->postJob($customerId, [
     'description' => 'Circuit breaker is tripping repeatedly in main house panel.',
     'address'     => '123 Galle Road, Colombo 03',
     'district'    => 'Colombo',
+    'city'        => 'Colombo 03',
     'latitude'    => 6.9034,
     'longitude'   => 79.8540
 ]);

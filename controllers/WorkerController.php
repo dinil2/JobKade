@@ -102,18 +102,10 @@ class WorkerController {
     }
 
     public function addService(): void {
-        $user = JWT::getAuthUser();
-        if (!$user || $user['role'] !== 'worker' || empty($user['worker_id'])) {
-            sendJsonResponse(403, ['status' => 'error', 'message' => 'Only workers can add service listings.']);
-        }
-
-        $data = getRequestData();
-        try {
-            $res = $this->workerService->addCustomService((int)$user['worker_id'], $data);
-            sendJsonResponse(201, $res);
-        } catch (Exception $e) {
-            sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
-        }
+        sendJsonResponse(403, [
+            'status'  => 'error', 
+            'message' => 'Services cannot be added after registration. Services are configured during registration only.'
+        ]);
     }
 
     public function myServices(): void {
@@ -128,22 +120,9 @@ class WorkerController {
     }
 
     public function deleteService(): void {
-        $user = JWT::getAuthUser();
-        if (!$user || $user['role'] !== 'worker' || empty($user['worker_id'])) {
-            sendJsonResponse(403, ['status' => 'error', 'message' => 'Only workers can delete their services.']);
-        }
-
-        $data = getRequestData();
-        $serviceId = (int)($data['service_id'] ?? $_GET['id'] ?? 0);
-        if ($serviceId <= 0) {
-            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid service_id is required.']);
-        }
-
-        $success = $this->workerService->deleteCustomService($serviceId, (int)$user['worker_id']);
-        if ($success) {
-            sendJsonResponse(200, ['status' => 'success', 'message' => 'Service deleted successfully.']);
-        } else {
-            sendJsonResponse(404, ['status' => 'error', 'message' => 'Service not found or already deleted.']);
-        }
+        sendJsonResponse(403, [
+            'status'  => 'error', 
+            'message' => 'Services cannot be deleted after registration. Services are configured during registration only.'
+        ]);
     }
 }

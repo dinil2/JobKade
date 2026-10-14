@@ -362,7 +362,11 @@ class WorkerRepository {
             }
         }
 
-        $this->db->beginTransaction();
+        $ownsTx = false;
+        if (!$this->db->inTransaction()) {
+            $this->db->beginTransaction();
+            $ownsTx = true;
+        }
         try {
             // Remove previous coverage for this worker
             $del = $this->db->prepare("DELETE FROM worker_coverage WHERE worker_id = :worker_id");
@@ -376,10 +380,12 @@ class WorkerRepository {
                     ':city'      => $city
                 ]);
             }
-            $this->db->commit();
+            if ($ownsTx && $this->db->inTransaction()) {
+                $this->db->commit();
+            }
             return true;
         } catch (Throwable $e) {
-            if ($this->db->inTransaction()) {
+            if ($ownsTx && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             throw $e;

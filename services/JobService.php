@@ -332,7 +332,42 @@ class JobService {
             throw new Exception("Worker profile not found.");
         }
 
-        $hourlyRate = (float)($workerProfile['hourly_rate'] ?? 1000.00);
+        $jobCategoryId = (int)($job['category_id'] ?? 0);
+        $hourlyRate = null;
+        $appliedCategoryName = null;
+
+        if ($jobCategoryId > 0) {
+            $srvStmt = $db->prepare("
+                SELECT ws.price, COALESCE(c.name, ws.title) AS category_name
+                FROM worker_services ws
+                LEFT JOIN categories c ON ws.category_id = c.id
+                WHERE ws.worker_id = :wid 
+                  AND ws.category_id = :cid 
+                  AND ws.pricing_type = 'hourly'
+                ORDER BY ws.id DESC
+                LIMIT 1
+            ");
+            $srvStmt->execute([':wid' => $profileId, ':cid' => $jobCategoryId]);
+            $matchedSrv = $srvStmt->fetch(PDO::FETCH_ASSOC);
+            if ($matchedSrv && isset($matchedSrv['price']) && (float)$matchedSrv['price'] > 0) {
+                $hourlyRate = (float)$matchedSrv['price'];
+                $appliedCategoryName = $matchedSrv['category_name'];
+            }
+        }
+
+        // Fall back to profile-level hourly_rate if worker has no service in that category
+        if ($hourlyRate === null || $hourlyRate <= 0) {
+            $hourlyRate = (float)($workerProfile['hourly_rate'] ?? 1000.00);
+            if ($jobCategoryId > 0) {
+                $cStmt = $db->prepare("SELECT name FROM categories WHERE id = :cid LIMIT 1");
+                $cStmt->execute([':cid' => $jobCategoryId]);
+                $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+                if ($cRow && !empty($cRow['name'])) {
+                    $appliedCategoryName = $cRow['name'];
+                }
+            }
+        }
+
         $travellingFee = (float)($workerProfile['travelling_fee'] ?? 0.00);
 
         $completedAt = date('Y-m-d H:i:s');
@@ -355,7 +390,9 @@ class JobService {
         $breakdown = $walletService->calculateBreakdown($profileId, $jobAmount);
 
         $customerId = (int)$job['customer_id'];
-        $notes = "Hourly service: {$hoursWorked} hrs @ Rs. " . number_format($hourlyRate, 2) . "/hr + Travelling fee: Rs. " . number_format($travellingFee, 2);
+        $rateFormatted = ($hourlyRate == floor($hourlyRate)) ? number_format($hourlyRate) : number_format($hourlyRate, 2);
+        $rateNote = "{$hoursWorked} hrs @ Rs. {$rateFormatted}/hr" . ($appliedCategoryName ? " ({$appliedCategoryName})" : "");
+        $notes = $travellingFee > 0 ? "{$rateNote} + Travelling fee: Rs. " . number_format($travellingFee, 2) : $rateNote;
 
         $invoiceRepo = new InvoiceRepository();
         $existingInvoice = $invoiceRepo->getInvoiceByJobId($jobId);
