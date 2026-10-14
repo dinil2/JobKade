@@ -294,19 +294,29 @@ class AuthService {
 
             $pdo->commit();
 
-            // Insert registration welcome notification
+            // Send registration welcome email via EmailService
             try {
-                $notifStmt = $pdo->prepare("
-                    INSERT INTO notifications (user_id, title, message, type, is_read)
-                    VALUES (:uid, :title, :msg, 'system', 0)
-                ");
-                $notifStmt->execute([
-                    ':uid'   => $userId,
-                    ':title' => 'Registration Successful',
-                    ':msg'   => 'Welcome to JobKade! Your account has been created successfully.'
-                ]);
+                require_once __DIR__ . '/EmailService.php';
+                $emailService = new EmailService();
+                $subject = "Welcome to JobKade!";
+                $roleTitle = ($role === 'worker') ? 'Service Professional' : 'Valued Customer';
+                $htmlBody = "
+                    <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">
+                        <h2 style=\"color: #0284c7; margin-top: 0;\">Welcome to JobKade!</h2>
+                        <p>Hi " . htmlspecialchars($fullName) . ",</p>
+                        <p>Thank you for joining JobKade as a <strong>{$roleTitle}</strong>. Your account has been created successfully.</p>
+                        <p>You can now log in to your account and explore verified local services across Sri Lanka.</p>
+                        <div style=\"margin: 25px 0;\">
+                            <a href=\"http://localhost:81/JobKade/auth/login.html\" style=\"background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">Log in to Your Account</a>
+                        </div>
+                        <p style=\"color: #64748b; font-size: 13px;\">If you have any questions or need support, reply to this email or contact us through the platform.</p>
+                        <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />
+                        <p style=\"color: #94a3b8; font-size: 12px;\">&copy; " . date('Y') . " JobKade. All rights reserved.</p>
+                    </div>
+                ";
+                $emailService->send($email, $fullName, $subject, $htmlBody);
             } catch (Throwable $ne) {
-                error_log("Failed to insert registration notification: " . $ne->getMessage());
+                error_log("Failed to send registration welcome email: " . $ne->getMessage());
             }
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {

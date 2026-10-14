@@ -62,32 +62,47 @@ class AdminService {
         $workerStatus = ($status === 'approved') ? 'verified' : 'rejected';
         $this->workerRepo->updateVerificationStatus($workerId, $workerStatus);
 
-        // 3. Dispatch in-app notification to worker user
-        $workerUserId = (int)($doc['user_id'] ?? 0);
-        if ($workerUserId <= 0) {
-            $profile = $this->workerRepo->getProfileById($workerId);
-            $workerUserId = (int)($profile['user_id'] ?? 0);
-        }
+        // 3. Dispatch rejection email to worker user if rejected (no email on approval)
+        if ($status === 'rejected') {
+            $workerUserId = (int)($doc['user_id'] ?? 0);
+            if ($workerUserId <= 0) {
+                $profile = $this->workerRepo->getProfileById($workerId);
+                $workerUserId = (int)($profile['user_id'] ?? 0);
+            }
 
-        if ($workerUserId > 0) {
-            $notifTitle = ($status === 'approved') ? 'KYC Verification Approved' : 'KYC Verification Rejected';
-            $notifMsg = ($status === 'approved') 
-                ? 'Congratulations! Your identity document has been verified. You now have the verified worker badge.'
-                : 'Your KYC submission was rejected by administration. Reason: ' . ($notes ?: 'Document could not be verified.');
-
-            try {
-                $nStmt = $this->db->prepare("
-                    INSERT INTO notifications (user_id, title, message, type, is_read)
-                    VALUES (:uid, :title, :msg, 'kyc', 0)
-                ");
-                $nStmt->execute([
-                    ':uid'   => $workerUserId,
-                    ':title' => $notifTitle,
-                    ':msg'   => $notifMsg
-                ]);
-            } catch (Exception $e) {
-                // Log and proceed without blocking transaction
-                error_log("Failed to dispatch KYC notification: " . $e->getMessage());
+            if ($workerUserId > 0) {
+                try {
+                    require_once __DIR__ . '/EmailService.php';
+                    require_once __DIR__ . '/../repositories/UserRepository.php';
+                    $userRepo = new UserRepository();
+                    $wUser = $userRepo->findById($workerUserId);
+                    if ($wUser && !empty($wUser['email'])) {
+                        $wEmail = $wUser['email'];
+                        $wName = $wUser['full_name'] ?? 'Worker';
+                        $subject = "JobKade: KYC Verification Update";
+                        $reasonText = htmlspecialchars($notes ?: 'Document could not be verified. Please re-upload a clear copy.');
+                        $htmlBody = "
+                            <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">
+                                <h2 style=\"color: #dc2626; margin-top: 0;\">KYC Document Rejected</h2>
+                                <p>Hi " . htmlspecialchars($wName) . ",</p>
+                                <p>Your submitted KYC identity document was reviewed and could not be approved at this time.</p>
+                                <div style=\"background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0;\">
+                                    <strong>Reason for Rejection:</strong><br />
+                                    <span>{$reasonText}</span>
+                                </div>
+                                <p>Please log in to your dashboard and re-upload a clear, valid copy of the required document.</p>
+                                <div style=\"margin: 25px 0;\">
+                                    <a href=\"http://localhost:81/JobKade/worker/kyc.html\" style=\"background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">Go to Identity Verification</a>
+                                </div>
+                                <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />
+                                <p style=\"color: #94a3b8; font-size: 12px;\">&copy; " . date('Y') . " JobKade. All rights reserved.</p>
+                            </div>
+                        ";
+                        (new EmailService())->send($wEmail, $wName, $subject, $htmlBody);
+                    }
+                } catch (Throwable $e) {
+                    error_log("Failed to send KYC rejection email: " . $e->getMessage());
+                }
             }
         }
 
@@ -129,22 +144,43 @@ class AdminService {
         $workerStatus = ($status === 'approved') ? 'verified' : 'rejected';
         $this->workerRepo->updateVerificationStatus($workerId, $workerStatus);
 
-        $profile = $this->workerRepo->getProfileById($workerId);
-        if ($profile && !empty($profile['user_id'])) {
-            $workerUserId = (int)$profile['user_id'];
-            $notifTitle = ($status === 'approved') ? 'KYC Verification Approved' : 'KYC Verification Rejected';
-            $notifMsg = ($status === 'approved')
-                ? 'Congratulations! Your National ID, Police Report, and Live Selfie have all been verified and approved.'
-                : 'Your verification packet was reviewed and rejected. Reason: ' . ($notes ?: 'Documents could not be approved.');
-
-            try {
-                $nStmt = $this->db->prepare("
-                    INSERT INTO notifications (user_id, title, message, type, is_read)
-                    VALUES (:uid, :title, :msg, 'kyc', 0)
-                ");
-                $nStmt->execute([':uid' => $workerUserId, ':title' => $notifTitle, ':msg' => $notifMsg]);
-            } catch (Exception $e) {
-                error_log("Failed to dispatch worker packet KYC notification: " . $e->getMessage());
+        // Dispatch rejection email if rejected (silent on approval)
+        if ($status === 'rejected') {
+            $profile = $this->workerRepo->getProfileById($workerId);
+            if ($profile && !empty($profile['user_id'])) {
+                $workerUserId = (int)$profile['user_id'];
+                try {
+                    require_once __DIR__ . '/EmailService.php';
+                    require_once __DIR__ . '/../repositories/UserRepository.php';
+                    $userRepo = new UserRepository();
+                    $wUser = $userRepo->findById($workerUserId);
+                    if ($wUser && !empty($wUser['email'])) {
+                        $wEmail = $wUser['email'];
+                        $wName = $wUser['full_name'] ?? 'Worker';
+                        $subject = "JobKade: KYC Verification Update";
+                        $reasonText = htmlspecialchars($notes ?: 'Documents could not be approved. Please review and re-submit.');
+                        $htmlBody = "
+                            <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">
+                                <h2 style=\"color: #dc2626; margin-top: 0;\">KYC Verification Packet Rejected</h2>
+                                <p>Hi " . htmlspecialchars($wName) . ",</p>
+                                <p>Your verification packet was reviewed and rejected by administration.</p>
+                                <div style=\"background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0;\">
+                                    <strong>Reason for Rejection:</strong><br />
+                                    <span>{$reasonText}</span>
+                                </div>
+                                <p>Please log in to your dashboard to review the feedback and submit updated documentation.</p>
+                                <div style=\"margin: 25px 0;\">
+                                    <a href=\"http://localhost:81/JobKade/worker/kyc.html\" style=\"background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">Go to Identity Verification</a>
+                                </div>
+                                <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />
+                                <p style=\"color: #94a3b8; font-size: 12px;\">&copy; " . date('Y') . " JobKade. All rights reserved.</p>
+                            </div>
+                        ";
+                        (new EmailService())->send($wEmail, $wName, $subject, $htmlBody);
+                    }
+                } catch (Throwable $e) {
+                    error_log("Failed to dispatch worker packet KYC rejection email: " . $e->getMessage());
+                }
             }
         }
 

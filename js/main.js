@@ -33,7 +33,6 @@ function initSharedApp() {
   initNavbarScroll();
   initMobileMenu();
   initSidebar();
-  initNotifications();
   initTabs();
   initScrollAnimations();
   initModalTriggers();
@@ -217,21 +216,6 @@ function renderSharedComponents(roleOverride) {
             </a>
           </div>
           <div class="dashboard-nav-right">
-            <div class="notification-wrapper">
-              <button class="notification-bell" aria-label="Notifications" title="Notifications">
-                <i data-lucide="bell" width="22" height="22"></i>
-                <span class="notif-count" style="display: none;">0</span>
-              </button>
-              <div class="notification-dropdown">
-                <div class="notification-dropdown-header">
-                  <h4>Notifications</h4>
-                  <a href="#" class="text-sm text-primary-color mark-all-read-btn" id="markAllReadBtn">Mark all read</a>
-                </div>
-                <div class="notification-list" id="notificationList">
-                  <div class="notification-empty" style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No notifications yet.</div>
-                </div>
-              </div>
-            </div>
             <a href="${profileHref}" style="text-decoration:none;" title="My Profile" id="navbarProfileLink">
               <div class="avatar avatar-nav ${avatarColor}" id="${role === 'admin' ? 'adminNavAvatar' : 'navAvatar'}">${avatarInnerHtml}</div>
             </a>
@@ -459,147 +443,6 @@ function initSidebar() {
     });
   });
 }
-
-function formatNotifTime(dateStr) {
-  if (!dateStr) return 'Just now';
-  try {
-    const d = new Date(dateStr.replace(' ', 'T'));
-    const diffMs = Date.now() - d.getTime();
-    if (isNaN(diffMs) || diffMs < 60000) return 'Just now';
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 60) return mins + 'm ago';
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return hrs + 'h ago';
-    const days = Math.floor(hrs / 24);
-    if (days < 30) return days + 'd ago';
-    return d.toLocaleDateString();
-  } catch (e) {
-    return 'Recently';
-  }
-}
-
-async function fetchUserNotifications() {
-  const token = getAuthToken();
-  if (!token) return;
-
-  try {
-    const res = await apiFetch('notifications.php?action=list');
-    if (!res.ok || !res.data || res.data.status !== 'success') return;
-
-    const notifs = res.data.notifications || [];
-    renderNotificationsUI(notifs);
-  } catch (err) {
-    console.warn('Failed to fetch notifications:', err);
-  }
-}
-
-function renderNotificationsUI(notifs) {
-  const unreadCount = notifs.filter(n => !n.is_read || n.is_read === 0).length;
-
-  // Update bell badges across the page
-  document.querySelectorAll('.notif-count, .notif-badge').forEach(badge => {
-    badge.textContent = String(unreadCount);
-    badge.style.display = unreadCount > 0 ? '' : 'none';
-  });
-
-  // Update notification dropdown lists
-  document.querySelectorAll('.notification-list').forEach(listEl => {
-    if (notifs.length === 0) {
-      listEl.innerHTML = '<div class="notification-empty" style="padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No notifications yet.</div>';
-      return;
-    }
-
-    const itemsHtml = notifs.map(n => {
-      const isUnread = !n.is_read || n.is_read === 0;
-      let icon = 'bell';
-      let iconColor = 'blue';
-
-      if (n.type === 'system') {
-        icon = 'check-circle';
-        iconColor = 'green';
-      } else if (n.type === 'kyc') {
-        const isReject = (n.title && n.title.toLowerCase().includes('reject')) || (n.message && n.message.toLowerCase().includes('reject'));
-        icon = isReject ? 'shield-alert' : 'shield-check';
-        iconColor = isReject ? 'orange' : 'green';
-      } else if (n.type === 'subscription') {
-        icon = 'credit-card';
-        iconColor = 'purple';
-      }
-
-      return `
-        <div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${n.id}">
-          <div class="notification-item-icon ${iconColor}">
-            <i data-lucide="${icon}" width="16" height="16"></i>
-          </div>
-          <div class="notification-item-content">
-            <p style="font-weight: 600; font-size: 0.85rem; margin-bottom: 2px;">${escapeHtml(n.title)}</p>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; line-height: 1.35;">${escapeHtml(n.message)}</p>
-            <span class="notif-time">${formatNotifTime(n.created_at)}</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    listEl.innerHTML = itemsHtml;
-  });
-
-  if (typeof lucide !== 'undefined') lucide.createIcons();
-}
-
-async function markAllNotificationsAsRead() {
-  const token = getAuthToken();
-  if (!token) return;
-
-  try {
-    const res = await apiFetch('notifications.php?action=read-all', { method: 'POST' });
-    if (res.ok && res.data && res.data.status === 'success') {
-      document.querySelectorAll('.notif-count, .notif-badge').forEach(badge => {
-        badge.textContent = '0';
-        badge.style.display = 'none';
-      });
-      document.querySelectorAll('.notification-item.unread').forEach(item => {
-        item.classList.remove('unread');
-      });
-      if (typeof showToast === 'function') {
-        showToast('All notifications marked as read.', 'info');
-      }
-    }
-  } catch (err) {
-    console.warn('Failed to mark notifications as read:', err);
-  }
-}
-
-function initNotifications() {
-  const bell = document.querySelector('.notification-bell');
-  const dropdown = document.querySelector('.notification-dropdown');
-  if (!bell || !dropdown) return;
-
-  bell.onclick = (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle('active');
-  };
-
-  document.addEventListener('click', (e) => {
-    if (!dropdown.contains(e.target) && !bell.contains(e.target)) {
-      dropdown.classList.remove('active');
-    }
-  });
-
-  document.querySelectorAll('.notification-dropdown a, .notification-dropdown button').forEach(btn => {
-    const text = btn.textContent.toLowerCase();
-    if (text.includes('mark all') || text.includes('clear')) {
-      btn.onclick = async (e) => {
-        e.preventDefault();
-        await markAllNotificationsAsRead();
-      };
-    }
-  });
-
-  fetchUserNotifications();
-}
-
-window.fetchUserNotifications = fetchUserNotifications;
-window.markAllNotificationsAsRead = markAllNotificationsAsRead;
 
 function initTabs() {
   document.querySelectorAll('[data-tabs]').forEach(container => {

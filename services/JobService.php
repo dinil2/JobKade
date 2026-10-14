@@ -153,18 +153,69 @@ class JobService {
 
             $db->commit();
 
+            // Send email to customer via EmailService
             try {
-                require_once __DIR__ . '/NotificationService.php';
+                require_once __DIR__ . '/EmailService.php';
+                require_once __DIR__ . '/../repositories/UserRepository.php';
+                require_once __DIR__ . '/../repositories/WorkerRepository.php';
+
+                $userRepo = new UserRepository();
+                $custUser = $userRepo->findById((int)$job['customer_id']);
+                $custEmail = !empty($custUser['email']) ? $custUser['email'] : '';
+                $custName = !empty($custUser['full_name']) ? $custUser['full_name'] : 'Customer';
+
                 $workerRepo = new WorkerRepository();
                 $wProfile = $workerRepo->getProfileById($profileId);
-                $workerName = $wProfile['full_name'] ?? 'A verified worker';
-                (new NotificationService())->createNotification(
-                    (int)$job['customer_id'],
-                    "Worker Assigned",
-                    "{$workerName} has taken your job '{$job['title']}'.",
-                    "job"
-                );
-            } catch (Exception $e) {}
+                $workerName = !empty($wProfile['full_name']) ? $wProfile['full_name'] : 'A verified worker';
+
+                // Determine worker's hourly rate for that job's category
+                $jobCategoryId = (int)($job['category_id'] ?? 0);
+                $appliedRate = null;
+                if ($jobCategoryId > 0) {
+                    $srvStmt = $db->prepare("
+                        SELECT price FROM worker_services 
+                        WHERE worker_id = :wid 
+                          AND category_id = :cid 
+                          AND pricing_type = 'hourly' 
+                        ORDER BY id DESC LIMIT 1
+                    ");
+                    $srvStmt->execute([':wid' => $profileId, ':cid' => $jobCategoryId]);
+                    $srvPrice = $srvStmt->fetchColumn();
+                    if ($srvPrice !== false && (float)$srvPrice > 0) {
+                        $appliedRate = (float)$srvPrice;
+                    }
+                }
+                if ($appliedRate === null || $appliedRate <= 0) {
+                    $appliedRate = (float)($wProfile['hourly_rate'] ?? 1000.00);
+                }
+
+                $rateFormatted = ($appliedRate == floor($appliedRate)) ? number_format($appliedRate) : number_format($appliedRate, 2);
+
+                if (!empty($custEmail)) {
+                    $subject = "JobKade: Your job has been taken";
+                    $htmlBody = "
+                        <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">
+                            <h2 style=\"color: #0284c7; margin-top: 0;\">Good News! Your Job Has Been Taken</h2>
+                            <p>Hi " . htmlspecialchars($custName) . ",</p>
+                            <p>A skilled worker has accepted your job request on JobKade.</p>
+                            <div style=\"background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px 16px; margin: 16px 0;\">
+                                <p style=\"margin: 6px 0;\"><strong>Job Title:</strong> " . htmlspecialchars($job['title']) . "</p>
+                                <p style=\"margin: 6px 0;\"><strong>Assigned Worker:</strong> " . htmlspecialchars($workerName) . "</p>
+                                <p style=\"margin: 6px 0;\"><strong>Hourly Rate:</strong> Rs. {$rateFormatted}/hr</p>
+                            </div>
+                            <p>The worker is on their way. When the worker arrives, tap <strong>'Worker is Here'</strong> on your dashboard to begin the work timer.</p>
+                            <div style=\"margin: 25px 0;\">
+                                <a href=\"http://localhost:81/JobKade/customer/jobs.html\" style=\"background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">View Job on Dashboard</a>
+                            </div>
+                            <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />
+                            <p style=\"color: #94a3b8; font-size: 12px;\">&copy; " . date('Y') . " JobKade. All rights reserved.</p>
+                        </div>
+                    ";
+                    (new EmailService())->send($custEmail, $custName, $subject, $htmlBody);
+                }
+            } catch (Throwable $e) {
+                error_log("Failed to send job-taken email to customer: " . $e->getMessage());
+            }
 
             return [
                 'status'  => 'success',
@@ -216,19 +267,7 @@ class JobService {
         $up = $db->prepare("UPDATE job_requests SET arrived_at = :arrived_at, updated_at = NOW() WHERE id = :id");
         $up->execute([':arrived_at' => $now, ':id' => $jobId]);
 
-        try {
-            require_once __DIR__ . '/NotificationService.php';
-            $workerRepo = new WorkerRepository();
-            $wProfile = $workerRepo->getProfileById((int)$job['worker_id']);
-            if ($wProfile && !empty($wProfile['user_id'])) {
-                (new NotificationService())->createNotification(
-                    (int)$wProfile['user_id'],
-                    "Arrival Confirmed",
-                    "Customer confirmed your arrival for '{$job['title']}'. The work timer has started!",
-                    "job"
-                );
-            }
-        } catch (Exception $e) {}
+
 
         return [
             'status'     => 'success',
@@ -272,19 +311,7 @@ class JobService {
         ");
         $up->execute([':id' => $jobId]);
 
-        try {
-            require_once __DIR__ . '/NotificationService.php';
-            $workerRepo = new WorkerRepository();
-            $wProfile = $workerRepo->getProfileById($oldWorkerId);
-            if ($wProfile && !empty($wProfile['user_id'])) {
-                (new NotificationService())->createNotification(
-                    (int)$wProfile['user_id'],
-                    "Assignment Cancelled",
-                    "Customer cancelled assignment for '{$job['title']}'. The job is back in Available Jobs.",
-                    "job"
-                );
-            }
-        } catch (Exception $e) {}
+
 
         return [
             'status'  => 'success',
@@ -448,15 +475,45 @@ class JobService {
             ':id'           => $jobId
         ]);
 
+        // Dispatch invoice created email to customer
         try {
-            require_once __DIR__ . '/NotificationService.php';
-            (new NotificationService())->createNotification(
-                $customerId,
-                "Job Completed",
-                "Work on '{$job['title']}' is finished! Total amount: Rs. " . number_format($jobAmount, 2),
-                "invoice"
-            );
-        } catch (Exception $e) {}
+            require_once __DIR__ . '/EmailService.php';
+            require_once __DIR__ . '/../repositories/UserRepository.php';
+            $custUser = (new UserRepository())->findById($customerId);
+            $custEmail = !empty($custUser['email']) ? $custUser['email'] : '';
+            $custName = !empty($custUser['full_name']) ? $custUser['full_name'] : 'Customer';
+
+            if (!empty($custEmail)) {
+                $workerName = !empty($workerProfile['full_name']) ? $workerProfile['full_name'] : 'Your assigned worker';
+                $formattedTotal = number_format($jobAmount, 2);
+                $formattedRate = ($hourlyRate == floor($hourlyRate)) ? number_format($hourlyRate) : number_format($hourlyRate, 2);
+                $subject = "JobKade: Invoice Created for Job #{$jobId}";
+                $htmlBody = "
+                    <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">
+                        <h2 style=\"color: #0284c7; margin-top: 0;\">Work Completed &amp; Invoice Created</h2>
+                        <p>Hi " . htmlspecialchars($custName) . ",</p>
+                        <p>Work on your job <strong>" . htmlspecialchars($job['title']) . "</strong> has been marked as completed by " . htmlspecialchars($workerName) . ".</p>
+                        <div style=\"background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px 16px; margin: 16px 0;\">
+                            <p style=\"margin: 4px 0;\"><strong>Invoice #:</strong> {$invoiceId}</p>
+                            <p style=\"margin: 4px 0;\"><strong>Hours Billed:</strong> {$hoursWorked} hrs</p>
+                            <p style=\"margin: 4px 0;\"><strong>Hourly Rate:</strong> Rs. {$formattedRate}/hr" . ($appliedCategoryName ? " (" . htmlspecialchars($appliedCategoryName) . ")" : "") . "</p>
+                            " . ($travellingFee > 0 ? "<p style=\"margin: 4px 0;\"><strong>Travelling Fee:</strong> Rs. " . number_format($travellingFee, 2) . "</p>" : "") . "
+                            <hr style=\"border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0;\" />
+                            <p style=\"margin: 4px 0; font-size: 16px;\"><strong>Total Amount Due:</strong> <span style=\"color: #0284c7;\">Rs. {$formattedTotal}</span></p>
+                        </div>
+                        <p>Please review and complete your payment on your dashboard.</p>
+                        <div style=\"margin: 25px 0;\">
+                            <a href=\"http://localhost:81/JobKade/customer/jobs.html\" style=\"background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">View and Pay Invoice</a>
+                        </div>
+                        <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />
+                        <p style=\"color: #94a3b8; font-size: 12px;\">&copy; " . date('Y') . " JobKade. All rights reserved.</p>
+                    </div>
+                ";
+                (new EmailService())->send($custEmail, $custName, $subject, $htmlBody);
+            }
+        } catch (Throwable $e) {
+            error_log("Failed to send invoice-created email to customer: " . $e->getMessage());
+        }
 
         $invoice = $invoiceRepo->getInvoiceById($invoiceId);
 

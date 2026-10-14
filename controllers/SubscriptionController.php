@@ -31,8 +31,10 @@ class SubscriptionController {
         try {
             $res = $this->payService->processPayment((int)$user['worker_id'], $planId, $method);
 
-            // Insert notification for the worker
+            // Send subscription confirmation email via EmailService
             try {
+                require_once __DIR__ . '/../services/EmailService.php';
+                require_once __DIR__ . '/../repositories/UserRepository.php';
                 $workerUserId = (int)($user['user_id'] ?? $user['id'] ?? 0);
                 if ($workerUserId <= 0) {
                     $pdo = Database::getConnection();
@@ -41,21 +43,38 @@ class SubscriptionController {
                     $workerUserId = (int)$wStmt->fetchColumn();
                 }
 
-                if ($workerUserId > 0) {
-                    $planName = $res['plan_name'] ?? 'Membership';
-                    $pdo = Database::getConnection();
-                    $nStmt = $pdo->prepare("
-                        INSERT INTO notifications (user_id, title, message, type, is_read)
-                        VALUES (:uid, :title, :msg, 'subscription', 0)
-                    ");
-                    $nStmt->execute([
-                        ':uid'   => $workerUserId,
-                        ':title' => 'Subscription Activated',
-                        ':msg'   => "Your {$planName} subscription has been activated successfully."
-                    ]);
+                $wUser = ($workerUserId > 0) ? (new UserRepository())->findById($workerUserId) : null;
+                $wEmail = !empty($wUser['email']) ? $wUser['email'] : ($user['email'] ?? '');
+                $wName = !empty($wUser['full_name']) ? $wUser['full_name'] : ($user['name'] ?? 'Worker');
+
+                if (!empty($wEmail)) {
+                    $planName = htmlspecialchars($res['plan_name'] ?? 'Membership Plan');
+                    $amount = isset($res['amount']) ? number_format((float)$res['amount'], 2) : '1,000.00';
+                    $receiptNo = htmlspecialchars($res['receipt_number'] ?? ('SUB-' . time()));
+                    $subject = "JobKade: Subscription Activated";
+                    $htmlBody = "
+                        <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;\">
+                            <h2 style=\"color: #0284c7; margin-top: 0;\">Subscription Activated!</h2>
+                            <p>Hi " . htmlspecialchars($wName) . ",</p>
+                            <p>Thank you for subscribing! Your <strong>{$planName}</strong> has been activated successfully.</p>
+                            <div style=\"background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 14px 16px; margin: 16px 0;\">
+                                <p style=\"margin: 4px 0;\"><strong>Receipt Number:</strong> {$receiptNo}</p>
+                                <p style=\"margin: 4px 0;\"><strong>Plan:</strong> {$planName}</p>
+                                <p style=\"margin: 4px 0;\"><strong>Amount Paid:</strong> Rs. {$amount}</p>
+                                <p style=\"margin: 4px 0;\"><strong>Payment Method:</strong> " . htmlspecialchars($method) . "</p>
+                            </div>
+                            <p>Your job application quota and subscription perks are now active on your worker account.</p>
+                            <div style=\"margin: 25px 0;\">
+                                <a href=\"http://localhost:81/JobKade/worker/dashboard.html\" style=\"background-color: #0284c7; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">Go to Dashboard</a>
+                            </div>
+                            <hr style=\"border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />
+                            <p style=\"color: #94a3b8; font-size: 12px;\">&copy; " . date('Y') . " JobKade. All rights reserved.</p>
+                        </div>
+                    ";
+                    (new EmailService())->send($wEmail, $wName, $subject, $htmlBody);
                 }
             } catch (Throwable $ne) {
-                error_log("Failed to insert subscription notification: " . $ne->getMessage());
+                error_log("Failed to send subscription confirmation email: " . $ne->getMessage());
             }
 
             sendJsonResponse(200, [
