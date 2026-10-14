@@ -487,6 +487,7 @@ async function initWorkerProfilePage() {
       const phoneInput = form.querySelector('[name="phone"]');
       const emailInput = form.querySelector('[name="email"]');
       const bioInput = form.querySelector('[name="bio"]');
+      const locInput = form.querySelector('[name="location"]');
 
       const realName = u.full_name || u.name || '';
       if (nameInput && realName) nameInput.value = realName;
@@ -496,9 +497,12 @@ async function initWorkerProfilePage() {
       if (phoneInput && u.phone) phoneInput.value = u.phone;
       if (emailInput && u.email) emailInput.value = u.email;
 
-      // Real Bio from worker_profile in the database
+      // Real Bio and Location from worker_profile in the database
       const realBio = wp.bio || u.bio || '';
       if (bioInput && realBio) bioInput.value = realBio;
+
+      const realAddress = wp.address || u.address || '';
+      if (locInput && realAddress) locInput.value = realAddress;
 
       const hourlyInput = form.querySelector('[name="hourly-rate"]');
       const travellingInput = form.querySelector('[name="travelling-fee"]');
