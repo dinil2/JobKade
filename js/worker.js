@@ -486,10 +486,7 @@ async function initWorkerProfilePage() {
       const nameInput = form.querySelector('[name="full-name"]');
       const phoneInput = form.querySelector('[name="phone"]');
       const emailInput = form.querySelector('[name="email"]');
-      const locInput = form.querySelector('[name="location"]');
       const bioInput = form.querySelector('[name="bio"]');
-      const catSelect = form.querySelector('[name="category"]');
-      const expInput = form.querySelector('[name="experience"]');
 
       const realName = u.full_name || u.name || '';
       if (nameInput && realName) nameInput.value = realName;
@@ -499,45 +496,14 @@ async function initWorkerProfilePage() {
       if (phoneInput && u.phone) phoneInput.value = u.phone;
       if (emailInput && u.email) emailInput.value = u.email;
 
-      // Real Bio and Location from worker_profile in the database
+      // Real Bio from worker_profile in the database
       const realBio = wp.bio || u.bio || '';
       if (bioInput && realBio) bioInput.value = realBio;
-
-      const realAddress = wp.address || u.address || '';
-      if (locInput && realAddress) locInput.value = realAddress;
-
-      const realExp = wp.experience || wp.working_hours || '';
-      if (expInput && realExp) expInput.value = realExp;
 
       const hourlyInput = form.querySelector('[name="hourly-rate"]');
       const travellingInput = form.querySelector('[name="travelling-fee"]');
       if (hourlyInput) hourlyInput.value = wp.hourly_rate != null ? wp.hourly_rate : '1000.00';
       if (travellingInput) travellingInput.value = wp.travelling_fee != null ? wp.travelling_fee : '0.00';
-
-      // Render registered services display (fixed at registration)
-      const srvDisplay = $id('worker-registered-services-display');
-      if (srvDisplay) {
-        const services = wp.services || [];
-        if (services.length > 0) {
-          srvDisplay.innerHTML = services.map(s => {
-            const catName = s.category_name || s.category || 'Service';
-            const rate = parseFloat(s.price || 0);
-            return `
-              <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:6px 12px; display:inline-flex; align-items:center; gap:8px; font-size:0.85rem;">
-                <span class="badge badge-primary" style="font-size:0.75rem;">${catName}</span>
-                <strong style="color:var(--text-primary);">${s.title}</strong>
-                <span style="color:var(--primary); font-weight:700;">Rs. ${formatLKR(rate).replace('Rs. ', '')}/hr</span>
-              </div>
-            `;
-          }).join('');
-        } else if (wp.categories && wp.categories.length > 0) {
-          srvDisplay.innerHTML = wp.categories.map(c => `
-            <span class="badge badge-primary" style="padding:6px 10px; font-size:0.85rem;">${c.name}</span>
-          `).join('');
-        } else {
-          srvDisplay.innerHTML = '<span style="font-size:0.85rem; color:var(--text-secondary);">No services registered.</span>';
-        }
-      }
 
       // Verification Badge
       if (verifyBadge) {
@@ -657,12 +623,20 @@ async function initWorkerProfilePage() {
 
       if (distSelect) {
         distSelect.addEventListener('change', function () {
-          renderProfileCities(this.value, [], false);
+          if (grid) {
+            grid.classList.remove('is-invalid');
+            grid.parentElement?.querySelector('.form-feedback-error')?.remove();
+          }
+          renderProfileCities(this.value, [], true);
         });
       }
 
       if (coverAllCb) {
         coverAllCb.addEventListener('change', function () {
+          if (this.checked && grid) {
+            grid.classList.remove('is-invalid');
+            grid.parentElement?.querySelector('.form-feedback-error')?.remove();
+          }
           updateProfileCoverageState();
         });
       }
@@ -734,11 +708,11 @@ async function initWorkerProfilePage() {
     if (distSelect && !distSelect.value) { showFieldError(distSelect, 'Please select a service district.'); hasError = true; }
 
     if (!isCoverAll && checkedCities.length === 0) {
-      showToast('Please select at least 1 city or check "Cover all cities".', 'error');
+      if (grid) showFieldError(grid, "Please select at least 1 city or check 'Cover all cities'.");
       hasError = true;
     }
     if (!isCoverAll && checkedCities.length > 3) {
-      showToast('Maximum 3 cities allowed.', 'error');
+      if (grid) showFieldError(grid, "Maximum 3 cities allowed.");
       hasError = true;
     }
 

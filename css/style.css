@@ -3770,10 +3770,14 @@ body {
    ========================================== */
 .form-input.is-invalid,
 .form-select.is-invalid,
-.form-textarea.is-invalid {
+.form-textarea.is-invalid,
+#profile-city-checkboxes-grid.is-invalid {
+  border: 1px solid var(--error) !important;
   border-color: var(--error) !important;
   background-color: #fff9f9 !important;
   box-shadow: 0 0 0 3px rgba(239, 83, 80, 0.15) !important;
+  border-radius: var(--radius-md);
+  padding: 8px;
 }
 
 .form-feedback-error {

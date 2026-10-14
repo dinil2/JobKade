@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="js/lucide.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="has-navbar">
@@ -19,84 +20,91 @@
 
   <section class="section">
     <div class="container">
-      <div class="category-grid">
-        <a href="workers.html?cat=electrical" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/electrical.png" alt="Electrical Service">
-          </div>
-          <h3>Electrical</h3>
-          <p>Wiring, repairs, installations, circuit breakers, lighting, and electrical fault finding.</p>
-          <span class="category-count">120+ workers</span>
-        </a>
-        <a href="workers.html?cat=plumbing" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/plumbing.png" alt="Plumbing Service">
-          </div>
-          <h3>Plumbing</h3>
-          <p>Pipe repairs, tap fitting, water heater installation, leak fixing, and drainage work.</p>
-          <span class="category-count">95+ workers</span>
-        </a>
-        <a href="workers.html?cat=ac-repair" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/ac-repair.png" alt="AC Repair Service">
-          </div>
-          <h3>AC Repair</h3>
-          <p>AC installation, maintenance, gas refilling, cleaning, and troubleshooting for all brands.</p>
-          <span class="category-count">80+ workers</span>
-        </a>
-        <a href="workers.html?cat=carpentry" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/carpentry.png" alt="Carpentry Service">
-          </div>
-          <h3>Carpentry</h3>
-          <p>Furniture building, wood repairs, custom cabinets, door/window fitting, and shelving.</p>
-          <span class="category-count">65+ workers</span>
-        </a>
-        <a href="workers.html?cat=painting" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/painting.png" alt="Painting Service">
-          </div>
-          <h3>Painting</h3>
-          <p>Interior and exterior painting, wall textures, waterproofing, and colour consultation.</p>
-          <span class="category-count">55+ workers</span>
-        </a>
-        <a href="workers.html?cat=cleaning" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/cleaning.png" alt="Cleaning Service">
-          </div>
-          <h3>Cleaning</h3>
-          <p>Deep cleaning, regular house cleaning, office cleaning, move-in/move-out cleaning.</p>
-          <span class="category-count">110+ workers</span>
-        </a>
-        <a href="workers.html?cat=appliance" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/appliance.png" alt="Appliance Repair Service">
-          </div>
-          <h3>Appliance Repair</h3>
-          <p>Washing machine, refrigerator, microwave, oven, and household appliance repairs.</p>
-          <span class="category-count">45+ workers</span>
-        </a>
-        <a href="workers.html?cat=masonry" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/masonry.png" alt="Masonry Service">
-          </div>
-          <h3>Masonry</h3>
-          <p>Brick work, plastering, tiling, concrete work, and structural repairs.</p>
-          <span class="category-count">30+ workers</span>
-        </a>
-        <a href="workers.html" class="category-card animate-on-scroll">
-          <div class="category-icon">
-            <img src="assets/icons/other-services.png" alt="Other Services">
-          </div>
-          <h3>Other Services</h3>
-          <p>Welding, gardening, pest control, CCTV installation, and more specialized services.</p>
-          <span class="category-count">40+ workers</span>
-        </a>
-      </div>
+      <div class="category-grid" id="category-grid"></div>
     </div>
   </section>
 
   <footer class="footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="index.html" class="nav-logo"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#5996FF"/><path d="M10 22L16 10L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 18H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="10" r="2" fill="#66BB6A"/></svg> Job<span>Kade</span></a><p>Find trusted local professionals for your everyday service needs.</p></div><div class="footer-column"><h4>Quick Links</h4><div class="footer-links"><a href="index.html">Home</a><a href="workers.html">Find Workers</a><a href="services.html">Services</a></div></div><div class="footer-column"><h4>For Workers</h4><div class="footer-links"><a href="auth/register.html">Offer Your Service</a><a href="auth/login.html">Worker Login</a></div></div><div class="footer-column"><h4>Support</h4><div class="footer-links"><a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">Privacy Policy</a></div></div></div><div class="footer-bottom"><p>&copy; 2026 JobKade. All rights reserved.</p><p>Trusted local professionals, one simple platform.</p></div></div></footer>
   <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      const grid = document.getElementById('category-grid') || document.querySelector('.category-grid');
+      if (!grid) return;
+
+      function getCategoryIconHtml(cat) {
+        const icon = (cat.icon || '').trim();
+        const slug = (cat.slug || '').trim().toLowerCase();
+        const name = (typeof escapeHtml === 'function') ? escapeHtml(cat.name || 'Service') : (cat.name || 'Service');
+
+        if (icon.startsWith('<svg')) {
+          return icon;
+        }
+
+        if (icon.match(/\.(png|jpe?g|svg|webp|gif)$/i) || icon.startsWith('/') || icon.startsWith('http') || icon.startsWith('assets/')) {
+          const src = (icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('assets/')) ? icon : ('assets/icons/' + icon);
+          return '<img src="' + src + '" alt="' + name + '" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'inline-flex\';"><i data-lucide="wrench" style="display:none; width:28px; height:28px;"></i>';
+        }
+
+        if (icon.startsWith('bi-') || icon.startsWith('bi ')) {
+          const biClass = icon.startsWith('bi ') ? icon : ('bi ' + icon);
+          return '<img src="assets/icons/' + slug + '.png" alt="' + name + '" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'inline-flex\';"><i class="' + biClass + '" style="display:none; font-size:26px;"></i>';
+        }
+
+        const lucideIcon = icon || 'wrench';
+        return '<img src="assets/icons/' + slug + '.png" alt="' + name + '" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'inline-flex\';"><i data-lucide="' + lucideIcon + '" style="display:none; width:28px; height:28px;"></i>';
+      }
+
+      function showEmptyState() {
+        grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: white; border: 1px solid var(--border); border-radius: 12px;">' +
+          '<i data-lucide="layers" width="40" height="40" style="color: var(--text-muted); margin: 0 auto 10px; display: block;"></i>' +
+          '<h3 style="margin-bottom: 6px;">No service categories available yet.</h3>' +
+          '<p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto;">Please check back later.</p>' +
+        '</div>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+
+      try {
+        let categories = [];
+        if (typeof apiFetch === 'function') {
+          const res = await apiFetch('categories.php');
+          if (res.ok && res.data && res.data.status === 'success' && Array.isArray(res.data.categories)) {
+            categories = res.data.categories;
+          }
+        } else {
+          const res = await fetch('api/categories.php');
+          const data = await res.json();
+          if (data && data.status === 'success' && Array.isArray(data.categories)) {
+            categories = data.categories;
+          }
+        }
+
+        if (categories.length > 0) {
+          const html = categories.map(function (cat) {
+            const slug = cat.slug || '';
+            const name = (typeof escapeHtml === 'function') ? escapeHtml(cat.name || '') : (cat.name || '');
+            const desc = (typeof escapeHtml === 'function') ? escapeHtml(cat.description || '') : (cat.description || '');
+            const iconHtml = getCategoryIconHtml(cat);
+
+            return '<a href="workers.html?cat=' + encodeURIComponent(slug) + '" class="category-card animate-on-scroll">' +
+              '<div class="category-icon">' +
+                iconHtml +
+              '</div>' +
+              '<h3>' + name + '</h3>' +
+              (desc ? '<p>' + desc + '</p>' : '') +
+            '</a>';
+          }).join('');
+
+          grid.innerHTML = html;
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          if (typeof initScrollAnimations === 'function') initScrollAnimations();
+        } else {
+          showEmptyState();
+        }
+      } catch (err) {
+        console.warn('Failed to load categories:', err);
+        showEmptyState();
+      }
+    });
+  </script>
 </body>
 </html>
