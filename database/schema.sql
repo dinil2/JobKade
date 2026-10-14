@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `job_requests` (
     `longitude` DECIMAL(10, 7) NOT NULL,
     `address` VARCHAR(255) NOT NULL,
     `district` VARCHAR(100) DEFAULT 'Colombo',
+    `city` VARCHAR(100) DEFAULT NULL,
     `photo_path` VARCHAR(255) DEFAULT NULL,
     `status` ENUM('open', 'in_progress', 'completed', 'cancelled') NOT NULL DEFAULT 'open',
     `arrived_at` DATETIME NULL,
@@ -108,6 +109,17 @@ CREATE TABLE IF NOT EXISTS `job_requests` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT `fk_job_customer` FOREIGN KEY (`customer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_job_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6b. Worker Coverage Areas (Districts and Cities served)
+CREATE TABLE IF NOT EXISTS `worker_coverage` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `worker_id` INT NOT NULL,
+    `district` VARCHAR(100) NOT NULL,
+    `city` VARCHAR(100) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_coverage_worker` FOREIGN KEY (`worker_id`) REFERENCES `worker_profiles`(`id`) ON DELETE CASCADE,
+    INDEX `idx_coverage_lookup` (`worker_id`, `district`, `city`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 7. Job Applications / Quotes (from verified, subscribed workers)

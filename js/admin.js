@@ -1,21 +1,40 @@
-/* ==========================================
-   JODKADE — Admin Dashboard JavaScript
-   Charts, verification, moderation
-   ========================================== */
+function purgeAnalyticsLinks() {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el) {
+    if (el.textContent.toLowerCase().includes('analytics') || (el.getAttribute('href') && el.getAttribute('href').includes('analytics'))) {
+      el.remove();
+    }
+  });
+}
+purgeAnalyticsLinks();
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', purgeAnalyticsLinks);
+  if (typeof MutationObserver !== 'undefined' && document.documentElement) {
+    new MutationObserver(purgeAnalyticsLinks).observe(document.documentElement, { childList: true, subtree: true });
+  }
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   const user = (typeof requireAuth === 'function') ? requireAuth('admin') : null;
   if (!user) return;
 
-  if (document.getElementById('worker-performance-tbody') || window.location.pathname.includes('analytics.html')) {
+  loadAdminStats();
+
+  if (document.getElementById('monthly-breakdown-tbody') ||
+      document.getElementById('worker-performance-tbody') ||
+      document.getElementById('stat-total-workers') ||
+      window.location.pathname.includes('analytics.html')) {
     loadAnalyticsTables();
   } else {
-    loadAdminStats();
     initAdminCharts();
   }
 
   if (document.getElementById('manage-workers-tbody')) {
     initManageWorkers();
+  }
+
+  if (document.getElementById('manage-customers-tbody')) {
+    initManageCustomers();
   }
 
   // Worker Verification Modal Actions
@@ -129,7 +148,7 @@ async function loadAnalyticsTables() {
     if (!res.ok || res.data?.status !== 'success') {
       const isAuthErr = (res.status === 401 || res.status === 403);
       const errMsg = isAuthErr
-        ? 'Administrator sign-in required. <a href="../auth/login.html?redirect=admin/analytics.html" style="color:var(--primary); font-weight:600; text-decoration:underline;">Click here to log in as Admin (admin@jobkade.lk)</a>'
+        ? 'Administrator sign-in required. <a href="../auth/login.html?redirect=admin/dashboard.html" style="color:var(--primary); font-weight:600; text-decoration:underline;">Click here to log in as Admin (admin@jobkade.lk)</a>'
         : (res.data?.message || 'Failed to load analytics data.');
       if (monthlyTbody) monthlyTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
       if (workerTbody) workerTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2.5rem; color:var(--error);">${errMsg}</td></tr>`;
@@ -680,9 +699,9 @@ function filterAndRenderWorkers() {
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-async function toggleAdminWorkerStatus(userId, newStatus, workerName) {
+async function toggleAdminUserStatus(userId, newStatus, userName) {
   const actionLabel = newStatus === 'suspended' ? 'suspend' : 'activate';
-  if (!confirm(`Are you sure you want to ${actionLabel} ${workerName}?`)) return;
+  if (!confirm(`Are you sure you want to ${actionLabel} ${userName}?`)) return;
 
   try {
     const res = await apiFetch('admin.php?action=toggle-user', {
@@ -690,14 +709,192 @@ async function toggleAdminWorkerStatus(userId, newStatus, workerName) {
       body: JSON.stringify({ user_id: userId, status: newStatus })
     });
     if (res.ok && res.data?.status === 'success') {
-      showToast(`Worker ${actionLabel}ed successfully.`, 'success');
-      loadManageWorkers();
+      showToast(`User ${actionLabel}ed successfully.`, 'success');
+      if (document.getElementById('manage-workers-tbody')) loadManageWorkers();
+      if (document.getElementById('manage-customers-tbody')) loadManageCustomers();
     } else {
-      showToast(res.data?.message || `Failed to ${actionLabel} worker.`, 'error');
+      showToast(res.data?.message || `Failed to ${actionLabel} user.`, 'error');
     }
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
   }
+}
+
+async function toggleAdminWorkerStatus(userId, newStatus, workerName) {
+  return toggleAdminUserStatus(userId, newStatus, workerName);
+}
+
+/* ==========================================
+   Admin Manage Customers - Real Backend Integration
+   ========================================== */
+let adminCustomersList = [];
+
+async function initManageCustomers() {
+  const tbody = document.getElementById('manage-customers-tbody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('customer-search-input');
+  const statusFilter = document.getElementById('customer-status-filter');
+
+  if (searchInput) searchInput.addEventListener('input', filterAndRenderCustomers);
+  if (statusFilter) statusFilter.addEventListener('change', filterAndRenderCustomers);
+
+  await loadManageCustomers();
+}
+
+async function loadManageCustomers() {
+  const tbody = document.getElementById('manage-customers-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+      <i data-lucide="loader" width="18" height="18" class="spin"></i>
+      <span>Loading registered customers...</span>
+    </div>
+  </td></tr>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  try {
+    const [usersRes, analyticsRes] = await Promise.all([
+      apiFetch('admin.php?action=users'),
+      apiFetch('admin.php?action=analytics')
+    ]);
+
+    const allUsers = (usersRes.ok && usersRes.data?.status === 'success' && Array.isArray(usersRes.data.users))
+      ? usersRes.data.users
+      : [];
+
+    const activityMap = {};
+    if (analyticsRes.ok && analyticsRes.data?.status === 'success' && Array.isArray(analyticsRes.data.analytics?.customer_activity)) {
+      analyticsRes.data.analytics.customer_activity.forEach(c => {
+        activityMap[c.customer_id] = {
+          jobs_posted: c.jobs_posted,
+          jobs_completed: c.jobs_completed
+        };
+      });
+    }
+
+    const customers = allUsers.filter(u => u.role === 'customer');
+
+    adminCustomersList = customers.map(u => {
+      const isSuspended = (u.status === 'suspended');
+      const act = activityMap[u.id] || { jobs_posted: 0, jobs_completed: 0 };
+      let joinedDate = '-';
+      if (u.created_at) {
+        try {
+          joinedDate = new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (_) {
+          joinedDate = u.created_at;
+        }
+      }
+
+      return {
+        id: u.id,
+        name: u.full_name || u.username || 'Customer',
+        email: u.email || '',
+        phone: u.phone || 'No phone',
+        location: u.address || 'Colombo',
+        avatar: u.profile_picture || null,
+        status: isSuspended ? 'suspended' : 'active',
+        is_suspended: isSuspended,
+        joined_date: joinedDate,
+        jobs_posted: act.jobs_posted,
+        jobs_completed: act.jobs_completed
+      };
+    });
+
+    filterAndRenderCustomers();
+  } catch (err) {
+    console.error('Error loading customers:', err);
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--danger);">
+      Failed to load customers from server. Please refresh the page.
+    </td></tr>`;
+  }
+}
+
+function filterAndRenderCustomers() {
+  const tbody = document.getElementById('manage-customers-tbody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('customer-search-input');
+  const statusFilter = document.getElementById('customer-status-filter');
+
+  const q = (searchInput?.value || '').toLowerCase().trim();
+  const selectedStatus = (statusFilter?.value || '').toLowerCase().trim();
+
+  const filtered = adminCustomersList.filter(c => {
+    if (q) {
+      const match = (
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.toLowerCase().includes(q)) ||
+        (c.location && c.location.toLowerCase().includes(q))
+      );
+      if (!match) return false;
+    }
+
+    if (selectedStatus && c.status !== selectedStatus) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+      No customers found matching your filter criteria.
+    </td></tr>`;
+    return;
+  }
+
+  const avatarColors = ['avatar-blue', 'avatar-purple', 'avatar-teal', 'avatar-green', 'avatar-orange'];
+
+  tbody.innerHTML = filtered.map(c => {
+    const colorClass = avatarColors[Math.abs(c.id || 0) % avatarColors.length];
+    const nameParts = (c.name || 'CU').trim().split(/\s+/);
+    const initials = nameParts.length >= 2 
+      ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+      : (nameParts[0] ? nameParts[0].substring(0, 2).toUpperCase() : 'CU');
+
+    const avatarHtml = c.avatar
+      ? `<img src="${(typeof resolveAvatarUrl === 'function' ? resolveAvatarUrl(c.avatar, '../') : '../' + c.avatar)}" class="avatar avatar-sm" style="object-fit:cover;border-radius:50%;width:36px;height:36px;" alt="${escapeHtml(c.name)}">`
+      : `<div class="avatar avatar-sm ${colorClass}" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;">${initials}</div>`;
+
+    const statusBadge = c.is_suspended
+      ? `<span class="badge badge-cancelled">Suspended</span>`
+      : `<span class="badge badge-completed">Active</span>`;
+
+    const actionBtn = c.is_suspended
+      ? `<button class="btn btn-success btn-sm" onclick="toggleAdminUserStatus(${c.id}, 'active', '${escapeJs(c.name)}')">Activate</button>`
+      : `<button class="btn btn-danger btn-sm" onclick="toggleAdminUserStatus(${c.id}, 'suspended', '${escapeJs(c.name)}')">Suspend</button>`;
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${avatarHtml}
+            <div>
+              <strong>${escapeHtml(c.name)}</strong><br>
+              <span class="text-sm text-secondary">${escapeHtml(c.email)}</span>
+            </div>
+          </div>
+        </td>
+        <td>${escapeHtml(c.phone)}</td>
+        <td>${escapeHtml(c.location)}</td>
+        <td style="text-align:right; font-weight:600;">${Number(c.jobs_posted).toLocaleString()}</td>
+        <td style="text-align:right; font-weight:600; color:var(--success);">${Number(c.jobs_completed).toLocaleString()}</td>
+        <td>${escapeHtml(c.joined_date)}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div class="btn-group">
+            ${actionBtn}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function escapeHtml(str) {

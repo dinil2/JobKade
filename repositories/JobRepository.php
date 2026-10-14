@@ -19,11 +19,12 @@ class JobRepository {
         float $lng,
         string $address,
         ?string $photoPath = null,
-        string $district = 'Colombo'
+        string $district = 'Colombo',
+        ?string $city = null
     ): int {
         $stmt = $this->db->prepare("
-            INSERT INTO job_requests (customer_id, category_id, title, description, latitude, longitude, address, district, photo_path, status)
-            VALUES (:customer_id, :category_id, :title, :description, :lat, :lng, :address, :district, :photo_path, 'open')
+            INSERT INTO job_requests (customer_id, category_id, title, description, latitude, longitude, address, district, city, photo_path, status)
+            VALUES (:customer_id, :category_id, :title, :description, :lat, :lng, :address, :district, :city, :photo_path, 'open')
         ");
         $stmt->execute([
             ':customer_id' => $customerId,
@@ -34,12 +35,13 @@ class JobRepository {
             ':lng'         => $lng,
             ':address'     => $address,
             ':district'    => $district,
+            ':city'        => $city,
             ':photo_path'  => $photoPath
         ]);
         return (int)$this->db->lastInsertId();
     }
 
-    public function getOpenJobs(?int $categoryId = null, ?string $district = null): array {
+    public function getOpenJobs(?int $categoryId = null, ?string $district = null, ?int $workerProfileId = null): array {
         $sql = "
             SELECT jr.*, c.name AS category_name, c.icon AS category_icon, u.full_name AS customer_name, u.phone AS customer_phone
             FROM job_requests jr
@@ -52,6 +54,17 @@ class JobRepository {
             $sql .= " AND jr.category_id = :cat_id";
             $params[':cat_id'] = $categoryId;
         }
+
+        if ($workerProfileId !== null && $workerProfileId > 0) {
+            $sql .= " AND EXISTS (
+                SELECT 1 FROM worker_coverage wc
+                WHERE wc.worker_id = :wc_worker_id
+                  AND wc.district = jr.district
+                  AND (wc.city = 'ALL' OR wc.city = jr.city)
+            )";
+            $params[':wc_worker_id'] = $workerProfileId;
+        }
+
         if (!empty($district)) {
             $sql .= " ORDER BY (CASE WHEN (jr.district = :dist_exact OR jr.address LIKE :dist_pattern) THEN 1 ELSE 0 END) DESC, jr.created_at DESC";
             $params[':dist_exact'] = trim($district);

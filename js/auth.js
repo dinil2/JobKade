@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initRoleSelection();
   initLoginForm();
   initRegisterForms();
+  initWorkerCoverageUI();
   initUploadPreviews();
   initPasswordToggles();
 });
@@ -225,6 +226,26 @@ async function handleWorkerRegistration(form, data) {
   const nic = nicInput ? nicInput.value.trim() : '';
   const district = (districtInput?.value || data.district || data.location || 'Colombo').trim();
 
+  const coverAllCb = form.querySelector('#worker-cover-all-cities');
+  const checkedCities = Array.from(form.querySelectorAll('.worker-city-cb:checked')).map(cb => cb.value);
+  const isCoverAll = coverAllCb ? coverAllCb.checked : false;
+
+  if (!isCoverAll && checkedCities.length === 0) {
+    const errorEl = document.getElementById('worker-coverage-error');
+    const errorText = document.getElementById('worker-coverage-error-text');
+    if (errorEl) {
+      if (errorText) errorText.textContent = 'Please select at least 1 city or check "Cover all cities".';
+      errorEl.style.display = 'block';
+    }
+    showToast('Please select at least 1 city or check "Cover all cities".', 'error');
+    return;
+  }
+
+  if (!isCoverAll && checkedCities.length > 3) {
+    showToast('Maximum 3 cities allowed.', 'error');
+    return;
+  }
+
   const formData = new FormData();
   formData.append('full_name', data.fullName);
   formData.append('name', data.fullName);
@@ -238,6 +259,18 @@ async function handleWorkerRegistration(form, data) {
   formData.append('service', serviceVal);
   formData.append('category_id', parseInt(serviceVal, 10) || 1);
   formData.append('nic', nic);
+
+  if (isCoverAll) {
+    formData.append('cover_all_cities', '1');
+    formData.append('coverage_mode', 'all');
+  } else {
+    formData.append('cover_all_cities', '0');
+    formData.append('coverage_mode', 'custom');
+    checkedCities.forEach(city => {
+      formData.append('cities[]', city);
+    });
+    formData.append('coverage_cities', JSON.stringify(checkedCities));
+  }
 
   const payModal = document.getElementById('worker-payment-modal');
   const btnPayNow = document.getElementById('btn-pay-now-worker');
@@ -453,3 +486,106 @@ function initPasswordToggles() {
     });
   });
 }
+
+// Worker coverage area interactive selection
+function initWorkerCoverageUI() {
+  const districtSelect = document.getElementById('worker-district-select');
+  const coverAllCb = document.getElementById('worker-cover-all-cities');
+  const grid = document.getElementById('worker-city-checkboxes-grid');
+  const distLabel = document.getElementById('worker-coverage-district-label');
+  const counterBadge = document.getElementById('worker-city-count-badge');
+  const errorEl = document.getElementById('worker-coverage-error');
+  const errorText = document.getElementById('worker-coverage-error-text');
+
+  if (!districtSelect || !grid) return;
+
+  function renderCities(district) {
+    if (distLabel) distLabel.textContent = district || 'District';
+    if (!district) {
+      grid.innerHTML = '<span style="font-size:0.8rem; color:#94A3B8;">Please select a district above first</span>';
+      return;
+    }
+
+    const cities = (typeof getCitiesByDistrict === 'function') 
+      ? getCitiesByDistrict(district)
+      : (window.SRI_LANKA_LOCATIONS?.[district] || []);
+
+    if (cities.length === 0) {
+      grid.innerHTML = '<span style="font-size:0.8rem; color:#94A3B8;">No cities listed for this district</span>';
+      return;
+    }
+
+    grid.innerHTML = cities.map(city => `
+      <label class="custom-auth-checkbox" style="font-size:0.82rem; margin-bottom:0; display:flex; align-items:center; gap:6px; cursor:pointer;">
+        <input type="checkbox" class="worker-city-cb" value="${city}">
+        <span>${city}</span>
+      </label>
+    `).join('');
+
+    if (coverAllCb) coverAllCb.checked = false;
+    updateState();
+  }
+
+  function updateState() {
+    const cityCheckboxes = grid.querySelectorAll('.worker-city-cb');
+    const isCoverAll = coverAllCb && coverAllCb.checked;
+
+    if (isCoverAll) {
+      cityCheckboxes.forEach(cb => {
+        cb.checked = false;
+        cb.disabled = true;
+      });
+      if (counterBadge) counterBadge.textContent = 'All cities covered';
+      if (errorEl) errorEl.style.display = 'none';
+      return;
+    }
+
+    cityCheckboxes.forEach(cb => {
+      cb.disabled = false;
+    });
+
+    const checkedBoxes = grid.querySelectorAll('.worker-city-cb:checked');
+    const count = checkedBoxes.length;
+
+    if (counterBadge) {
+      counterBadge.textContent = count > 0 ? `${count} of 3 cities selected` : 'Choose up to 3 cities';
+    }
+
+    if (count <= 3 && errorEl) {
+      errorEl.style.display = 'none';
+    }
+  }
+
+  districtSelect.addEventListener('change', function () {
+    renderCities(this.value);
+  });
+
+  if (coverAllCb) {
+    coverAllCb.addEventListener('change', function () {
+      updateState();
+    });
+  }
+
+  grid.addEventListener('change', function (e) {
+    if (e.target && e.target.classList.contains('worker-city-cb')) {
+      const checkedBoxes = grid.querySelectorAll('.worker-city-cb:checked');
+      if (checkedBoxes.length > 3) {
+        e.target.checked = false;
+        if (errorEl) {
+          if (errorText) errorText.textContent = 'Maximum 3 cities allowed.';
+          errorEl.style.display = 'block';
+        }
+        if (typeof showToast === 'function') {
+          showToast('Maximum 3 cities allowed.', 'error');
+        }
+      } else {
+        updateState();
+      }
+    }
+  });
+
+  if (districtSelect.value) {
+    renderCities(districtSelect.value);
+  }
+}
+

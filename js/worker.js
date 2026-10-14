@@ -561,6 +561,120 @@ async function initWorkerProfilePage() {
         if (avatarImg) avatarImg.style.display = 'none';
         if (avatarInitials) avatarInitials.style.display = 'flex';
       }
+
+      // District & Coverage Setup
+      const distSelect = $id('profile-district-select');
+      const coverAllCb = $id('profile-cover-all-cities');
+      const grid = $id('profile-city-checkboxes-grid');
+      const distLabel = $id('profile-coverage-district-label');
+      const counterBadge = $id('profile-city-count-badge');
+      const errorEl = $id('profile-coverage-error');
+      const errorText = $id('profile-coverage-error-text');
+
+      const currentDistrict = wp.district || u.district || 'Colombo';
+      if (distSelect && currentDistrict) {
+        distSelect.value = currentDistrict;
+      }
+
+      const coverageRows = wp.coverage || [];
+      const hasAllCoverage = coverageRows.some(c => c.city === 'ALL');
+      const initialSelectedCities = coverageRows.filter(c => c.city !== 'ALL').map(c => c.city);
+
+      function renderProfileCities(district, selectedCities = [], isAll = false) {
+        if (distLabel) distLabel.textContent = district || 'District';
+        if (!grid) return;
+        if (!district) {
+          grid.innerHTML = '<span style="font-size:0.8rem; color:var(--text-secondary);">Select a district to view available cities</span>';
+          return;
+        }
+
+        const cities = (typeof getCitiesByDistrict === 'function')
+          ? getCitiesByDistrict(district)
+          : (window.SRI_LANKA_LOCATIONS?.[district] || []);
+
+        if (cities.length === 0) {
+          grid.innerHTML = '<span style="font-size:0.8rem; color:var(--text-secondary);">No cities available for this district</span>';
+          return;
+        }
+
+        grid.innerHTML = cities.map(city => {
+          const checked = selectedCities.includes(city) && !isAll ? 'checked' : '';
+          return `
+            <label style="font-size:0.82rem; margin-bottom:0; display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" class="profile-city-cb" value="${city}" ${checked} ${isAll ? 'disabled' : ''}>
+              <span>${city}</span>
+            </label>
+          `;
+        }).join('');
+
+        if (coverAllCb) coverAllCb.checked = isAll;
+        updateProfileCoverageState();
+      }
+
+      function updateProfileCoverageState() {
+        if (!grid) return;
+        const cityCheckboxes = grid.querySelectorAll('.profile-city-cb');
+        const isCoverAll = coverAllCb && coverAllCb.checked;
+
+        if (isCoverAll) {
+          cityCheckboxes.forEach(cb => {
+            cb.checked = false;
+            cb.disabled = true;
+          });
+          if (counterBadge) counterBadge.textContent = 'All cities covered';
+          if (errorEl) errorEl.style.display = 'none';
+          return;
+        }
+
+        cityCheckboxes.forEach(cb => {
+          cb.disabled = false;
+        });
+
+        const checkedBoxes = grid.querySelectorAll('.profile-city-cb:checked');
+        const count = checkedBoxes.length;
+
+        if (counterBadge) {
+          counterBadge.textContent = count > 0 ? `${count} of 3 cities selected` : 'Choose up to 3 cities';
+        }
+
+        if (count <= 3 && errorEl) {
+          errorEl.style.display = 'none';
+        }
+      }
+
+      if (distSelect) {
+        distSelect.addEventListener('change', function () {
+          renderProfileCities(this.value, [], false);
+        });
+      }
+
+      if (coverAllCb) {
+        coverAllCb.addEventListener('change', function () {
+          updateProfileCoverageState();
+        });
+      }
+
+      if (grid) {
+        grid.addEventListener('change', function (e) {
+          if (e.target && e.target.classList.contains('profile-city-cb')) {
+            const checkedBoxes = grid.querySelectorAll('.profile-city-cb:checked');
+            if (checkedBoxes.length > 3) {
+              e.target.checked = false;
+              if (errorEl) {
+                if (errorText) errorText.textContent = 'Maximum 3 cities allowed.';
+                errorEl.style.display = 'block';
+              }
+              if (typeof showToast === 'function') {
+                showToast('Maximum 3 cities allowed.', 'error');
+              }
+            } else {
+              updateProfileCoverageState();
+            }
+          }
+        });
+      }
+
+      renderProfileCities(currentDistrict, initialSelectedCities, hasAllCoverage || coverageRows.length === 0);
     }
   } catch (err) {
     console.warn('initWorkerProfilePage error:', err);
@@ -580,12 +694,19 @@ async function initWorkerProfilePage() {
     const confirmPassInput = $id('worker-confirm-password');
     const hourlyInput = this.querySelector('[name="hourly-rate"]');
     const travellingInput = this.querySelector('[name="travelling-fee"]');
+    const distSelect = $id('profile-district-select');
+    const coverAllCb = $id('profile-cover-all-cities');
+    const grid = $id('profile-city-checkboxes-grid');
 
     const fullName = nameInput?.value.trim() || '';
     const phone = phoneInput?.value.trim() || '';
     const email = emailInput?.value.trim() || '';
     const bio = bioInput?.value.trim() || '';
     const location = locInput?.value.trim() || '';
+    const districtVal = distSelect?.value || 'Colombo';
+    const isCoverAll = coverAllCb ? coverAllCb.checked : false;
+    const checkedCities = grid ? Array.from(grid.querySelectorAll('.profile-city-cb:checked')).map(cb => cb.value) : [];
+
     const curPass = curPassInput?.value || '';
     const newPass = newPassInput?.value || '';
     const confirmPass = confirmPassInput?.value || '';
@@ -597,7 +718,17 @@ async function initWorkerProfilePage() {
     if (!phone || !/^[0-9+\s-]{9,15}$/.test(phone)) { showFieldError(phoneInput, 'Please enter a valid phone number.'); hasError = true; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldError(emailInput, 'Please enter a valid email address.'); hasError = true; }
     if (!bio || bio.length < 10) { showFieldError(bioInput, 'Please write a brief description (at least 10 characters).'); hasError = true; }
-    if (!location || location.length < 2) { showFieldError(locInput, 'Please enter your service area or location.'); hasError = true; }
+    if (distSelect && !distSelect.value) { showFieldError(distSelect, 'Please select a service district.'); hasError = true; }
+
+    if (!isCoverAll && checkedCities.length === 0) {
+      showToast('Please select at least 1 city or check "Cover all cities".', 'error');
+      hasError = true;
+    }
+    if (!isCoverAll && checkedCities.length > 3) {
+      showToast('Maximum 3 cities allowed.', 'error');
+      hasError = true;
+    }
+
     if (isNaN(hourlyRate) || hourlyRate < 0) { showFieldError(hourlyInput, 'Hourly rate must be a valid number >= 0.'); hasError = true; }
     if (isNaN(travellingFee) || travellingFee < 0) { showFieldError(travellingInput, 'Travelling fee must be a valid number >= 0.'); hasError = true; }
 
@@ -622,7 +753,12 @@ async function initWorkerProfilePage() {
             full_name: fullName, 
             phone, 
             bio, 
-            address: location,
+            address: location || districtVal,
+            district: districtVal,
+            cover_all_cities: isCoverAll ? 1 : 0,
+            coverage_mode: isCoverAll ? 'all' : 'custom',
+            cities: isCoverAll ? [] : checkedCities,
+            coverage_cities: isCoverAll ? [] : checkedCities,
             hourly_rate: hourlyRate,
             travelling_fee: travellingFee
           })

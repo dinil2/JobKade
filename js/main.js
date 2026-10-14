@@ -3,6 +3,26 @@
    Shared functionality across all pages
    ========================================== */
 
+if (typeof window !== 'undefined' && window.location.pathname.toLowerCase().includes('analytics.html')) {
+  window.location.replace('dashboard.html');
+}
+
+function purgeAnalyticsLinks() {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el) {
+    if (el.textContent.toLowerCase().includes('analytics') || (el.getAttribute('href') && el.getAttribute('href').includes('analytics'))) {
+      el.remove();
+    }
+  });
+}
+purgeAnalyticsLinks();
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', purgeAnalyticsLinks);
+  if (typeof MutationObserver !== 'undefined' && document.documentElement) {
+    new MutationObserver(purgeAnalyticsLinks).observe(document.documentElement, { childList: true, subtree: true });
+  }
+}
+
 function escapeHtml(str) {
   return str ? String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])) : '';
 }
@@ -134,7 +154,6 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Job Requests') return currentFile === 'jobs.html';
     if (item.label === 'Content Moderation') return currentFile === 'moderation.html';
     if (item.label === 'Promotions') return currentFile === 'promotions.html' && (currentPath.includes('/admin/') || (!currentPath.includes('/worker/') && !currentPath.includes('/customer/')));
-    if (item.label === 'Analytics and Reports') return currentFile === 'analytics.html';
   }
   return false;
 }
@@ -261,12 +280,12 @@ function renderSharedComponents(roleOverride) {
         { label: 'Manage Customers', icon: 'user-check', href: `${adminPrefix}customers.html` },
         { label: 'Job Requests', icon: 'file-text', href: `${adminPrefix}jobs.html` },
         { label: 'Content Moderation', icon: 'flag', href: `${adminPrefix}moderation.html` },
-        { label: 'Promotions', icon: 'tag', href: `${adminPrefix}promotions.html` },
-        { label: 'Analytics and Reports', icon: 'bar-chart-3', href: `${adminPrefix}analytics.html` }
+        { label: 'Promotions', icon: 'tag', href: `${adminPrefix}promotions.html` }
       ]
     };
 
-    const items = roleMenus[role] || roleMenus.customer;
+    const rawItems = roleMenus[role] || roleMenus.customer;
+    const items = rawItems.filter(item => !item.href?.includes('analytics') && !item.label?.toLowerCase().includes('analytics'));
     const linksHtml = items.map(item => {
       const active = isItemActive(item, currentPath, currentFile, role);
       const badgeHtml = item.badge ? ` <span class="badge badge-pending" id="${item.badge}" style="margin-left:auto;font-size:0.7rem;">0</span>` : '';

@@ -60,8 +60,73 @@
           <div class="form-group"><label class="form-label">Email <span>*</span></label><input type="email" name="email" class="form-input" placeholder="Your email address" required></div>
           <div class="form-group"><label class="form-label">Description / Bio <span>*</span></label><textarea name="bio" class="form-textarea" placeholder="Tell customers about your skills, experience, and services..." required></textarea></div>
           <div class="form-group"><label class="form-label">Service Category <span>*</span></label><select name="category" class="form-select"><option value="">Select Category</option><option>Electrical</option><option>Plumbing</option><option>AC Repair</option><option>Carpentry</option><option>Painting</option><option>Cleaning</option><option>Appliance Repair</option><option>Masonry</option></select></div>
+          <!-- Worker Service District & Coverage Area -->
           <div class="form-row">
-            <div class="form-group"><label class="form-label">Service Location <span>*</span></label><input type="text" name="location" class="form-input" placeholder="e.g. Colombo, Western Province" required></div>
+            <div class="form-group">
+              <label class="form-label">Service District <span>*</span></label>
+              <select name="district" id="profile-district-select" class="form-select" required>
+                <option value="" disabled selected>Select District *</option>
+                <option value="Colombo">Colombo</option>
+                <option value="Gampaha">Gampaha</option>
+                <option value="Kalutara">Kalutara</option>
+                <option value="Kandy">Kandy</option>
+                <option value="Matale">Matale</option>
+                <option value="Nuwara Eliya">Nuwara Eliya</option>
+                <option value="Galle">Galle</option>
+                <option value="Matara">Matara</option>
+                <option value="Hambantota">Hambantota</option>
+                <option value="Jaffna">Jaffna</option>
+                <option value="Kilinochchi">Kilinochchi</option>
+                <option value="Mannar">Mannar</option>
+                <option value="Vavuniya">Vavuniya</option>
+                <option value="Mullaitivu">Mullaitivu</option>
+                <option value="Batticaloa">Batticaloa</option>
+                <option value="Ampara">Ampara</option>
+                <option value="Trincomalee">Trincomalee</option>
+                <option value="Kurunegala">Kurunegala</option>
+                <option value="Puttalam">Puttalam</option>
+                <option value="Anuradhapura">Anuradhapura</option>
+                <option value="Polonnaruwa">Polonnaruwa</option>
+                <option value="Badulla">Badulla</option>
+                <option value="Moneragala">Moneragala</option>
+                <option value="Ratnapura">Ratnapura</option>
+                <option value="Kegalle">Kegalle</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Base Address / Location</label>
+              <input type="text" name="location" class="form-input" placeholder="e.g. Colombo 03, Western Province">
+            </div>
+          </div>
+
+          <!-- Coverage Cities Section -->
+          <div class="form-group" style="padding:14px 16px; background:var(--bg-light); border:1px solid var(--border); border-radius:var(--radius-md); margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <label class="form-label" style="margin-bottom:0; font-weight:700;">
+                <i data-lucide="map-pin" width="15" height="15" style="display:inline; vertical-align:middle; color:var(--primary); margin-right:4px;"></i>
+                Coverage Cities in <span id="profile-coverage-district-label" style="color:var(--primary);">District</span>
+              </label>
+              <span id="profile-city-count-badge" style="font-size:0.75rem; color:var(--text-secondary); font-weight:600;">Choose up to 3 cities</span>
+            </div>
+
+            <div style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);">
+              <label style="font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="profile-cover-all-cities" name="cover_all_cities" value="1">
+                <span>Cover all cities in this district</span>
+              </label>
+            </div>
+
+            <div id="profile-city-checkboxes-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; max-height:160px; overflow-y:auto; padding-right:4px;">
+              <span style="font-size:0.8rem; color:var(--text-secondary);">Select a district to view available cities</span>
+            </div>
+
+            <div id="profile-coverage-error" style="display:none; color:var(--danger, #DC2626); font-size:0.78rem; font-weight:600; margin-top:8px;">
+              <i data-lucide="alert-circle" width="13" height="13" style="display:inline; vertical-align:middle; margin-right:3px;"></i>
+              <span id="profile-coverage-error-text">Maximum 3 cities allowed.</span>
+            </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group"><label class="form-label">Experience</label><input type="text" name="experience" class="form-input" placeholder="e.g. 5+ years"></div>
           </div>
           <div class="form-row">
@@ -115,6 +180,7 @@
     </main>
   </div>
 
+  <script src="../js/locations.js"></script>
   <script src="../js/main.js"></script>
   <script src="../js/worker.js"></script>
 </body>

@@ -247,38 +247,27 @@
       margin-bottom: 20px;
     }
   </style>
+  <script>
+    (function(){
+      function purge(){
+        document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el){
+          if(el.textContent.toLowerCase().includes('analytics')||(el.getAttribute('href')&&el.getAttribute('href').includes('analytics'))){
+            el.remove();
+          }
+        });
+      }
+      purge();
+      document.addEventListener('DOMContentLoaded', purge);
+      if(typeof MutationObserver!=='undefined'){
+        new MutationObserver(purge).observe(document.documentElement,{childList:true,subtree:true});
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="navbar-container"></div>
   <div class="dashboard-layout">
-    <div id="sidebar-container">
-      <div class="sidebar-overlay"></div>
-      <aside class="sidebar admin">
-        <div class="sidebar-header">
-          <div class="sidebar-user">
-            <div class="avatar avatar-md avatar-purple" id="sidebarAvatar">AD</div>
-            <div>
-              <div class="sidebar-user-name" id="adminUserName">System Administrator</div>
-              <div class="sidebar-user-role" id="sidebarUserRole">Platform Admin</div>
-            </div>
-          </div>
-        </div>
-        <nav class="sidebar-nav">
-          <a href="dashboard.html" class="sidebar-link"><i data-lucide="layout-dashboard"></i> Overview</a>
-          <a href="kyc-moderation.html" class="sidebar-link active"><i data-lucide="shield-check"></i> KYC Moderation <span class="badge badge-pending" id="pendingCounterBadge" style="margin-left:auto;font-size:0.7rem;">0</span></a>
-          <a href="workers.html" class="sidebar-link"><i data-lucide="users"></i> Manage Workers</a>
-          <a href="customers.html" class="sidebar-link"><i data-lucide="user-check"></i> Manage Customers</a>
-          <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Job Requests</a>
-          <a href="moderation.html" class="sidebar-link"><i data-lucide="flag"></i> Content Moderation</a>
-          <a href="analytics.html" class="sidebar-link"><i data-lucide="bar-chart-3"></i> Analytics and Reports</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a href="../auth/login.html" class="sidebar-link sidebar-logout-btn" id="sidebarLogoutBtn">
-            <i data-lucide="log-out"></i> Logout
-          </a>
-        </div>
-      </aside>
-    </div>
+    <div id="sidebar-container"></div>
 
     <main class="dashboard-main">
       <div class="dashboard-header">
@@ -541,7 +530,7 @@
     </div>
   </div>
 
-  <script src="../js/main.js"></script>
-  <script src="../js/admin-kyc.js"></script>
+  <script src="../js/main.js?v=3"></script>
+  <script src="../js/admin-kyc.js?v=3"></script>
 </body>
 </html>

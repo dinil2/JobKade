@@ -53,6 +53,16 @@ class AuthService {
             if (empty($nic)) {
                 throw new InvalidArgumentException("NIC number is required.");
             }
+
+            $coverAll = !empty($data['cover_all_cities']) || (!empty($data['coverage_mode']) && $data['coverage_mode'] === 'all');
+            $cities = $data['cities'] ?? ($data['coverage_cities'] ?? []);
+            if (is_string($cities)) {
+                $decoded = json_decode($cities, true);
+                $cities = is_array($decoded) ? $decoded : array_filter(array_map('trim', explode(',', $cities)));
+            }
+            if (!$coverAll && is_array($cities) && count($cities) > 3) {
+                throw new InvalidArgumentException("Maximum 3 cities can be selected.");
+            }
         }
 
         if (empty($username)) {
@@ -86,6 +96,21 @@ class AuthService {
                     'district'      => $district,
                     'working_hours' => $data['working_hours'] ?? '8:00 AM - 6:00 PM'
                 ]);
+
+                // Save worker coverage
+                $coverAll = !empty($data['cover_all_cities']) || (!empty($data['coverage_mode']) && $data['coverage_mode'] === 'all');
+                $cities = $data['cities'] ?? ($data['coverage_cities'] ?? []);
+                if (is_string($cities)) {
+                    $decoded = json_decode($cities, true);
+                    $cities = is_array($decoded) ? $decoded : array_filter(array_map('trim', explode(',', $cities)));
+                }
+                if (!is_array($cities)) {
+                    $cities = [];
+                }
+                if (!$coverAll && empty($cities)) {
+                    $coverAll = true; // default fallback
+                }
+                $this->workerRepo->setCoverage($workerProfileId, $district, $cities, $coverAll);
 
                 try {
                     $pdo->prepare("UPDATE users SET address = :addr WHERE id = :uid")->execute([':addr' => $district, ':uid' => $userId]);

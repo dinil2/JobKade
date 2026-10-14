@@ -32,14 +32,70 @@ class WorkerController {
 
     public function updateProfile(): void {
         $user = JWT::getAuthUser();
-        if (!$user || $user['role'] !== 'worker' || empty($user['worker_id'])) {
+        if (!$user || $user['role'] !== 'worker') {
             sendJsonResponse(403, ['status' => 'error', 'message' => 'Forbidden. Only workers can update their profile.']);
+        }
+        $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : 0);
+        if ($workerId <= 0) {
+            $profile = (new WorkerRepository())->getProfileByUserId((int)$user['user_id']);
+            $workerId = $profile ? (int)$profile['id'] : 0;
+        }
+        if ($workerId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Worker profile not found.']);
         }
 
         $data = getRequestData();
         try {
-            $this->workerService->updateProfile((int)$user['worker_id'], $data);
+            $this->workerService->updateProfile($workerId, $data);
             sendJsonResponse(200, ['status' => 'success', 'message' => 'Profile updated successfully!']);
+        } catch (Exception $e) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function getCoverage(): void {
+        $user = JWT::getAuthUser();
+        if (!$user || $user['role'] !== 'worker') {
+            sendJsonResponse(403, ['status' => 'error', 'message' => 'Forbidden. Only workers can view coverage.']);
+        }
+        $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : 0);
+        if ($workerId <= 0) {
+            $profile = (new WorkerRepository())->getProfileByUserId((int)$user['user_id']);
+            $workerId = $profile ? (int)$profile['id'] : 0;
+        }
+        $coverage = $this->workerService->getWorkerCoverage($workerId);
+        sendJsonResponse(200, ['status' => 'success', 'coverage' => $coverage]);
+    }
+
+    public function updateCoverage(): void {
+        $user = JWT::getAuthUser();
+        if (!$user || $user['role'] !== 'worker') {
+            sendJsonResponse(403, ['status' => 'error', 'message' => 'Forbidden. Only workers can update coverage.']);
+        }
+        $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : 0);
+        if ($workerId <= 0) {
+            $profile = (new WorkerRepository())->getProfileByUserId((int)$user['user_id']);
+            $workerId = $profile ? (int)$profile['id'] : 0;
+        }
+        if ($workerId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Worker profile not found.']);
+        }
+
+        $data = getRequestData();
+        $district = trim((string)($data['district'] ?? ''));
+        $coverAll = !empty($data['cover_all_cities']) || (!empty($data['coverage_mode']) && $data['coverage_mode'] === 'all');
+        $cities = $data['cities'] ?? ($data['coverage_cities'] ?? []);
+        if (is_string($cities)) {
+            $decoded = json_decode($cities, true);
+            $cities = is_array($decoded) ? $decoded : array_filter(array_map('trim', explode(',', $cities)));
+        }
+        if (!is_array($cities)) {
+            $cities = [];
+        }
+
+        try {
+            $this->workerService->setWorkerCoverage($workerId, $district, $cities, $coverAll);
+            sendJsonResponse(200, ['status' => 'success', 'message' => 'Coverage updated successfully!']);
         } catch (Exception $e) {
             sendJsonResponse(400, ['status' => 'error', 'message' => $e->getMessage()]);
         }

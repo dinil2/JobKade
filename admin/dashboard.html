@@ -3,174 +3,163 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard — JobKade</title>
+  <title>Overview & Administration — JobKade Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="../js/lucide.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <!-- Chart.js for analytics visualization -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
+  <script>
+    (function(){
+      function purge(){
+        document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el){
+          if(el.textContent.toLowerCase().includes('analytics')||(el.getAttribute('href')&&el.getAttribute('href').includes('analytics'))){
+            el.remove();
+          }
+        });
+      }
+      purge();
+      document.addEventListener('DOMContentLoaded', purge);
+      if(typeof MutationObserver!=='undefined'){
+        new MutationObserver(purge).observe(document.documentElement,{childList:true,subtree:true});
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="navbar-container"></div>
   <div class="dashboard-layout">
-    <div id="sidebar-container">
-      <div class="sidebar-overlay"></div>
-      <aside class="sidebar admin">
-        <div class="sidebar-header">
-          <div class="sidebar-user">
-            <div class="avatar avatar-md avatar-purple" id="sidebarAvatar">AD</div>
-            <div>
-              <div class="sidebar-user-name" id="adminUserName">System Administrator</div>
-              <div class="sidebar-user-role" id="sidebarUserRole">Platform Admin</div>
-            </div>
-          </div>
-        </div>
-        <nav class="sidebar-nav">
-          <a href="dashboard.html" class="sidebar-link active"><i data-lucide="layout-dashboard"></i> Overview</a>
-          <a href="kyc-moderation.html" class="sidebar-link"><i data-lucide="shield-check"></i> KYC Moderation <span class="badge badge-pending" id="pendingCounterBadge" style="margin-left:auto;font-size:0.7rem;">0</span></a>
-          <a href="workers.html" class="sidebar-link"><i data-lucide="users"></i> Manage Workers</a>
-          <a href="customers.html" class="sidebar-link"><i data-lucide="user-check"></i> Manage Customers</a>
-          <a href="jobs.html" class="sidebar-link"><i data-lucide="file-text"></i> Job Requests</a>
-          <a href="moderation.html" class="sidebar-link"><i data-lucide="flag"></i> Content Moderation</a>
-          <a href="analytics.html" class="sidebar-link"><i data-lucide="bar-chart-3"></i> Analytics and Reports</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a href="../auth/login.html" class="sidebar-link sidebar-logout-btn" id="sidebarLogoutBtn">
-            <i data-lucide="log-out"></i> Logout
-          </a>
-        </div>
-      </aside>
-    </div>
+    <div id="sidebar-container"></div>
 
     <!-- Main Content -->
     <main class="dashboard-main">
       <div class="dashboard-header">
-        <h1>Admin Control Panel</h1>
-        <p>Monitor platform statistics, manage worker verifications, and supervise community activity.</p>
+        <h1>Platform Overview</h1>
+        <p>Comprehensive overview of platform analytics, financial performance, registered workers, and customer activity.</p>
       </div>
 
-      <!-- Key Platform Metrics -->
-      <div class="admin-stats-grid">
+      <!-- 1. Row of 6 KPI Stat Cards -->
+      <div class="admin-stats-grid" id="analytics-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 28px;">
         <div class="admin-stat-card">
-          <div class="admin-stat-icon blue"><i data-lucide="users" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>542</h3><p>Total Registered Workers</p></div>
+          <div class="admin-stat-icon blue"><i data-lucide="hard-hat" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-total-workers">0</h3>
+            <p>Total Workers</p>
+          </div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon green"><i data-lucide="user-check" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>1,890</h3><p>Total Customers</p></div>
+          <div class="admin-stat-icon purple"><i data-lucide="users" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-total-customers">0</h3>
+            <p>Total Customers</p>
+          </div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon orange"><i data-lucide="clock" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>3</h3><p>Pending Verifications</p></div>
+          <div class="admin-stat-icon orange"><i data-lucide="clipboard-list" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-jobs-posted">0</h3>
+            <p>Total Jobs Posted</p>
+          </div>
         </div>
         <div class="admin-stat-card">
-          <div class="admin-stat-icon purple"><i data-lucide="briefcase" width="24" height="24"></i></div>
-          <div class="admin-stat-content"><h3>1,245</h3><p>Total Jobs Posted</p></div>
+          <div class="admin-stat-icon green"><i data-lucide="check-circle" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-jobs-completed">0</h3>
+            <p>Total Jobs Completed</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon blue"><i data-lucide="wallet" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-platform-revenue">Rs. 0.00</h3>
+            <p>Platform Revenue</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-icon green"><i data-lucide="dollar-sign" width="22" height="22"></i></div>
+          <div class="admin-stat-content">
+            <h3 id="stat-commission-earned">Rs. 0.00</h3>
+            <p>Commission Earned</p>
+          </div>
         </div>
       </div>
 
-      <!-- Charts Overview Grid -->
-      <div class="admin-charts-grid">
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <h3>Worker Registration Trend</h3>
-            <span class="text-sm text-secondary">Last 8 Months</span>
-          </div>
-          <div class="chart-container">
-            <canvas id="registrations-chart"></canvas>
-          </div>
-        </div>
-
-        <div class="chart-card">
-          <div class="chart-card-header">
-            <h3>Job Requests Volume</h3>
-            <span class="text-sm text-secondary">Last 8 Months</span>
-          </div>
-          <div class="chart-container">
-            <canvas id="jobs-chart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pending Verifications Table Snippet -->
-      <div class="table-card mt-4">
-        <div class="table-header">
+      <!-- 2. Monthly Financial & Volume Breakdown Table -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding: 16px 20px;">
           <div>
-            <h3>Pending Worker Verifications</h3>
-            <p class="text-sm text-secondary">Review identity submissions for safety & trust verification.</p>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Monthly Platform Breakdown</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Last 8 months platform activity, completion rate, gross revenue, and commission earned</p>
           </div>
-          <a href="verification.html" class="btn btn-outline btn-sm">View All Pending</a>
+          <div class="search-bar-small" style="max-width: 240px;">
+            <i data-lucide="search" width="15" height="15"></i>
+            <input type="text" id="monthly-search" class="table-search" placeholder="Filter months..." aria-label="Filter months">
+          </div>
         </div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Worker Name</th>
-                <th>Category</th>
-                <th>NIC Number</th>
-                <th>Submission Date</th>
-                <th>Status</th>
-                <th>Action</th>
+                <th>Month</th>
+                <th style="text-align:right;">Jobs Posted</th>
+                <th style="text-align:right;">Jobs Completed</th>
+                <th style="text-align:right;">Revenue (Rs.)</th>
+                <th style="text-align:right;">Commission (Rs.)</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="monthly-breakdown-tbody">
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="avatar avatar-sm avatar-blue">KP</div>
-                    <div><strong>Kasun Perera</strong><br><span class="text-sm text-secondary">kasun@email.com</span></div>
-                  </div>
-                </td>
-                <td>Electrical</td>
-                <td>199214502841</td>
-                <td>Aug 14, 2026</td>
-                <td><span class="badge badge-pending">Pending Review</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm view-nic-btn">View NIC</button>
-                    <button class="btn btn-success btn-sm approve-worker-btn" data-worker="Kasun Perera">Approve</button>
-                    <button class="btn btn-danger btn-sm reject-worker-btn" data-worker="Kasun Perera">Reject</button>
-                  </div>
-                </td>
+                <td colspan="5" style="text-align:center; padding:2rem; color:var(--text-secondary);">Loading monthly breakdown...</td>
               </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3. All Worker Details Table -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Registered Workers</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Complete list of skilled workers, verification status, trade category, and ratings</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="search-bar-small" style="max-width: 240px;">
+              <i data-lucide="search" width="16" height="16"></i>
+              <input type="text" id="worker-search-input" class="table-search" placeholder="Search workers..." aria-label="Search workers">
+            </div>
+            <select class="form-select" id="worker-category-filter" style="width:160px; font-size:0.85rem;" aria-label="Category filter">
+              <option value="">All Categories</option>
+            </select>
+            <select class="form-select" id="worker-status-filter" style="width:140px; font-size:0.85rem;" aria-label="Status filter">
+              <option value="">All Statuses</option>
+              <option value="verified">Verified</option>
+              <option value="pending">Pending</option>
+              <option value="suspended">Suspended</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="avatar avatar-sm avatar-green">KM</div>
-                    <div><strong>Kamal Mendis</strong><br><span class="text-sm text-secondary">kamal@email.com</span></div>
-                  </div>
-                </td>
-                <td>Plumbing</td>
-                <td>198834109283</td>
-                <td>Aug 13, 2026</td>
-                <td><span class="badge badge-pending">Pending Review</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm view-nic-btn">View NIC</button>
-                    <button class="btn btn-success btn-sm approve-worker-btn" data-worker="Kamal Mendis">Approve</button>
-                    <button class="btn btn-danger btn-sm reject-worker-btn" data-worker="Kamal Mendis">Reject</button>
-                  </div>
-                </td>
+                <th>Worker</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Rating</th>
+                <th>Verification</th>
+                <th>Subscription</th>
+                <th>Actions</th>
               </tr>
+            </thead>
+            <tbody id="manage-workers-tbody">
               <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px;">
-                    <div class="avatar avatar-sm avatar-orange">SS</div>
-                    <div><strong>Sunil Shantha</strong><br><span class="text-sm text-secondary">sunil@email.com</span></div>
-                  </div>
-                </td>
-                <td>AC Repair</td>
-                <td>199578201948</td>
-                <td>Aug 12, 2026</td>
-                <td><span class="badge badge-pending">Pending Review</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm view-nic-btn">View NIC</button>
-                    <button class="btn btn-success btn-sm approve-worker-btn" data-worker="Sunil Shantha">Approve</button>
-                    <button class="btn btn-danger btn-sm reject-worker-btn" data-worker="Sunil Shantha">Reject</button>
+                <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i data-lucide="loader" width="18" height="18" class="spin"></i>
+                    <span>Loading registered workers...</span>
                   </div>
                 </td>
               </tr>
@@ -178,55 +167,86 @@
           </table>
         </div>
       </div>
+
+      <!-- 4. All Customer Details Table -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700;">Registered Customers</h3>
+            <p style="margin:3px 0 0; font-size:0.85rem; color:var(--text-secondary);">Complete list of customers, contact details, job volume, and account status</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="search-bar-small" style="max-width: 240px;">
+              <i data-lucide="search" width="16" height="16"></i>
+              <input type="text" id="customer-search-input" class="table-search" placeholder="Search customers..." aria-label="Search customers">
+            </div>
+            <select class="form-select" id="customer-status-filter" style="width:140px; font-size:0.85rem;" aria-label="Customer status filter">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Location</th>
+                <th style="text-align:right;">Jobs Posted</th>
+                <th style="text-align:right;">Jobs Completed</th>
+                <th>Joined Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="manage-customers-tbody">
+              <tr>
+                <td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i data-lucide="loader" width="18" height="18" class="spin"></i>
+                    <span>Loading registered customers...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. Workers by Trade Category -->
+      <div class="table-card" style="margin-bottom: 28px;">
+        <div class="table-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+          <div>
+            <h3 style="margin:0; font-size:1.05rem; font-weight:700;">Workers by Category</h3>
+            <p style="margin:3px 0 0; font-size:0.8rem; color:var(--text-secondary);">Ranked by registered worker count</p>
+          </div>
+          <div class="search-bar-small" style="max-width: 240px;">
+            <i data-lucide="search" width="14" height="14"></i>
+            <input type="text" id="category-search" class="table-search" placeholder="Filter categories..." aria-label="Filter categories">
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 90px;">Rank</th>
+                <th>Trade Category</th>
+                <th style="text-align:right;">Registered Workers</th>
+              </tr>
+            </thead>
+            <tbody id="category-ranking-tbody">
+              <tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-secondary);">Loading category ranking...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </main>
   </div>
 
-  <!-- Modals -->
-  <!-- Approve Modal -->
-  <div class="modal-overlay" id="approve-modal">
-    <div class="modal">
-      <div class="modal-header"><h3>Approve Worker Verification</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
-      <div class="modal-body">
-        <div class="modal-confirm-icon success"><i data-lucide="check-circle"></i></div>
-        <p class="text-center">Are you sure you want to approve identity verification for <strong id="approve-worker-name">Kasun Perera</strong>?</p>
-        <p class="text-center text-sm text-secondary mt-1">This will grant the worker a "Verified" badge on their public profile.</p>
-      </div>
-      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-success" id="confirm-approve">Confirm Approval</button></div>
-    </div>
-  </div>
-
-  <!-- Reject Modal -->
-  <div class="modal-overlay" id="reject-modal">
-    <div class="modal">
-      <div class="modal-header"><h3>Reject Worker Verification</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
-      <div class="modal-body">
-        <div class="modal-confirm-icon danger"><i data-lucide="alert-triangle"></i></div>
-        <p class="text-center">Are you sure you want to reject verification for <strong id="reject-worker-name">Kasun Perera</strong>?</p>
-        <div class="form-group mt-2"><label class="form-label">Reason for Rejection</label><textarea class="form-textarea" placeholder="e.g. NIC document image is unclear or mismatched..."></textarea></div>
-      </div>
-      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirm-reject">Confirm Rejection</button></div>
-    </div>
-  </div>
-
-  <!-- NIC Document View Modal -->
-  <div class="modal-overlay" id="nic-modal">
-    <div class="modal" style="max-width:650px;">
-      <div class="modal-header"><h3>NIC Document Verification Preview</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
-      <div class="modal-body">
-        <div class="nic-doc-preview" style="background:#F3F4F6;padding:24px;border-radius:12px;text-align:center;border:2px dashed #D1D5DB;">
-          <div style="width:100%;max-width:480px;height:260px;background:#E5E7EB;margin:0 auto;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#6B7280;">
-            <i data-lucide="file-text" width="56" height="56" style="margin-bottom:12px;"></i>
-            <p><strong>NIC Document #199214502841</strong></p>
-            <span class="text-sm">National Identity Card Front & Back (Uploaded PDF/JPG)</span>
-          </div>
-        </div>
-        <div class="info-notice mt-2"><i data-lucide="lock"></i><span>Privileged Document View. Confidential identification record strictly restricted to platform moderation and verification purposes.</span></div>
-      </div>
-      <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Close</button></div>
-    </div>
-  </div>
-
-  <script src="../js/main.js"></script>
-  <script src="../js/admin.js"></script>
+  <script src="../js/main.js?v=3"></script>
+  <script src="../js/admin.js?v=3"></script>
 </body>
 </html>

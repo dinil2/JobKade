@@ -40,8 +40,13 @@ class JobController {
     public function listOpen(): void {
         $user = JWT::getAuthUser();
         $hasAccess = true;
+        $workerProfileId = null;
         if ($user && ($user['role'] ?? '') === 'worker') {
-            $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : ($user['user_id'] ?? 0));
+            $workerId = (int)(!empty($user['worker_id']) ? $user['worker_id'] : 0);
+            if ($workerId <= 0) {
+                $wp = $this->workerRepo->getProfileByUserId((int)$user['user_id']);
+                $workerId = $wp ? (int)$wp['id'] : 0;
+            }
             if ($workerId <= 0 || !$this->workerRepo->isVerified($workerId)) {
                 sendJsonResponse(403, [
                     'status'  => 'error',
@@ -49,11 +54,12 @@ class JobController {
                 ]);
             }
             $hasAccess = (new WalletRepository())->hasJobAccess($workerId);
+            $workerProfileId = $workerId;
         }
 
         $catId = isset($_GET['category_id']) ? (int)$_GET['category_id'] : null;
         $district = isset($_GET['district']) && $_GET['district'] !== '' ? trim((string)$_GET['district']) : null;
-        $jobs = $this->jobService->getOpenJobs($catId, $district);
+        $jobs = $this->jobService->getOpenJobs($catId, $district, $workerProfileId);
 
         // If worker does not have active access/subscription, mask direct contact numbers
         if (!$hasAccess) {

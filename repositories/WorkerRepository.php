@@ -22,6 +22,7 @@ class WorkerRepository {
         if ($profile) {
             $profile['categories'] = $this->getWorkerCategories($profile['id']);
             $profile['services'] = $this->getWorkerServices($profile['id']);
+            $profile['coverage'] = $this->getCoverage($profile['id']);
         }
         return $profile ?: null;
     }
@@ -46,6 +47,7 @@ class WorkerRepository {
         if ($profile) {
             $profile['categories'] = $this->getWorkerCategories($profile['id']);
             $profile['services'] = $this->getWorkerServices($profile['id']);
+            $profile['coverage'] = $this->getCoverage($profile['id']);
 
             $primaryCat = null;
             $secondaryCats = [];
@@ -324,4 +326,64 @@ class WorkerRepository {
 
         return $workers;
     }
+
+    public function getCoverage(int $workerId): array {
+        $stmt = $this->db->prepare("SELECT id, worker_id, district, city FROM worker_coverage WHERE worker_id = :worker_id ORDER BY id ASC");
+        $stmt->execute([':worker_id' => $workerId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function setCoverage(int $workerId, string $district, array $cities = [], bool $coverAll = false): bool {
+        if ($workerId <= 0) {
+            throw new InvalidArgumentException("Invalid worker ID.");
+        }
+        $district = trim($district);
+        if (empty($district)) {
+            throw new InvalidArgumentException("District is required for coverage.");
+        }
+
+        // Clean cities
+        $cleanCities = [];
+        foreach ($cities as $c) {
+            $trimmed = trim((string)$c);
+            if (!empty($trimmed) && !in_array($trimmed, $cleanCities, true)) {
+                $cleanCities[] = $trimmed;
+            }
+        }
+
+        if ($coverAll || in_array('ALL', $cleanCities, true)) {
+            $cleanCities = ['ALL'];
+        } else {
+            if (empty($cleanCities)) {
+                throw new InvalidArgumentException("Please select at least one city or choose 'Cover all cities'.");
+            }
+            if (count($cleanCities) > 3) {
+                throw new InvalidArgumentException("Maximum 3 cities can be selected.");
+            }
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Remove previous coverage for this worker
+            $del = $this->db->prepare("DELETE FROM worker_coverage WHERE worker_id = :worker_id");
+            $del->execute([':worker_id' => $workerId]);
+
+            $ins = $this->db->prepare("INSERT INTO worker_coverage (worker_id, district, city) VALUES (:worker_id, :district, :city)");
+            foreach ($cleanCities as $city) {
+                $ins->execute([
+                    ':worker_id' => $workerId,
+                    ':district'  => $district,
+                    ':city'      => $city
+                ]);
+            }
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
 }
+

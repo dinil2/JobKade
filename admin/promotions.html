@@ -11,6 +11,22 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/admin.css">
+  <script>
+    (function(){
+      function purge(){
+        document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el){
+          if(el.textContent.toLowerCase().includes('analytics')||(el.getAttribute('href')&&el.getAttribute('href').includes('analytics'))){
+            el.remove();
+          }
+        });
+      }
+      purge();
+      document.addEventListener('DOMContentLoaded', purge);
+      if(typeof MutationObserver!=='undefined'){
+        new MutationObserver(purge).observe(document.documentElement,{childList:true,subtree:true});
+      }
+    })();
+  </script>
   <style>
     .pending-promo-card {
       background: var(--white);
@@ -126,7 +142,7 @@
     </main>
   </div>
 
-  <script src="../js/main.js"></script>
+  <script src="../js/main.js?v=3"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // 1. Require Admin Login

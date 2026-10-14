@@ -100,7 +100,37 @@ class WorkerService {
             $data['travelling_fee'] = (float)$data['travelling_fee'];
         }
 
-        return $this->workerRepo->updateProfile($workerId, $data);
+        $result = $this->workerRepo->updateProfile($workerId, $data);
+
+        // Update coverage areas if supplied
+        if (isset($data['cover_all_cities']) || isset($data['cities']) || isset($data['coverage_cities']) || isset($data['coverage_mode'])) {
+            $covDistrict = !empty($data['district']) ? trim((string)$data['district']) : null;
+            if (!$covDistrict) {
+                $wp = $this->workerRepo->findById($workerId);
+                $covDistrict = $wp['district'] ?? 'Colombo';
+            }
+
+            $coverAll = !empty($data['cover_all_cities']) || (!empty($data['coverage_mode']) && $data['coverage_mode'] === 'all');
+            $cities = $data['cities'] ?? ($data['coverage_cities'] ?? []);
+            if (is_string($cities)) {
+                $decoded = json_decode($cities, true);
+                $cities = is_array($decoded) ? $decoded : array_filter(array_map('trim', explode(',', $cities)));
+            }
+            if (!is_array($cities)) {
+                $cities = [];
+            }
+            $this->workerRepo->setCoverage($workerId, $covDistrict, $cities, $coverAll);
+        }
+
+        return $result;
+    }
+
+    public function getWorkerCoverage(int $workerId): array {
+        return $this->workerRepo->getCoverage($workerId);
+    }
+
+    public function setWorkerCoverage(int $workerId, string $district, array $cities = [], bool $coverAll = false): bool {
+        return $this->workerRepo->setCoverage($workerId, $district, $cities, $coverAll);
     }
 
     public function updateVerificationStatus(int $workerId, string $status): bool {

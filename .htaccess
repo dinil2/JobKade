@@ -1,6 +1,9 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
+# Redirect removed analytics page to admin overview dashboard
+RewriteRule ^admin/analytics(\.html)?$ admin/dashboard.html [R=301,L]
+
 # Pass Authorization header to PHP in Apache / FastCGI / WampServer
 RewriteCond %{HTTP:Authorization} ^(.*)
 RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
@@ -8,4 +11,12 @@ RewriteRule .* - [e=HTTP_AUTHORIZATION:%1]
 
 <IfModule mod_setenvif.c>
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|htm|js|css)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+  </FilesMatch>
 </IfModule>

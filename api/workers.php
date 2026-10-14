@@ -17,6 +17,13 @@ switch ($action) {
     case 'update':
         $controller->updateProfile();
         break;
+    case 'coverage':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $controller->updateCoverage();
+        } else {
+            $controller->getCoverage();
+        }
+        break;
     case 'add-service':
     case 'create-service':
         $controller->addService();

@@ -51,12 +51,17 @@ class JobService {
             throw new InvalidArgumentException("Coordinates are out of range.");
         }
 
-        $district = trim(strip_tags((string)($data['district'] ?? 'Colombo')));
+        $district = trim(strip_tags((string)($data['district'] ?? '')));
         if (empty($district)) {
-            $district = 'Colombo';
+            throw new InvalidArgumentException("Job district is required.");
         }
 
-        $jobId = $this->jobRepo->create($customerId, $categoryId, $title, $description, $lat, $lng, $address, $photo, $district);
+        $city = trim(strip_tags((string)($data['city'] ?? '')));
+        if (empty($city)) {
+            throw new InvalidArgumentException("Job city is required.");
+        }
+
+        $jobId = $this->jobRepo->create($customerId, $categoryId, $title, $description, $lat, $lng, $address, $photo, $district, $city);
 
         return [
             'status'  => 'success',
@@ -65,8 +70,8 @@ class JobService {
         ];
     }
 
-    public function getOpenJobs(?int $categoryId = null, ?string $district = null): array {
-        return $this->jobRepo->getOpenJobs($categoryId, $district);
+    public function getOpenJobs(?int $categoryId = null, ?string $district = null, ?int $workerProfileId = null): array {
+        return $this->jobRepo->getOpenJobs($categoryId, $district, $workerProfileId);
     }
 
     public function getWorkerJobs(int $workerId): array {
