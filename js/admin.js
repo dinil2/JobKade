@@ -1027,7 +1027,7 @@ function filterAndRenderWorkers() {
         <td>${subBadgeHtml}</td>
         <td>
           <div class="btn-group">
-            <button type="button" class="btn btn-outline btn-sm btn-view-worker" onclick="openWorkerSummaryModal(${w.id})" title="View Worker Details" style="display:inline-flex;align-items:center;gap:4px;">
+            <button type="button" class="btn btn-outline btn-sm btn-view-worker" data-worker-id="${w.id || w.user_id || 0}" onclick="openWorkerSummaryModal('${w.id || w.user_id || 0}')" title="View Worker Details" style="display:inline-flex;align-items:center;gap:4px;">
               <i data-lucide="eye" width="13" height="13"></i>
               <span>View</span>
             </button>
@@ -1258,8 +1258,123 @@ function escapeJs(str) {
 /**
  * Worker Summary Popup Modal (Manage Workers)
  */
+function ensureWorkerSummaryModal() {
+  if (document.getElementById('worker-summary-modal')) return document.getElementById('worker-summary-modal');
+
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `
+  <div class="modal-overlay" id="worker-summary-modal" role="dialog" aria-modal="true" aria-labelledby="wmodal-name" onclick="if(event.target===this)closeWorkerSummaryModal()" style="z-index:2050;">
+    <div class="modal" style="max-width:540px; width:100%; border-radius:12px; overflow:hidden; background:#ffffff; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1); margin:auto;">
+      <div class="modal-header" style="padding:16px 20px; border-bottom:1px solid var(--border, #e2e8f0); display:flex; align-items:center; justify-content:space-between; background:#f8fafc;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div id="wmodal-avatar-container">
+            <div id="wmodal-avatar" class="avatar avatar-md avatar-blue">WK</div>
+          </div>
+          <div>
+            <h3 id="wmodal-name" style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary, #0f172a);">Worker Summary</h3>
+            <span id="wmodal-subtitle" style="font-size:0.8rem; color:var(--text-secondary, #64748b);">Worker ID: -</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close modal-close" id="wmodal-close-btn" onclick="closeWorkerSummaryModal()" data-dismiss="modal" aria-label="Close" style="background:none; border:none; color:#64748b; font-size:1.5rem; cursor:pointer; line-height:1; padding:4px 8px; border-radius:6px;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding:20px; max-height:calc(85vh - 120px); overflow-y:auto;">
+        <div id="wmodal-loading" style="text-align:center; padding:36px 20px; color:var(--text-secondary, #64748b);">
+          <i data-lucide="loader" width="28" height="28" class="spin"></i>
+          <p style="margin:10px 0 0; font-size:0.88rem;">Loading worker details...</p>
+        </div>
+
+        <div id="wmodal-content" style="display:none;">
+          <div style="margin-bottom:20px;">
+            <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:#059669; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="wallet" width="15" height="15"></i> Earnings (Paid Invoices)
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:14px;">
+              <div>
+                <span style="font-size:0.72rem; color:#166534; display:block; margin-bottom:2px;">Total Earnings</span>
+                <strong id="wmodal-total-earnings" style="font-size:1rem; color:#15803d; font-weight:700;">Rs. 0.00</strong>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#166534; display:block; margin-bottom:2px;">This Month</span>
+                <strong id="wmodal-monthly-earnings" style="font-size:1rem; color:#15803d; font-weight:700;">Rs. 0.00</strong>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#166534; display:block; margin-bottom:2px;">Jobs Completed</span>
+                <strong id="wmodal-jobs-completed" style="font-size:1rem; color:#15803d; font-weight:700;">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:20px;">
+            <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:#7c3aed; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="credit-card" width="15" height="15"></i> Subscription Details
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px; padding:14px;">
+              <div>
+                <span style="font-size:0.72rem; color:#6b21a8; display:block; margin-bottom:2px;">Current Plan</span>
+                <strong id="wmodal-plan-name" style="font-size:0.9rem; color:#581c87;">None</strong>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#6b21a8; display:block; margin-bottom:2px;">Subscription Status</span>
+                <span id="wmodal-sub-status" class="badge" style="background:#e9d5ff; color:#581c87;">None</span>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#6b21a8; display:block; margin-bottom:2px;">Total Paid</span>
+                <strong id="wmodal-sub-total" style="font-size:0.9rem; color:#581c87;">Rs. 0.00</strong>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#6b21a8; display:block; margin-bottom:2px;">Last Payment Date</span>
+                <strong id="wmodal-sub-date" style="font-size:0.9rem; color:#581c87;">None</strong>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:#0284c7; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="user" width="15" height="15"></i> Profile Details
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+              <div>
+                <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Category</span>
+                <strong id="wmodal-category" style="font-size:0.88rem; color:#1e293b;">None</strong>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Location / District</span>
+                <strong id="wmodal-location" style="font-size:0.88rem; color:#1e293b;">None</strong>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Rating</span>
+                <span style="font-size:0.88rem; font-weight:700; color:#1e293b; display:inline-flex; align-items:center; gap:4px;">
+                  <i data-lucide="star" width="13" height="13" style="color:#F59E0B; fill:#F59E0B;"></i>
+                  <span id="wmodal-rating">5.0</span>
+                </span>
+              </div>
+              <div>
+                <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Verification Status</span>
+                <span id="wmodal-verify-status" class="badge">None</span>
+              </div>
+              <div style="grid-column:span 2;">
+                <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Phone Number</span>
+                <strong id="wmodal-phone" style="font-size:0.88rem; color:#1e293b;">None</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding:12px 20px; border-top:1px solid var(--border, #e2e8f0); display:flex; justify-content:flex-end; background:#f8fafc;">
+        <button type="button" class="btn btn-secondary btn-sm modal-close" id="wmodal-close-footer-btn" onclick="closeWorkerSummaryModal()" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>`;
+  const el = wrapper.firstElementChild;
+  document.body.appendChild(el);
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+  return el;
+}
+
 async function openWorkerSummaryModal(workerId) {
-  const modal = document.getElementById('worker-summary-modal');
+  const modal = ensureWorkerSummaryModal();
   if (!modal) return;
 
   const loadingEl = document.getElementById('wmodal-loading');
@@ -1414,10 +1529,22 @@ function closeWorkerSummaryModal() {
 window.openWorkerSummaryModal = openWorkerSummaryModal;
 window.closeWorkerSummaryModal = closeWorkerSummaryModal;
 
+// Delegated click listener for .btn-view-worker
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-view-worker');
+  if (btn) {
+    const wid = btn.getAttribute('data-worker-id') || btn.dataset.workerId;
+    if (wid) {
+      openWorkerSummaryModal(wid);
+    }
+  }
+});
+
 // Close modal on Escape key press
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeWorkerSummaryModal();
   }
 });
+
 
