@@ -62,4 +62,22 @@ class ReviewRepository {
             ]);
         }
     }
+
+    public function getWorkerStats(int $workerId): array {
+        if ($workerId <= 0) {
+            return ['total_reviews' => 0, 'avg_rating' => 0.0];
+        }
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) AS total_count, AVG(rating) AS avg_score
+            FROM reviews WHERE worker_id = :id
+        ");
+        $stmt->execute([':id' => $workerId]);
+        $res = $stmt->fetch();
+        $total = (int)($res['total_count'] ?? 0);
+        $avg = $total > 0 ? round((float)$res['avg_score'], 1) : 0.0;
+        return [
+            'total_reviews' => $total,
+            'avg_rating'    => $avg
+        ];
+    }
 }

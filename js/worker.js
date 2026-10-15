@@ -1895,39 +1895,11 @@ async function loadWorkerDashboardStats() {
 
   try {
     const res = await apiFetch('jobs.php?action=list');
-    const availEl = $id('stat-available-jobs');
-    if (availEl) availEl.textContent = (res.ok && res.data?.status === 'success' && Array.isArray(res.data.jobs)) ? res.data.jobs.length : '0';
 
     const banner = $id('subscription-banner');
     if (banner) banner.style.display = (res.ok && res.data?.has_job_access) ? '' : 'none';
 
-    const dashJobsContainer = $id('worker-dashboard-jobs');
-    if (dashJobsContainer && res.ok && res.data?.status === 'success' && Array.isArray(res.data.jobs) && res.data.jobs.length > 0) {
-      dashJobsContainer.innerHTML = res.data.jobs.slice(0, 5).map(j => {
-        const timeFrameStr = (typeof formatJobTimeFrame === 'function')
-          ? formatJobTimeFrame(j.preferred_date, j.start_time, j.end_time)
-          : 'Not specified';
-        const addr = j.address || 'Colombo';
-        const safeTitle = (j.title || 'Job Request').replace(/"/g, '&quot;');
-        return `
-          <div class="job-card">
-            <div class="job-card-header">
-              <h4 class="job-card-title" style="margin:0;font-size:1.05rem;">${safeTitle}</h4>
-              <span class="badge badge-open">Open Request</span>
-            </div>
-            <div class="job-card-meta" style="margin-top:6px;">
-              <span><i data-lucide="map-pin" width="14" height="14"></i> ${addr}</span>
-              <span><i data-lucide="calendar" width="14" height="14"></i> Preferred: <strong>${timeFrameStr}</strong></span>
-              <span><i data-lucide="tag" width="14" height="14"></i> ${j.category_name || 'Service'}</span>
-            </div>
-            <p class="job-card-desc" style="margin-top:8px;">${j.description || ''}</p>
-            <div class="job-card-actions" style="margin-top:10px;">
-              <a href="jobs.html" class="btn btn-primary btn-sm"><i data-lucide="briefcase" width="14" height="14"></i> View Available Jobs</a>
-            </div>
-          </div>`;
-      }).join('');
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
+
   } catch (err) {
     console.warn('Worker dashboard available-jobs failed:', err);
   }
@@ -1937,12 +1909,19 @@ async function loadWorkerDashboardStats() {
     const res2 = await apiFetch('jobs.php?action=worker');
     let active = 0, completed = 0;
     if (res2.ok && res2.data?.status === 'success' && Array.isArray(res2.data.jobs)) {
-      res2.data.jobs.forEach(j => {
-        const jobStatus = (j.job_status || '').toLowerCase();
-        const appStatus = (j.application_status || '').toLowerCase();
-        if (appStatus === 'accepted' && jobStatus === 'completed') completed++;
-        else if (appStatus === 'accepted' && (jobStatus === 'open' || jobStatus === 'in_progress')) active++;
-      });
+      if (typeof res2.data.active_count === 'number' && typeof res2.data.completed_count === 'number') {
+        active = res2.data.active_count;
+        completed = res2.data.completed_count;
+      } else {
+        res2.data.jobs.forEach(j => {
+          const status = (j.status || j.job_status || '').toLowerCase();
+          if (status === 'completed') {
+            completed++;
+          } else if (status === 'in_progress' || status === 'assigned' || status === 'open') {
+            active++;
+          }
+        });
+      }
     }
     if ($id('stat-active-jobs')) $id('stat-active-jobs').textContent = active;
     if ($id('stat-completed-jobs')) $id('stat-completed-jobs').textContent = completed;
@@ -2028,14 +2007,17 @@ async function initWorkerReviews() {
 
   // 2. Fetch reviews using existing API: GET api/reviews.php?action=worker&worker_id={worker_id}
   try {
-    const res = await apiFetch(`reviews.php?action=worker&worker_id=${workerId}`);
+    const url = workerId ? `reviews.php?action=worker&worker_id=${workerId}` : 'reviews.php?action=worker';
+    const res = await apiFetch(url);
     if (res.ok && res.data && res.data.status === 'success') {
       const reviews = Array.isArray(res.data.reviews) ? res.data.reviews : [];
-      const totalReviews = reviews.length;
+      const totalReviews = (typeof res.data.total_reviews === 'number') ? res.data.total_reviews : reviews.length;
 
       // Calculate score & breakdown
       const sum = reviews.reduce((acc, r) => acc + (parseFloat(r.rating) || 0), 0);
-      const avgScore = totalReviews > 0 ? (sum / totalReviews).toFixed(1) : '0.0';
+      const avgScore = (typeof res.data.avg_rating === 'number' && totalReviews > 0)
+        ? res.data.avg_rating.toFixed(1)
+        : (totalReviews > 0 ? (sum / totalReviews).toFixed(1) : '0.0');
 
       const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       reviews.forEach(r => {

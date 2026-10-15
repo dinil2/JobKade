@@ -38,7 +38,30 @@ class ReviewController {
 
     public function workerReviews(): void {
         $workerId = (int)($_GET['worker_id'] ?? 0);
+        if ($workerId <= 0) {
+            $user = JWT::getAuthUser();
+            if ($user && ($user['role'] ?? '') === 'worker') {
+                $workerId = (int)($user['worker_id'] ?? 0);
+                if ($workerId <= 0) {
+                    require_once __DIR__ . '/../repositories/WorkerRepository.php';
+                    $workerRepo = new WorkerRepository();
+                    $profile = $workerRepo->getProfileByUserId((int)($user['user_id'] ?? 0));
+                    if ($profile) {
+                        $workerId = (int)$profile['id'];
+                    }
+                }
+            }
+        }
+
         $reviews = $this->revRepo->getWorkerReviews($workerId);
-        sendJsonResponse(200, ['status' => 'success', 'reviews' => $reviews]);
+        $stats = $this->revRepo->getWorkerStats($workerId);
+
+        sendJsonResponse(200, [
+            'status'        => 'success',
+            'reviews'       => $reviews,
+            'total_reviews' => $stats['total_reviews'],
+            'avg_rating'    => $stats['avg_rating'],
+            'worker_id'     => $workerId
+        ]);
     }
 }

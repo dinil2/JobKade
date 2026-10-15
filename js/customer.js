@@ -994,18 +994,19 @@ function initCustomerInvoicePayment() {
 
         if (res.ok && res.data?.status === 'success') {
           closeModal('pay-invoice-modal');
-          const jobTitle = $id('pay-inv-job-title')?.textContent || 'Home Service';
-          const jobAmt = $id('pay-inv-amount')?.textContent.replace(/[^0-9.]/g, '') || 0;
 
           showToast(method === 'online' ? 'Mockup payment successful! Funds credited to worker wallet.' : 'Cash settlement confirmed! Commission settled.', 'success');
 
           currentReceiptDetails = {
             invoice_id: invId,
-            receipt_no: res.data.receipt_number || `REC-JOB-${invId}`,
-            amount: jobAmt,
-            job_title: jobTitle,
-            worker_name: res.data.worker_name || 'Verified Skilled Worker',
-            worker_id: res.data.worker_id || 1,
+            receipt_no: res.data?.receipt_number || `REC-JOB-${invId}`,
+            amount: (res.data?.job_amount !== undefined && res.data?.job_amount !== null) ? res.data.job_amount : 0,
+            hours_worked: (res.data?.hours_worked !== undefined && res.data?.hours_worked !== null) ? res.data.hours_worked : 0,
+            hourly_rate: (res.data?.hourly_rate !== undefined && res.data?.hourly_rate !== null) ? res.data.hourly_rate : 0,
+            travelling_fee: (res.data?.travelling_fee !== undefined && res.data?.travelling_fee !== null) ? res.data.travelling_fee : 0,
+            job_title: res.data?.job_title || 'Home Service',
+            worker_name: res.data?.worker_name || 'Verified Skilled Worker',
+            worker_id: res.data?.worker_id || 1,
             method,
             date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           };

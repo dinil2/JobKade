@@ -124,12 +124,44 @@ class WalletService {
                 $pdo->commit();
             }
 
+            $hoursWorked = (isset($invoice["hours_worked"]) && $invoice["hours_worked"] !== null) ? (float)$invoice["hours_worked"] : 0.0;
+            $travellingFee = (isset($invoice["travelling_fee"]) && $invoice["travelling_fee"] !== null) ? (float)$invoice["travelling_fee"] : 0.0;
+            $hourlyRate = ($hoursWorked > 0.0) ? round(($jobAmount - $travellingFee) / $hoursWorked, 2) : 0.0;
+            $receiptNumber = "REC-JOB-{$invoiceId}";
+
+            $workerName = 'Verified Skilled Worker';
+            if ($workerId > 0) {
+                $wStmt = $pdo->prepare("SELECT u.full_name FROM worker_profiles wp JOIN users u ON wp.user_id = u.id WHERE wp.id = :wid LIMIT 1");
+                $wStmt->execute([':wid' => $workerId]);
+                $wRow = $wStmt->fetch();
+                if (!empty($wRow['full_name'])) {
+                    $workerName = $wRow['full_name'];
+                }
+            }
+
+            $jobTitle = 'Home Service';
+            if ($jobId > 0) {
+                $jStmt = $pdo->prepare("SELECT title FROM job_requests WHERE id = :jid LIMIT 1");
+                $jStmt->execute([':jid' => $jobId]);
+                $jRow = $jStmt->fetch();
+                if (!empty($jRow['title'])) {
+                    $jobTitle = $jRow['title'];
+                }
+            }
+
             return [
                 "status"          => "success",
                 "message"         => "Invoice #{$invoiceId} successfully settled via " . strtoupper($cleanMethod) . " payment.",
                 "invoice_id"      => $invoiceId,
                 "payment_method"  => $cleanMethod,
                 "job_amount"      => $jobAmount,
+                "hours_worked"    => $hoursWorked,
+                "travelling_fee"  => $travellingFee,
+                "hourly_rate"     => $hourlyRate,
+                "receipt_number"  => $receiptNumber,
+                "worker_id"       => $workerId,
+                "worker_name"     => $workerName,
+                "job_title"       => $jobTitle,
                 "commission_paid" => $commissionAmount,
                 "wallet_impact"   => $txResult["delta_amount"],
                 "wallet_balance"  => $txResult["balance_after"],

@@ -93,10 +93,32 @@ class JobController {
         }
         $workerId = (int)($user['worker_id'] ?? 0);
         if ($workerId <= 0) {
+            $profile = $this->workerRepo->getProfileByUserId((int)($user['user_id'] ?? 0));
+            if ($profile) {
+                $workerId = (int)$profile['id'];
+            }
+        }
+        if ($workerId <= 0) {
             sendJsonResponse(400, ['status' => 'error', 'message' => 'Worker profile not found.']);
         }
         $jobs = $this->jobService->getWorkerJobs($workerId);
-        sendJsonResponse(200, ['status' => 'success', 'jobs' => $jobs]);
+        $activeCount = 0;
+        $completedCount = 0;
+        foreach ($jobs as $j) {
+            $st = strtolower((string)($j['status'] ?? $j['job_status'] ?? ''));
+            if ($st === 'completed') {
+                $completedCount++;
+            } elseif ($st === 'in_progress' || $st === 'assigned' || $st === 'open') {
+                $activeCount++;
+            }
+        }
+        sendJsonResponse(200, [
+            'status'          => 'success',
+            'jobs'            => $jobs,
+            'active_count'    => $activeCount,
+            'completed_count' => $completedCount,
+            'worker_id'       => $workerId
+        ]);
     }
 
     public function details(int $jobId): void {
