@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Overview & Administration — JobKade Admin</title>
+  <title>Analytics & Administration — JobKade Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="../js/lucide.min.js"></script>
@@ -41,10 +41,8 @@
   <script>
     (function(){
       function purge(){
-        document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el){
-          if(el.textContent.toLowerCase().includes('analytics')||(el.getAttribute('href')&&el.getAttribute('href').includes('analytics'))){
-            el.remove();
-          }
+        document.querySelectorAll('a[href*="analytics.html"]').forEach(function(el){
+          el.remove();
         });
       }
       purge();
@@ -65,13 +63,13 @@
       <div class="dashboard-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
         <div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <h1 style="margin:0;">Platform Overview</h1>
+            <h1 style="margin:0;">Platform Analytics</h1>
             <button id="btn-refresh-analytics" type="button" class="btn btn-outline btn-sm" title="Refresh analytics immediately" style="display:inline-flex; align-items:center; gap:6px; font-size:0.82rem; padding:6px 14px; border-radius:6px; cursor:pointer; font-weight:600; background:var(--white); border:1px solid var(--border);">
               <i data-lucide="refresh-cw" width="14" height="14" id="refresh-icon"></i>
               <span>Refresh</span>
             </button>
           </div>
-          <p style="margin:4px 0 0; color:var(--text-secondary); font-size:0.9rem;">Real-time overview of top workers, customer volume, and monthly revenue performance.</p>
+          <p style="margin:4px 0 0; color:var(--text-secondary); font-size:0.9rem;">Real-time analytics of top workers, customer volume, and monthly revenue performance.</p>
         </div>
         <div id="refresh-status-badge" style="display:inline-flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-secondary); background:var(--white); border:1px solid var(--border); padding:6px 14px; border-radius:20px;">
           <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;" id="refresh-live-dot"></span>

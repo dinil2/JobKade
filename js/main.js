@@ -9,10 +9,8 @@ if (typeof window !== 'undefined' && window.location.pathname.toLowerCase().incl
 
 function purgeAnalyticsLinks() {
   if (typeof document === 'undefined') return;
-  document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el) {
-    if (el.textContent.toLowerCase().includes('analytics') || (el.getAttribute('href') && el.getAttribute('href').includes('analytics'))) {
-      el.remove();
-    }
+  document.querySelectorAll('a[href*="analytics.html"]').forEach(function(el) {
+    el.remove();
   });
 }
 purgeAnalyticsLinks();
@@ -145,7 +143,7 @@ function isItemActive(item, currentPath, currentFile, role) {
     if (item.label === 'Messages') return currentFile === 'messages.html';
     if (item.label === 'My Profile') return currentFile === 'profile.html';
   } else if (role === 'admin') {
-    if (item.label === 'Overview') return ['dashboard.html', 'index.html', 'admin', ''].includes(currentFile);
+    if (item.label === 'Analytics') return ['dashboard.html', 'index.html', 'admin', ''].includes(currentFile);
     if (item.label === 'KYC Moderation') return ['kyc-moderation.html', 'verification.html'].includes(currentFile);
     if (item.label === 'Manage Workers') return currentFile === 'workers.html';
     if (item.label === 'Manage Customers') return currentFile === 'customers.html';
@@ -274,7 +272,7 @@ function renderSharedComponents(roleOverride) {
         { label: 'My Profile', icon: 'user', href: `${rootPath}customer/profile.html` }
       ],
       admin: [
-        { label: 'Overview', icon: 'layout-dashboard', href: `${adminPrefix}dashboard.html` },
+        { label: 'Analytics', icon: 'layout-dashboard', href: `${adminPrefix}dashboard.html` },
         { label: 'KYC Moderation', icon: 'shield-check', href: `${adminPrefix}kyc-moderation.html`, badge: 'pendingCounterBadge' },
         { label: 'Manage Workers', icon: 'users', href: `${adminPrefix}workers.html` },
         { label: 'Manage Customers', icon: 'user-check', href: `${adminPrefix}customers.html` },
@@ -285,7 +283,7 @@ function renderSharedComponents(roleOverride) {
     };
 
     const rawItems = roleMenus[role] || roleMenus.customer;
-    const items = rawItems.filter(item => !item.href?.includes('analytics') && !item.label?.toLowerCase().includes('analytics'));
+    const items = rawItems.filter(item => !item.href?.includes('analytics.html'));
     const linksHtml = items.map(item => {
       const active = isItemActive(item, currentPath, currentFile, role);
       const badgeHtml = item.badge ? ` <span class="badge badge-pending" id="${item.badge}" style="margin-left:auto;font-size:0.7rem;">0</span>` : '';

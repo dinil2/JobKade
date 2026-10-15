@@ -1,9 +1,7 @@
 function purgeAnalyticsLinks() {
   if (typeof document === 'undefined') return;
-  document.querySelectorAll('a[href*="analytics"], .sidebar-link').forEach(function(el) {
-    if (el.textContent.toLowerCase().includes('analytics') || (el.getAttribute('href') && el.getAttribute('href').includes('analytics'))) {
-      el.remove();
-    }
+  document.querySelectorAll('a[href*="analytics.html"]').forEach(function(el) {
+    el.remove();
   });
 }
 purgeAnalyticsLinks();
