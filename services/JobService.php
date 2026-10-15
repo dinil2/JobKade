@@ -271,6 +271,24 @@ class JobService {
                 error_log("Failed to send job-taken email to customer: " . $e->getMessage());
             }
 
+            // Send in-app notification to customer via NotificationService
+            try {
+                require_once __DIR__ . '/NotificationService.php';
+                $customerId = (int)($job['customer_id'] ?? 0);
+                if ($customerId > 0) {
+                    $jobTitle = $job['title'] ?? 'Job Request';
+                    $wName = !empty($workerName) ? $workerName : 'A verified worker';
+                    NotificationService::create(
+                        $customerId,
+                        "Job Accepted",
+                        "Your job '{$jobTitle}' has been accepted by {$wName}.",
+                        'job'
+                    );
+                }
+            } catch (Throwable $ne) {
+                error_log("Failed to send job-taken notification to customer: " . $ne->getMessage());
+            }
+
             return [
                 'status'  => 'success',
                 'message' => 'Job successfully assigned to you!'
@@ -567,6 +585,23 @@ class JobService {
             }
         } catch (Throwable $e) {
             error_log("Failed to send invoice-created email to customer: " . $e->getMessage());
+        }
+
+        // Dispatch in-app notification to customer via NotificationService
+        try {
+            require_once __DIR__ . '/NotificationService.php';
+            if ($customerId > 0) {
+                $jobTitle = $job['title'] ?? 'Job Request';
+                $formattedTotal = number_format($jobAmount, 2);
+                NotificationService::create(
+                    $customerId,
+                    "Invoice Created",
+                    "Invoice #{$invoiceId} for '{$jobTitle}' has been created. Total due: Rs. {$formattedTotal}.",
+                    'invoice'
+                );
+            }
+        } catch (Throwable $ne) {
+            error_log("Failed to send invoice-created notification to customer: " . $ne->getMessage());
         }
 
         $invoice = $invoiceRepo->getInvoiceById($invoiceId);

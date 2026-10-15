@@ -77,6 +77,30 @@ class SubscriptionController {
                 error_log("Failed to send subscription confirmation email: " . $ne->getMessage());
             }
 
+            // Send in-app notification for subscription purchase
+            try {
+                require_once __DIR__ . '/../services/NotificationService.php';
+                $workerUserId = (int)($user['user_id'] ?? $user['id'] ?? 0);
+                if ($workerUserId <= 0) {
+                    $pdo = Database::getConnection();
+                    $wStmt = $pdo->prepare("SELECT user_id FROM worker_profiles WHERE id = :wid LIMIT 1");
+                    $wStmt->execute([':wid' => (int)$user['worker_id']]);
+                    $workerUserId = (int)$wStmt->fetchColumn();
+                }
+                if ($workerUserId > 0) {
+                    $planName = $res['plan_name'] ?? 'Membership Plan';
+                    $amount = isset($res['amount']) ? number_format((float)$res['amount'], 2) : '1,000.00';
+                    NotificationService::create(
+                        $workerUserId,
+                        "Subscription Activated",
+                        "Your subscription to {$planName} (Rs. {$amount}) has been activated successfully.",
+                        'subscription'
+                    );
+                }
+            } catch (Throwable $ne) {
+                error_log("Failed to send subscription notification: " . $ne->getMessage());
+            }
+
             sendJsonResponse(200, [
                 'status'  => 'success',
                 'message' => 'Subscription payment processed successfully!',

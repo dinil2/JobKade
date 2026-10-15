@@ -57,6 +57,17 @@ class NotificationRepository {
         return $stmt->execute([':uid' => $userId]);
     }
 
+    // Mark a specific notification for a user as read.
+    public function markAsRead(int $id, int $userId): bool {
+        $stmt = $this->db->prepare("
+            UPDATE notifications
+            SET is_read = 1
+            WHERE id = :id AND user_id = :uid
+        ");
+        return $stmt->execute([':id' => $id, ':uid' => $userId]);
+    }
+
+
     // Count unread notifications for a user.
     public function getUnreadCount(int $userId): int {
         $stmt = $this->db->prepare("

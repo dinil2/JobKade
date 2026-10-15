@@ -219,6 +219,21 @@ function renderSharedComponents(roleOverride) {
             </a>
           </div>
           <div class="dashboard-nav-right">
+            <div class="notif-wrapper" id="notifWrapper">
+              <button class="notif-bell-btn" id="notifBellBtn" aria-label="Notifications" title="Notifications" type="button">
+                <i data-lucide="bell" width="20" height="20"></i>
+                <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+              </button>
+              <div class="notif-dropdown" id="notifDropdown" style="display: none;">
+                <div class="notif-header">
+                  <span class="notif-header-title">Notifications</span>
+                  <button class="notif-mark-all-btn" id="notifMarkAllBtn" type="button">Mark all as read</button>
+                </div>
+                <div class="notif-list" id="notifList">
+                  <div class="notif-loading">Loading notifications...</div>
+                </div>
+              </div>
+            </div>
             <a href="${profileHref}" style="text-decoration:none;" title="My Profile" id="navbarProfileLink">
               <div class="avatar avatar-nav ${avatarColor}" id="${role === 'admin' ? 'adminNavAvatar' : 'navAvatar'}">${avatarInnerHtml}</div>
             </a>
@@ -312,6 +327,7 @@ function renderSharedComponents(roleOverride) {
 
   // After the shared sidebar and navbar are rendered, check localStorage for jobkade_worker_avatar (fall back to the logged-in user's avatar field)
   updateSharedAvatars(rootPath, userInfo);
+  initNotifications(rootPath);
 }
 
 function updateSharedAvatars(rootPathOverride, userInfoOverride) {
@@ -370,6 +386,173 @@ function updateSharedUserUI(user) {
 window.renderSharedComponents = renderSharedComponents;
 window.updateSharedUserUI = updateSharedUserUI;
 window.updateSharedAvatars = updateSharedAvatars;
+
+function initNotifications(rootPathOverride) {
+  const bellBtn = document.getElementById('notifBellBtn');
+  const dropdown = document.getElementById('notifDropdown');
+  const markAllBtn = document.getElementById('notifMarkAllBtn');
+  const badge = document.getElementById('notifBadge');
+  const listEl = document.getElementById('notifList');
+  if (!bellBtn || !dropdown) return;
+
+  const token = (typeof getAuthToken === 'function') ? getAuthToken() : (localStorage.getItem('jobkade_token') || '');
+  if (!token) {
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+
+  function updateBadgeDisplay(count) {
+    if (!badge) return;
+    const num = parseInt(count, 10) || 0;
+    if (num > 0) {
+      badge.textContent = num > 99 ? '99+' : String(num);
+      badge.style.display = 'inline-block';
+    } else {
+      badge.textContent = '0';
+      badge.style.display = 'none';
+    }
+  }
+
+  async function fetchUnreadCount() {
+    try {
+      const res = await apiFetch('notifications.php?action=unread-count');
+      if (res && res.ok && res.data && typeof res.data.unread_count !== 'undefined') {
+        updateBadgeDisplay(res.data.unread_count);
+      }
+    } catch (e) {
+      // Non-blocking
+    }
+  }
+
+  function formatNotifTime(dateStr) {
+    if (!dateStr) return '';
+    try {
+      const parts = String(dateStr).split(/[- :]/);
+      if (parts.length < 3) return dateStr;
+      const d = new Date(parts[0], parts[1] - 1, parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0);
+      if (isNaN(d.getTime())) return dateStr;
+      const now = new Date();
+      const diffSec = Math.floor((now - d) / 1000);
+      if (diffSec < 60) return 'Just now';
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}h ago`;
+      const diffDays = Math.floor(diffHr / 24);
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  async function loadNotifications() {
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="notif-loading">Loading notifications...</div>';
+
+    try {
+      const res = await apiFetch('notifications.php?action=list');
+      if (res && res.ok && res.data && Array.isArray(res.data.notifications)) {
+        const items = res.data.notifications;
+        if (items.length === 0) {
+          listEl.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+        } else {
+          listEl.innerHTML = items.map(n => {
+            const isUnread = Number(n.is_read) === 0;
+            const timeStr = formatNotifTime(n.created_at);
+            return `
+              <div class="notif-item ${isUnread ? 'unread' : ''}" data-id="${escapeHtml(n.id)}">
+                <div class="notif-item-top">
+                  <div class="notif-item-title">
+                    ${isUnread ? '<span class="notif-unread-dot"></span>' : ''}
+                    <span>${escapeHtml(n.title)}</span>
+                  </div>
+                  <span class="notif-item-time">${escapeHtml(timeStr)}</span>
+                </div>
+                <div class="notif-item-msg">${escapeHtml(n.message)}</div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        // Opening the dropdown marks displayed notifications as read
+        const hasUnread = items.some(n => Number(n.is_read) === 0);
+        if (hasUnread) {
+          apiFetch('notifications.php?action=mark-read', {
+            method: 'POST',
+            body: JSON.stringify({ all: 1 })
+          }).then(() => {
+            updateBadgeDisplay(0);
+          }).catch(() => {});
+        } else {
+          updateBadgeDisplay(0);
+        }
+      } else {
+        listEl.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+      }
+    } catch (err) {
+      listEl.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+    }
+  }
+
+  // Toggle dropdown
+  bellBtn.onclick = (e) => {
+    e.stopPropagation();
+    const isClosed = (dropdown.style.display === 'none' || dropdown.style.display === '');
+    if (isClosed) {
+      dropdown.style.display = 'flex';
+      bellBtn.classList.add('active');
+      loadNotifications();
+    } else {
+      dropdown.style.display = 'none';
+      bellBtn.classList.remove('active');
+    }
+  };
+
+  // Mark all as read button
+  if (markAllBtn) {
+    markAllBtn.onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        await apiFetch('notifications.php?action=mark-read', {
+          method: 'POST',
+          body: JSON.stringify({ all: 1 })
+        });
+        updateBadgeDisplay(0);
+        if (listEl) {
+          listEl.querySelectorAll('.notif-item.unread').forEach(el => {
+            el.classList.remove('unread');
+            const dot = el.querySelector('.notif-unread-dot');
+            if (dot) dot.remove();
+          });
+        }
+      } catch (err) {}
+    };
+  }
+
+  // Close when clicking outside
+  if (!window.__jobkadeNotifDocClickHandler) {
+    window.__jobkadeNotifDocClickHandler = (e) => {
+      const activeDropdown = document.getElementById('notifDropdown');
+      const activeBellBtn = document.getElementById('notifBellBtn');
+      const activeWrapper = document.getElementById('notifWrapper');
+      if (activeWrapper && !activeWrapper.contains(e.target)) {
+        if (activeDropdown) activeDropdown.style.display = 'none';
+        if (activeBellBtn) activeBellBtn.classList.remove('active');
+      }
+    };
+    document.addEventListener('click', window.__jobkadeNotifDocClickHandler);
+  }
+
+  // Polling unread count every 30 seconds
+  fetchUnreadCount();
+  if (window.__jobkadeNotifInterval) {
+    clearInterval(window.__jobkadeNotifInterval);
+  }
+  window.__jobkadeNotifInterval = setInterval(fetchUnreadCount, 30000);
+}
+window.initNotifications = initNotifications;
 
 // ui component initializers
 

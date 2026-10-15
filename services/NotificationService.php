@@ -1,45 +1,39 @@
 <?php
 // services/NotificationService.php
 
-require_once __DIR__ . '/../repositories/NotificationRepository.php';
+require_once __DIR__ . '/../config/Database.php';
 
 class NotificationService {
-    private NotificationRepository $notifRepo;
-
-    public function __construct(?NotificationRepository $notifRepo = null) {
-        $this->notifRepo = $notifRepo ?? new NotificationRepository();
-    }
-
-    // Retrieve user notifications and unread count.
-    public function getUserNotifications(int $userId): array {
+    /**
+     * Create an in-app notification for a user.
+     * Failures are only logged, never breaking the main flow.
+     *
+     * @param int $userId
+     * @param string $title
+     * @param string $message
+     * @param string $type
+     * @return void
+     */
+    public static function create(int $userId, string $title, string $message, string $type = 'system'): void {
         if ($userId <= 0) {
-            throw new InvalidArgumentException("Invalid user ID.");
+            error_log("NotificationService::create skipped: Invalid user ID {$userId}");
+            return;
         }
 
-        $notifications = $this->notifRepo->getByUserId($userId);
-        $unreadCount = $this->notifRepo->getUnreadCount($userId);
-
-        return [
-            'notifications' => $notifications,
-            'unread_count'  => $unreadCount
-        ];
-    }
-
-    // Mark all notifications for a user as read.
-    public function markAllAsRead(int $userId): bool {
-        if ($userId <= 0) {
-            throw new InvalidArgumentException("Invalid user ID.");
+        try {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("
+                INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
+                VALUES (:uid, :title, :message, :type, 0, NOW())
+            ");
+            $stmt->execute([
+                ':uid'     => $userId,
+                ':title'   => mb_substr($title, 0, 150),
+                ':message' => $message,
+                ':type'    => mb_substr($type, 0, 50),
+            ]);
+        } catch (Throwable $e) {
+            error_log("NotificationService failure for user #{$userId} [Title: {$title}]: " . $e->getMessage());
         }
-
-        return $this->notifRepo->markAllAsRead($userId);
-    }
-
-    // Create a notification for a user.
-    public function createNotification(int $userId, string $title, string $message, string $type = 'system'): int {
-        if ($userId <= 0) {
-            throw new InvalidArgumentException("Invalid user ID.");
-        }
-
-        return $this->notifRepo->create($userId, $title, $message, $type, 0);
     }
 }

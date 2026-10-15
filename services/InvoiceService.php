@@ -315,6 +315,32 @@ class InvoiceService {
                     error_log("InvoiceService: Worker settlement email failed for invoice #{$invoiceId}: " . $e->getMessage());
                 }
             }
+
+            // In-app notifications for payment completion (notify customer AND worker)
+            try {
+                require_once __DIR__ . '/NotificationService.php';
+                $customerId = (int)($invoice['customer_id'] ?? 0);
+                if ($customerId > 0) {
+                    $formattedTotal = number_format($jobAmount, 2);
+                    NotificationService::create(
+                        $customerId,
+                        "Payment Completed",
+                        "Payment of Rs. {$formattedTotal} for invoice #{$invoiceId} ('{$jobTitle}') was successful.",
+                        'payment'
+                    );
+                }
+                if ($workerUserId > 0) {
+                    $formattedNet = number_format($workerNetAmount, 2);
+                    NotificationService::create(
+                        $workerUserId,
+                        "Payment Settled",
+                        "Payment settled for invoice #{$invoiceId} ('{$jobTitle}'). Net credited: Rs. {$formattedNet}.",
+                        'payment'
+                    );
+                }
+            } catch (Throwable $e) {
+                error_log("InvoiceService: Payment in-app notification failed for invoice #{$invoiceId}: " . $e->getMessage());
+            }
         } catch (Throwable $ex) {
             error_log("InvoiceService: sendPaymentReceiptEmails encountered an error: " . $ex->getMessage());
         }

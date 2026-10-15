@@ -318,6 +318,20 @@ class AuthService {
             } catch (Throwable $ne) {
                 error_log("Failed to send registration welcome email: " . $ne->getMessage());
             }
+
+            // Send registration welcome in-app notification via NotificationService
+            try {
+                require_once __DIR__ . '/NotificationService.php';
+                $roleTitle = ($role === 'worker') ? 'Service Professional' : 'Valued Customer';
+                NotificationService::create(
+                    (int)$userId,
+                    "Welcome to JobKade!",
+                    "Thank you for joining JobKade as a {$roleTitle}. Your account has been created successfully.",
+                    'welcome'
+                );
+            } catch (Throwable $ne) {
+                error_log("Failed to send registration welcome notification: " . $ne->getMessage());
+            }
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();

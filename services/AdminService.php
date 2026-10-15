@@ -103,6 +103,20 @@ class AdminService {
                 } catch (Throwable $e) {
                     error_log("Failed to send KYC rejection email: " . $e->getMessage());
                 }
+
+                // In-app notification for KYC document rejection
+                try {
+                    require_once __DIR__ . '/NotificationService.php';
+                    $reasonMsg = $notes ?: 'Document could not be verified. Please re-upload a clear copy.';
+                    NotificationService::create(
+                        $workerUserId,
+                        "KYC Document Rejected",
+                        "Your submitted KYC identity document could not be approved. Reason: {$reasonMsg}",
+                        'kyc'
+                    );
+                } catch (Throwable $ne) {
+                    error_log("Failed to send KYC rejection notification: " . $ne->getMessage());
+                }
             }
         }
 
@@ -180,6 +194,20 @@ class AdminService {
                     }
                 } catch (Throwable $e) {
                     error_log("Failed to dispatch worker packet KYC rejection email: " . $e->getMessage());
+                }
+
+                // In-app notification for worker packet KYC rejection
+                try {
+                    require_once __DIR__ . '/NotificationService.php';
+                    $reasonMsg = $notes ?: 'Documents could not be approved. Please review and re-submit.';
+                    NotificationService::create(
+                        $workerUserId,
+                        "KYC Verification Rejected",
+                        "Your verification packet was reviewed and rejected. Reason: {$reasonMsg}",
+                        'kyc'
+                    );
+                } catch (Throwable $ne) {
+                    error_log("Failed to send worker packet KYC rejection notification: " . $ne->getMessage());
                 }
             }
         }
