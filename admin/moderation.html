@@ -37,75 +37,21 @@
         <p>Review user reports, flagged reviews, and inappropriate content across the platform.</p>
       </div>
 
-      <div class="tabs" data-tabs>
-        <button class="tab active">Flagged Reviews (2)</button>
-        <button class="tab">User Reports (1)</button>
-        <button class="tab">Resolved (18)</button>
+      <div class="tabs" id="moderationTabs" style="display:flex; gap:8px; margin-bottom:20px;">
+        <button class="tab active" data-tab="pending" onclick="switchModerationTab('pending')">Pending (<span id="count-pending">0</span>)</button>
+        <button class="tab" data-tab="dismissed" onclick="switchModerationTab('dismissed')">Dismissed (<span id="count-dismissed">0</span>)</button>
+        <button class="tab" data-tab="resolved" onclick="switchModerationTab('resolved')">Resolved (<span id="count-resolved">0</span>)</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        <div class="report-card">
-          <div class="report-header">
-            <div>
-              <span class="badge badge-cancelled"><i data-lucide="flag" width="10" height="10"></i> Flagged Review</span>
-              <h3 style="margin-top:6px;">Reported Review on Worker "Kasun Perera"</h3>
-              <p class="text-sm text-secondary">Reported by User #4029 • Aug 14, 2026</p>
-            </div>
-            <span class="badge badge-pending">Under Review</span>
-          </div>
-
-          <div style="background:#F9FAFB;padding:14px;border-radius:8px;margin:12px 0;border-left:4px solid #EF4444;">
-            <strong style="display:block;margin-bottom:4px;font-size:0.875rem;">Flagged Review Content:</strong>
-            <p style="font-size:0.875rem;color:#4B5563;">"This worker was completely unhelpful and used abusive language when I called..."</p>
-          </div>
-
-          <p class="text-sm"><strong>Reason for report:</strong> Offensive or abusive language in review comment.</p>
-
-          <div class="report-actions">
-            <button class="btn btn-danger btn-sm remove-content-btn"><i data-lucide="trash-2" width="14" height="14"></i> Remove Content</button>
-            <button class="btn btn-outline btn-sm dismiss-report-btn"><i data-lucide="check" width="14" height="14"></i> Dismiss Report</button>
-          </div>
-        </div>
-
-        <div class="report-card">
-          <div class="report-header">
-            <div>
-              <span class="badge badge-cancelled"><i data-lucide="user-x" width="10" height="10"></i> User Report</span>
-              <h3 style="margin-top:6px;">Reported Profile "Fake Electrician Account"</h3>
-              <p class="text-sm text-secondary">Reported by User #1092 • Aug 11, 2026</p>
-            </div>
-            <span class="badge badge-pending">Under Review</span>
-          </div>
-
-          <div style="background:#F9FAFB;padding:14px;border-radius:8px;margin:12px 0;border-left:4px solid #F59E0B;">
-            <strong style="display:block;margin-bottom:4px;font-size:0.875rem;">Report Details:</strong>
-            <p style="font-size:0.875rem;color:#4B5563;">"Worker listing contains suspicious contact numbers and fake credentials."</p>
-          </div>
-
-          <p class="text-sm"><strong>Reason for report:</strong> Fraudulent or misrepresentative profile.</p>
-
-          <div class="report-actions">
-            <button class="btn btn-danger btn-sm remove-content-btn"><i data-lucide="user-x" width="14" height="14"></i> Suspend User</button>
-            <button class="btn btn-outline btn-sm dismiss-report-btn"><i data-lucide="check" width="14" height="14"></i> Dismiss Report</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Remove Content Modal -->
-      <div class="modal-overlay" id="remove-content-modal">
-        <div class="modal">
-          <div class="modal-header"><h3>Confirm Content Removal</h3><button class="modal-close"><i data-lucide="x" width="20" height="20"></i></button></div>
-          <div class="modal-body">
-            <div class="modal-confirm-icon danger"><i data-lucide="trash-2"></i></div>
-            <p class="text-center">Are you sure you want to remove this content? It will be permanently hidden from the platform.</p>
-          </div>
-          <div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal">Cancel</button><button class="btn btn-danger" id="confirm-remove-content">Remove Content</button></div>
+      <div id="reportsContainer" style="display:flex; flex-direction:column; gap:16px;">
+        <div style="text-align:center; padding:48px 16px; color:var(--text-muted); background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md);">
+          Loading reports...
         </div>
       </div>
     </main>
   </div>
 
-  <script src="../js/main.js?v=3"></script>
-  <script src="../js/admin.js?v=3"></script>
+  <script src="../js/main.js?v=8"></script>
+  <script src="../js/admin.js?v=8"></script>
 </body>
 </html>

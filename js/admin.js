@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initAdminJobs();
   }
 
+  if (document.getElementById('moderationTabs') || document.getElementById('reportsContainer')) {
+    initAdminModeration();
+  }
+
   // Worker Verification Modal Actions
   let activeWorkerRow = null;
 
@@ -85,30 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', () => openModal('nic-modal'));
   });
 
-  // Moderation Actions
-  document.querySelectorAll('.dismiss-report-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
-      const card = this.closest('.report-card');
-      if (card) {
-        card.style.opacity = '0.5';
-        card.style.pointerEvents = 'none';
-        showToast('Report dismissed.', 'info');
-      }
-    });
-  });
 
-  document.querySelectorAll('.remove-content-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
-      openModal('remove-content-modal');
-      window.activeReportCard = this.closest('.report-card');
-    });
-  });
-
-  document.getElementById('confirm-remove-content')?.addEventListener('click', () => {
-    closeModal('remove-content-modal');
-    showToast('Content removed successfully.', 'success');
-    if (window.activeReportCard) window.activeReportCard.remove();
-  });
 
   // Table Search Filtering
   document.querySelectorAll('.table-search').forEach(input => {
@@ -1836,5 +1817,262 @@ async function deleteJobRequest(jobId) {
 window.openJobDetailsModal = openJobDetailsModal;
 window.closeJobDetailsModal = closeJobDetailsModal;
 window.deleteJobRequest = deleteJobRequest;
+
+/* ==========================================
+   Content Moderation & Reports System
+   ========================================== */
+let adminReportsList = [];
+let currentModerationTab = 'pending';
+
+async function initAdminModeration() {
+  await loadModerationReports();
+}
+
+async function loadModerationReports() {
+  const container = document.getElementById('reportsContainer');
+  try {
+    const [countsRes, listRes] = await Promise.all([
+      apiFetch('reports.php?action=counts'),
+      apiFetch('reports.php?action=list')
+    ]);
+
+    if (countsRes.ok && countsRes.data?.counts) {
+      updateModerationTabCounts(countsRes.data.counts);
+    }
+
+    if (listRes.ok && Array.isArray(listRes.data?.reports)) {
+      adminReportsList = listRes.data.reports;
+    } else {
+      adminReportsList = [];
+    }
+
+    renderModerationCards();
+  } catch (err) {
+    console.error('Failed to load moderation reports:', err);
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:48px 16px; color:#ef4444; background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md);">
+          <p style="margin:0;">Failed to load moderation reports. Please refresh.</p>
+        </div>
+      `;
+    }
+  }
+}
+
+function updateModerationTabCounts(counts) {
+  const pCount = document.getElementById('count-pending');
+  const dCount = document.getElementById('count-dismissed');
+  const rCount = document.getElementById('count-resolved');
+
+  if (pCount) pCount.textContent = counts.pending ?? 0;
+  if (dCount) dCount.textContent = counts.dismissed ?? 0;
+  if (rCount) rCount.textContent = counts.resolved ?? 0;
+}
+
+function recalculateLocalCounts() {
+  const counts = {
+    pending: adminReportsList.filter(r => (r.status || '').toLowerCase() === 'pending').length,
+    dismissed: adminReportsList.filter(r => (r.status || '').toLowerCase() === 'dismissed').length,
+    resolved: adminReportsList.filter(r => (r.status || '').toLowerCase() === 'resolved').length
+  };
+  updateModerationTabCounts(counts);
+}
+
+function switchModerationTab(tabName) {
+  currentModerationTab = tabName;
+  const tabs = document.querySelectorAll('#moderationTabs .tab');
+  tabs.forEach(t => {
+    if (t.getAttribute('data-tab') === tabName) {
+      t.classList.add('active');
+    } else {
+      t.classList.remove('active');
+    }
+  });
+  renderModerationCards();
+}
+
+function renderModerationCards() {
+  const container = document.getElementById('reportsContainer');
+  if (!container) return;
+
+  const filtered = adminReportsList.filter(r => (r.status || '').toLowerCase() === currentModerationTab);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="text-align:center; padding:48px 16px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md);">
+        <p style="color:var(--text-muted); font-size:0.95rem; margin:0;">No reports here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(r => {
+    const isReview = (r.target_type === 'review');
+    const isPending = (r.status === 'pending');
+    const isResolved = (r.status === 'resolved');
+
+    const statusBadgeClass = isPending ? 'badge-pending' : (isResolved ? 'badge-verified' : 'badge-neutral');
+    const statusLabel = isPending ? 'Pending' : (isResolved ? 'Resolved' : 'Dismissed');
+
+    const typeBadgeClass = isReview ? 'badge-cancelled' : 'badge-warning';
+    const typeLabel = isReview ? 'Flagged Review' : 'Worker Profile Report';
+    const typeIcon = isReview ? 'flag' : 'user-x';
+
+    const targetTitle = escapeHtml(r.target_title || (isReview ? 'Reported Review' : 'Reported Worker'));
+    const reporterName = escapeHtml(r.reporter_name || ('User #' + r.reporter_id));
+    const createdDate = r.created_date || (r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recent');
+
+    const snippetHeader = isReview ? 'Flagged Review Content:' : 'Reported Worker Details:';
+    const snippetColor = isReview ? '#EF4444' : '#F59E0B';
+    const snippetText = escapeHtml(r.content_snippet || 'No content snippet available.');
+    const reasonText = escapeHtml(r.reason || 'Not specified');
+    const detailsText = r.details ? escapeHtml(r.details) : '';
+
+    return `
+      <div class="report-card" id="report-card-${r.id}" style="background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md); padding:20px; transition:var(--transition);">
+        <div class="report-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span class="badge ${typeBadgeClass}" style="display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:600; padding:3px 8px;">
+                <i data-lucide="${typeIcon}" width="12" height="12"></i> ${typeLabel}
+              </span>
+            </div>
+            <h3 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:var(--text-primary);">${targetTitle}</h3>
+            <p class="text-sm text-secondary" style="margin:0; font-size:0.8125rem; color:var(--text-muted);">
+              Reported by <strong>${reporterName}</strong> • ${createdDate}
+            </p>
+          </div>
+          <span class="badge ${statusBadgeClass}" style="font-weight:600; text-transform:capitalize; padding:4px 10px;">
+            ${statusLabel}
+          </span>
+        </div>
+
+        <div style="background:#F9FAFB; padding:12px 14px; border-radius:8px; margin:12px 0; border-left:4px solid ${snippetColor};">
+          <strong style="display:block; margin-bottom:4px; font-size:0.85rem; color:var(--text-primary);">${snippetHeader}</strong>
+          <p style="font-size:0.875rem; color:#4B5563; margin:0; line-height:1.5;">${snippetText}</p>
+        </div>
+
+        <div style="margin-bottom:12px; font-size:0.875rem; color:var(--text-primary);">
+          <p style="margin:0 0 4px;"><strong>Reason for report:</strong> ${reasonText}</p>
+          ${detailsText ? `<p style="margin:0; color:var(--text-secondary); font-size:0.825rem;"><strong>Additional details:</strong> ${detailsText}</p>` : ''}
+        </div>
+
+        ${isPending ? `
+          <div class="report-actions" style="display:flex; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid var(--border-light); flex-wrap:wrap;">
+            ${isReview ? `
+              <button type="button" class="btn btn-danger btn-sm" onclick="handleModerationResolve(${r.id}, 'remove')" style="background:#ef4444; border-color:#ef4444; color:#fff; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                <i data-lucide="trash-2" width="14" height="14"></i> Remove Review
+              </button>
+            ` : `
+              <button type="button" class="btn btn-danger btn-sm" onclick="handleModerationResolve(${r.id}, 'suspend')" style="background:#ef4444; border-color:#ef4444; color:#fff; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                <i data-lucide="user-x" width="14" height="14"></i> Suspend Worker
+              </button>
+            `}
+            <button type="button" class="btn btn-outline btn-sm" onclick="handleModerationDismiss(${r.id})" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <i data-lucide="check" width="14" height="14"></i> Dismiss Report
+            </button>
+          </div>
+        ` : (r.resolved_at ? `
+          <div style="font-size:0.8125rem; color:var(--text-muted); margin-top:12px; padding-top:8px; border-top:1px solid var(--border-light);">
+            ${isResolved ? 'Resolved' : 'Dismissed'} on ${new Date(r.resolved_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </div>
+        ` : '')}
+      </div>
+    `;
+  }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function handleModerationResolve(reportId, action) {
+  const report = adminReportsList.find(r => Number(r.id) === Number(reportId));
+  if (!report) return;
+
+  const isReview = (report.target_type === 'review');
+  const confirmMsg = isReview
+    ? 'Are you sure you want to permanently remove this review? This action cannot be undone.'
+    : 'Are you sure you want to suspend this worker account? The worker will be blocked from logging into the platform.';
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await apiFetch('reports.php?action=resolve', {
+      method: 'POST',
+      body: JSON.stringify({
+        report_id: reportId,
+        action: action
+      })
+    });
+
+    if (res.ok && res.data?.status === 'success') {
+      const successMsg = isReview
+        ? 'Review removed and report marked as resolved.'
+        : 'Worker account suspended and report marked as resolved.';
+      if (typeof showToast === 'function') {
+        showToast(successMsg, 'success');
+      } else {
+        alert(successMsg);
+      }
+
+      report.status = 'resolved';
+      report.resolved_at = new Date().toISOString();
+      if (isReview) {
+        report.content_snippet = '[This review was deleted or no longer exists in the database.]';
+      }
+
+      recalculateLocalCounts();
+      renderModerationCards();
+    } else {
+      const errMsg = res.data?.message || 'Failed to resolve report.';
+      if (typeof showToast === 'function') showToast(errMsg, 'error');
+      else alert(errMsg);
+    }
+  } catch (err) {
+    console.error('Moderation resolve error:', err);
+    if (typeof showToast === 'function') showToast('Network error while resolving report.', 'error');
+  }
+}
+
+async function handleModerationDismiss(reportId) {
+  const report = adminReportsList.find(r => Number(r.id) === Number(reportId));
+  if (!report) return;
+
+  if (!confirm('Are you sure you want to dismiss this report?')) return;
+
+  try {
+    const res = await apiFetch('reports.php?action=dismiss', {
+      method: 'POST',
+      body: JSON.stringify({
+        report_id: reportId
+      })
+    });
+
+    if (res.ok && res.data?.status === 'success') {
+      if (typeof showToast === 'function') {
+        showToast('Report dismissed successfully.', 'info');
+      } else {
+        alert('Report dismissed successfully.');
+      }
+
+      report.status = 'dismissed';
+      report.resolved_at = new Date().toISOString();
+
+      recalculateLocalCounts();
+      renderModerationCards();
+    } else {
+      const errMsg = res.data?.message || 'Failed to dismiss report.';
+      if (typeof showToast === 'function') showToast(errMsg, 'error');
+      else alert(errMsg);
+    }
+  } catch (err) {
+    console.error('Moderation dismiss error:', err);
+    if (typeof showToast === 'function') showToast('Network error while dismissing report.', 'error');
+  }
+}
+
+window.initAdminModeration = initAdminModeration;
+window.switchModerationTab = switchModerationTab;
+window.handleModerationResolve = handleModerationResolve;
+window.handleModerationDismiss = handleModerationDismiss;
 
 

@@ -309,6 +309,21 @@ CREATE TABLE IF NOT EXISTS `wallet_payout_requests` (
     CONSTRAINT `fk_payout_worker` FOREIGN KEY (`worker_id`) REFERENCES `worker_profiles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 19. Content Reporting & Moderation
+CREATE TABLE IF NOT EXISTS `reports` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `reporter_id` INT NOT NULL,
+    `target_type` ENUM('review','worker') NOT NULL,
+    `target_id` INT NOT NULL,
+    `reason` VARCHAR(255) NOT NULL,
+    `details` TEXT NULL,
+    `status` ENUM('pending','dismissed','resolved') NOT NULL DEFAULT 'pending',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at` DATETIME NULL,
+    CONSTRAINT `fk_report_reporter` FOREIGN KEY (`reporter_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    INDEX `idx_reports_status` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ==========================================================
 -- SEED DATA (Default Accounts, Categories & Subscription Plans)
 -- ==========================================================
