@@ -204,4 +204,26 @@ class AdminController {
         $this->promoRepo->moderate($promoId, $status);
         sendJsonResponse(200, ['status' => 'success', 'message' => "Promotion status updated to {$status}."]);
     }
+
+    public function workerSummary(): void {
+        $this->requireAdmin();
+        $id = (int)($_GET['id'] ?? $_GET['worker_id'] ?? $_GET['worker_profile_id'] ?? 0);
+        if ($id <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Missing or invalid worker profile ID.']);
+        }
+
+        try {
+            $summary = $this->adminService->getWorkerSummary($id);
+            sendJsonResponse(200, [
+                'status'  => 'success',
+                'summary' => $summary,
+                'data'    => $summary
+            ]);
+        } catch (InvalidArgumentException $e) {
+            sendJsonResponse(404, ['status' => 'error', 'message' => $e->getMessage()]);
+        } catch (Throwable $e) {
+            error_log("AdminController workerSummary error: " . $e->getMessage());
+            sendJsonResponse(500, ['status' => 'error', 'message' => 'An error occurred fetching worker summary.']);
+        }
+    }
 }

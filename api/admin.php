@@ -58,6 +58,10 @@ switch ($action) {
     case 'toggle-user':
         $controller->toggleUserStatus();
         break;
+    case 'worker-summary':
+    case 'worker_summary':
+        $controller->workerSummary();
+        break;
 
     // Financial & Subscriptions
     case 'payments':

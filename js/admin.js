@@ -1027,6 +1027,10 @@ function filterAndRenderWorkers() {
         <td>${subBadgeHtml}</td>
         <td>
           <div class="btn-group">
+            <button type="button" class="btn btn-outline btn-sm btn-view-worker" onclick="openWorkerSummaryModal(${w.id})" title="View Worker Details" style="display:inline-flex;align-items:center;gap:4px;">
+              <i data-lucide="eye" width="13" height="13"></i>
+              <span>View</span>
+            </button>
             <a href="../worker-profile.html?id=${w.id}" class="btn btn-outline btn-sm">View Profile</a>
             ${suspendBtn}
           </div>
@@ -1250,3 +1254,170 @@ function escapeJs(str) {
   if (!str) return '';
   return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
+
+/**
+ * Worker Summary Popup Modal (Manage Workers)
+ */
+async function openWorkerSummaryModal(workerId) {
+  const modal = document.getElementById('worker-summary-modal');
+  if (!modal) return;
+
+  const loadingEl = document.getElementById('wmodal-loading');
+  const contentEl = document.getElementById('wmodal-content');
+
+  // Show modal and loading state
+  modal.classList.add('active');
+  modal.style.display = 'flex';
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (contentEl) contentEl.style.display = 'none';
+
+  // Helper to safely set text content
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (text !== null && text !== undefined && String(text).trim() !== '') ? text : 'None';
+  };
+
+  // Safe default values so modal is never blank
+  setText('wmodal-name', 'Loading Worker...');
+  setText('wmodal-subtitle', `Worker ID: #${workerId}`);
+  setText('wmodal-total-earnings', 'Rs. 0.00');
+  setText('wmodal-monthly-earnings', 'Rs. 0.00');
+  setText('wmodal-jobs-completed', '0');
+  setText('wmodal-plan-name', 'None');
+  setText('wmodal-sub-total', 'Rs. 0.00');
+  setText('wmodal-sub-date', 'None');
+  setText('wmodal-category', 'None');
+  setText('wmodal-location', 'None');
+  setText('wmodal-rating', '5.0');
+  setText('wmodal-phone', 'None');
+
+  const subStatusEl = document.getElementById('wmodal-sub-status');
+  if (subStatusEl) {
+    subStatusEl.textContent = 'None';
+    subStatusEl.className = 'badge';
+    subStatusEl.style.background = '#e2e8f0';
+    subStatusEl.style.color = '#475569';
+  }
+
+  const verifyStatusEl = document.getElementById('wmodal-verify-status');
+  if (verifyStatusEl) {
+    verifyStatusEl.textContent = 'None';
+    verifyStatusEl.className = 'badge';
+    verifyStatusEl.style.background = '#e2e8f0';
+    verifyStatusEl.style.color = '#475569';
+  }
+
+  try {
+    // Fresh data on every open (no caching via timestamp query param)
+    const res = await apiFetch(`admin.php?action=worker-summary&id=${encodeURIComponent(workerId)}&_t=${Date.now()}`);
+    if (res.ok && res.data?.status === 'success' && res.data.data) {
+      const d = res.data.data;
+
+      // Header info
+      setText('wmodal-name', d.name || 'Unnamed Worker');
+      setText('wmodal-subtitle', d.email ? `${d.email} · ID #${d.profile_id || workerId}` : `Worker ID: #${workerId}`);
+
+      const avatarContainer = document.getElementById('wmodal-avatar-container');
+      if (avatarContainer) {
+        if (d.avatar) {
+          const avatarUrl = (typeof resolveAvatarUrl === 'function') ? resolveAvatarUrl(d.avatar, '../') : '../' + d.avatar;
+          avatarContainer.innerHTML = `<img src="${avatarUrl}" class="avatar avatar-md" style="object-fit:cover;border-radius:50%;width:44px;height:44px;" alt="${escapeHtml(d.name || '')}">`;
+        } else {
+          const nameParts = (d.name || 'WK').trim().split(/\s+/);
+          const initials = nameParts.length >= 2
+            ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+            : (nameParts[0] ? nameParts[0].substring(0, 2).toUpperCase() : 'WK');
+          avatarContainer.innerHTML = `<div class="avatar avatar-md avatar-blue" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-weight:700;border-radius:50%;">${initials}</div>`;
+        }
+      }
+
+      // 1. Earnings section (Rs. 0.00 / 0 fallbacks)
+      setText('wmodal-total-earnings', d.total_earnings_formatted || 'Rs. 0.00');
+      setText('wmodal-monthly-earnings', d.monthly_earnings_formatted || 'Rs. 0.00');
+      setText('wmodal-jobs-completed', String(d.jobs_completed !== undefined && d.jobs_completed !== null ? d.jobs_completed : 0));
+
+      // 2. Subscription section
+      setText('wmodal-plan-name', d.plan_name || 'None');
+      if (subStatusEl) {
+        const status = d.subscription_status || 'None';
+        subStatusEl.textContent = status;
+        if (status === 'Active') {
+          subStatusEl.className = 'badge badge-completed';
+          subStatusEl.style.background = '';
+          subStatusEl.style.color = '';
+        } else if (status === 'Expired') {
+          subStatusEl.className = 'badge badge-cancelled';
+          subStatusEl.style.background = '';
+          subStatusEl.style.color = '';
+        } else {
+          subStatusEl.className = 'badge';
+          subStatusEl.style.background = '#e2e8f0';
+          subStatusEl.style.color = '#475569';
+        }
+      }
+      setText('wmodal-sub-total', d.total_sub_paid_formatted || 'Rs. 0.00');
+      setText('wmodal-sub-date', d.last_payment_date || 'None');
+
+      // 3. Profile section
+      setText('wmodal-category', d.category || 'None');
+      setText('wmodal-location', d.location || d.district || 'None');
+      setText('wmodal-rating', d.rating && d.rating !== 'None' ? d.rating : '5.0');
+      
+      if (verifyStatusEl) {
+        const vStatus = (d.verification_status || 'None').toLowerCase();
+        verifyStatusEl.textContent = d.verification_status || 'None';
+        if (vStatus === 'verified') {
+          verifyStatusEl.className = 'badge badge-verified';
+          verifyStatusEl.style.background = '';
+          verifyStatusEl.style.color = '';
+        } else if (vStatus === 'pending') {
+          verifyStatusEl.className = 'badge badge-pending';
+          verifyStatusEl.style.background = '';
+          verifyStatusEl.style.color = '';
+        } else if (vStatus === 'suspended') {
+          verifyStatusEl.className = 'badge badge-cancelled';
+          verifyStatusEl.style.background = '';
+          verifyStatusEl.style.color = '';
+        } else {
+          verifyStatusEl.className = 'badge';
+          verifyStatusEl.style.background = '#f1f5f9';
+          verifyStatusEl.style.color = '#64748b';
+        }
+      }
+
+      setText('wmodal-phone', d.phone || 'None');
+    } else {
+      if (typeof showToast === 'function') {
+        showToast(res.data?.message || 'Could not load worker details.', 'warning');
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching worker summary:', err);
+    if (typeof showToast === 'function') {
+      showToast('Could not load complete worker details.', 'warning');
+    }
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+}
+
+function closeWorkerSummaryModal() {
+  const modal = document.getElementById('worker-summary-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+}
+
+window.openWorkerSummaryModal = openWorkerSummaryModal;
+window.closeWorkerSummaryModal = closeWorkerSummaryModal;
+
+// Close modal on Escape key press
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeWorkerSummaryModal();
+  }
+});
+

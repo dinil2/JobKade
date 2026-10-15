@@ -483,4 +483,273 @@ class AdminService {
             'recent_activity'      => $recentActivity,
         ];
     }
+
+    /**
+     * Retrieve complete worker summary for admin popup modal:
+     * - Earnings from job_invoices (paid only)
+     * - Subscription status from worker_subscriptions (latest by end_date)
+     * - Subscription totals from subscription_payments (status = 'completed')
+     * - Plan name from subscription_plans
+     * - Profile fields from worker_profiles & users
+     *
+     * @param int $workerProfileId
+     * @return array
+     */
+    public function getWorkerSummary(int $workerProfileId): array {
+        if ($workerProfileId <= 0) {
+            throw new InvalidArgumentException("Invalid worker profile ID.");
+        }
+
+        // 1. Fetch profile & user info
+        $stmt = $this->db->prepare("
+            SELECT wp.*, u.full_name, u.email, u.phone, u.profile_picture, u.status AS user_status, u.address AS user_address
+            FROM worker_profiles wp
+            JOIN users u ON u.id = wp.user_id
+            WHERE wp.id = :wid
+            LIMIT 1
+        ");
+        $stmt->execute([':wid' => $workerProfileId]);
+        $profile = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        // Fallback: check by user_id if not found by worker_profiles.id
+        if (!$profile) {
+            $stmt = $this->db->prepare("
+                SELECT wp.*, u.full_name, u.email, u.phone, u.profile_picture, u.status AS user_status, u.address AS user_address
+                FROM worker_profiles wp
+                JOIN users u ON u.id = wp.user_id
+                WHERE wp.user_id = :uid
+                LIMIT 1
+            ");
+            $stmt->execute([':uid' => $workerProfileId]);
+            $profile = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        // Fallback: check users table directly if user is worker without worker_profiles row
+        if (!$profile) {
+            $stmt = $this->db->prepare("
+                SELECT id AS user_id, full_name, email, phone, profile_picture, status AS user_status, address AS user_address, created_at
+                FROM users
+                WHERE id = :uid AND role = 'worker'
+                LIMIT 1
+            ");
+            $stmt->execute([':uid' => $workerProfileId]);
+            $u = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$u) {
+                throw new InvalidArgumentException("Worker not found.");
+            }
+            $profile = [
+                'id'              => 0,
+                'user_id'         => (int)$u['user_id'],
+                'full_name'       => $u['full_name'],
+                'email'           => $u['email'],
+                'phone'           => $u['phone'],
+                'profile_picture' => $u['profile_picture'],
+                'user_status'     => $u['user_status'],
+                'address'         => $u['user_address'] ?? 'Colombo',
+                'district'        => 'Colombo',
+                'is_verified'     => 0,
+                'verify_status'   => 'unverified',
+                'rating_avg'      => 5.0,
+                'reviews_count'   => 0,
+                'hourly_rate'     => 1000.00,
+                'created_at'      => $u['created_at']
+            ];
+        }
+
+        $wpId = (int)($profile['id'] ?? 0);
+        $userId = (int)($profile['user_id'] ?? 0);
+
+        // 2. Earnings from job_invoices (paid only)
+        $totalEarnings = 0.0;
+        $monthlyEarnings = 0.0;
+        $jobsCompleted = 0;
+
+        if ($wpId > 0) {
+            $earnStmt = $this->db->prepare("
+                SELECT 
+                    COALESCE(SUM(worker_net_amount), 0) AS total_earnings,
+                    COUNT(*) AS jobs_completed
+                FROM job_invoices
+                WHERE worker_id = :wid AND payment_status = 'paid'
+            ");
+            $earnStmt->execute([':wid' => $wpId]);
+            $earnData = $earnStmt->fetch(PDO::FETCH_ASSOC);
+            $totalEarnings = (float)($earnData['total_earnings'] ?? 0.0);
+            $jobsCompleted = (int)($earnData['jobs_completed'] ?? 0);
+
+            // Monthly earnings (current month, paid invoices)
+            $monthStmt = $this->db->prepare("
+                SELECT COALESCE(SUM(worker_net_amount), 0)
+                FROM job_invoices
+                WHERE worker_id = :wid 
+                  AND payment_status = 'paid'
+                  AND (
+                    (paid_at IS NOT NULL AND MONTH(paid_at) = MONTH(CURRENT_DATE()) AND YEAR(paid_at) = YEAR(CURRENT_DATE()))
+                    OR
+                    (paid_at IS NULL AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE()))
+                  )
+            ");
+            $monthStmt->execute([':wid' => $wpId]);
+            $monthlyEarnings = (float)$monthStmt->fetchColumn();
+        }
+
+        // 3. Subscription section
+        $planName = 'None';
+        $subStatus = 'None';
+        $totalSubPaid = 0.0;
+        $lastPaymentDate = null;
+
+        if ($wpId > 0) {
+            // Latest subscription from worker_subscriptions by end_date
+            $subStmt = $this->db->prepare("
+                SELECT ws.status, ws.start_date, ws.end_date, sp.name AS plan_name
+                FROM worker_subscriptions ws
+                LEFT JOIN subscription_plans sp ON sp.id = ws.plan_id
+                WHERE ws.worker_id = :wid
+                ORDER BY ws.end_date DESC, ws.id DESC
+                LIMIT 1
+            ");
+            $subStmt->execute([':wid' => $wpId]);
+            $subRow = $subStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($subRow) {
+                if (!empty($subRow['plan_name'])) {
+                    $planName = $subRow['plan_name'];
+                }
+                $rawStatus = strtolower(trim((string)$subRow['status']));
+                $endDate = $subRow['end_date'] ?? '';
+
+                if ($rawStatus === 'active' && (!empty($endDate) && $endDate >= date('Y-m-d'))) {
+                    $subStatus = 'Active';
+                } elseif (!empty($rawStatus)) {
+                    $subStatus = 'Expired';
+                } else {
+                    $subStatus = 'None';
+                }
+            }
+
+            // Fallback plan name from subscription_payments if worker_subscriptions was empty
+            if ($planName === 'None') {
+                $lastPlanStmt = $this->db->prepare("
+                    SELECT sp.name 
+                    FROM subscription_payments p 
+                    JOIN subscription_plans sp ON sp.id = p.plan_id 
+                    WHERE p.worker_id = :wid AND p.status = 'completed' 
+                    ORDER BY p.id DESC LIMIT 1
+                ");
+                $lastPlanStmt->execute([':wid' => $wpId]);
+                $lastPlan = $lastPlanStmt->fetchColumn();
+                if ($lastPlan) {
+                    $planName = $lastPlan;
+                }
+            }
+
+            // Subscription payments (status = 'completed')
+            $payStmt = $this->db->prepare("
+                SELECT 
+                    COALESCE(SUM(amount), 0) AS total_paid,
+                    MAX(created_at) AS last_payment_date
+                FROM subscription_payments
+                WHERE worker_id = :wid AND status = 'completed'
+            ");
+            $payStmt->execute([':wid' => $wpId]);
+            $payData = $payStmt->fetch(PDO::FETCH_ASSOC);
+            $totalSubPaid = (float)($payData['total_paid'] ?? 0.0);
+            $lastPaymentDate = !empty($payData['last_payment_date']) ? $payData['last_payment_date'] : null;
+        }
+
+        // Format last payment date
+        $lastPaymentFormatted = 'None';
+        if (!empty($lastPaymentDate)) {
+            $ts = strtotime($lastPaymentDate);
+            $lastPaymentFormatted = $ts ? date('M j, Y', $ts) : $lastPaymentDate;
+        }
+
+        // 4. Profile details: Category, Location/District, Rating, Verification, Phone
+        $category = 'None';
+        if ($wpId > 0) {
+            $catStmt = $this->db->prepare("
+                SELECT c.name
+                FROM worker_categories wc
+                JOIN categories c ON c.id = wc.category_id
+                WHERE wc.worker_id = :wid
+                ORDER BY wc.is_primary DESC, c.name ASC
+            ");
+            $catStmt->execute([':wid' => $wpId]);
+            $cats = $catStmt->fetchAll(PDO::FETCH_COLUMN);
+            if (!empty($cats)) {
+                $category = implode(', ', $cats);
+            } else {
+                $srvStmt = $this->db->prepare("
+                    SELECT c.name FROM worker_services ws
+                    JOIN categories c ON c.id = ws.category_id
+                    WHERE ws.worker_id = :wid
+                    LIMIT 1
+                ");
+                $srvStmt->execute([':wid' => $wpId]);
+                $srvCat = $srvStmt->fetchColumn();
+                if ($srvCat) {
+                    $category = $srvCat;
+                }
+            }
+        }
+
+        $district = !empty($profile['district']) ? trim((string)$profile['district']) : '';
+        $address = !empty($profile['address']) ? trim((string)$profile['address']) : (!empty($profile['user_address']) ? trim((string)$profile['user_address']) : '');
+        $location = 'None';
+        if ($district && $address && stripos($address, $district) === false) {
+            $location = "{$address}, {$district}";
+        } elseif ($district) {
+            $location = $district;
+        } elseif ($address) {
+            $location = $address;
+        }
+
+        $ratingVal = isset($profile['rating_avg']) && $profile['rating_avg'] !== null
+            ? number_format((float)$profile['rating_avg'], 1)
+            : '5.0';
+
+        $isSuspended = (($profile['user_status'] ?? '') === 'suspended');
+        if ($isSuspended) {
+            $verificationStatus = 'Suspended';
+        } elseif (!empty($profile['is_verified']) || ($profile['verify_status'] ?? '') === 'verified') {
+            $verificationStatus = 'Verified';
+        } elseif (($profile['verify_status'] ?? '') === 'pending') {
+            $verificationStatus = 'Pending';
+        } elseif (($profile['verify_status'] ?? '') === 'rejected') {
+            $verificationStatus = 'Rejected';
+        } else {
+            $verificationStatus = 'Unverified';
+        }
+
+        $phone = !empty($profile['phone']) ? trim((string)$profile['phone']) : 'None';
+
+        return [
+            'worker_id'                  => $wpId,
+            'user_id'                    => $userId,
+            'name'                       => !empty($profile['full_name']) ? $profile['full_name'] : 'Unnamed Worker',
+            'email'                      => !empty($profile['email']) ? $profile['email'] : 'None',
+            'phone'                      => $phone,
+            'avatar'                     => !empty($profile['profile_picture']) ? $profile['profile_picture'] : null,
+            'category'                   => $category ?: 'None',
+            'location'                   => $location ?: 'None',
+            'district'                   => $district ?: 'None',
+            'rating'                     => $ratingVal,
+            'reviews_count'              => (int)($profile['reviews_count'] ?? 0),
+            'verification_status'        => $verificationStatus,
+            // Earnings section
+            'total_earnings'             => $totalEarnings,
+            'total_earnings_formatted'   => 'Rs. ' . number_format($totalEarnings, 2),
+            'monthly_earnings'           => $monthlyEarnings,
+            'monthly_earnings_formatted' => 'Rs. ' . number_format($monthlyEarnings, 2),
+            'jobs_completed'             => $jobsCompleted,
+            // Subscription section
+            'plan_name'                  => $planName ?: 'None',
+            'subscription_status'        => $subStatus ?: 'None',
+            'total_sub_paid'             => $totalSubPaid,
+            'total_sub_paid_formatted'   => 'Rs. ' . number_format($totalSubPaid, 2),
+            'last_payment_date'          => $lastPaymentFormatted ?: 'None',
+        ];
+    }
 }
+
