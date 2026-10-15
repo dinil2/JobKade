@@ -264,55 +264,66 @@ class InvoiceService {
                 ? (float)$invoice['travelling_fee']
                 : null;
 
-            $emailService = new EmailService();
+            $emailsToSend = [];
 
             // Customer Email — Subject: JobKade: Payment Receipt - Invoice #[id]
             if (!empty($customerEmail)) {
-                try {
-                    $customerSubject = "JobKade: Payment Receipt - Invoice #{$invoiceId}";
-                    $customerHtml = $this->buildCustomerReceiptHtml([
-                        'invoice_id'     => $invoiceId,
-                        'job_title'      => $jobTitle,
-                        'worker_name'    => $workerName,
-                        'customer_name'  => $customerName,
-                        'job_amount'     => $jobAmount,
-                        'payment_method' => $paymentMethodLabel,
-                        'payment_date'   => $paymentDate,
-                        'hours_worked'   => $hoursWorked,
-                        'hourly_rate'    => $hourlyRate,
-                        'travelling_fee' => $travellingFee,
-                    ]);
+                $customerSubject = "JobKade: Payment Receipt - Invoice #{$invoiceId}";
+                $customerHtml = $this->buildCustomerReceiptHtml([
+                    'invoice_id'     => $invoiceId,
+                    'job_title'      => $jobTitle,
+                    'worker_name'    => $workerName,
+                    'customer_name'  => $customerName,
+                    'job_amount'     => $jobAmount,
+                    'payment_method' => $paymentMethodLabel,
+                    'payment_date'   => $paymentDate,
+                    'hours_worked'   => $hoursWorked,
+                    'hourly_rate'    => $hourlyRate,
+                    'travelling_fee' => $travellingFee,
+                ]);
 
-                    $emailService->send($customerEmail, $customerName, $customerSubject, $customerHtml);
-                } catch (Throwable $e) {
-                    error_log("InvoiceService: Customer receipt email failed for invoice #{$invoiceId}: " . $e->getMessage());
-                }
+                $emailsToSend[] = [
+                    'to'      => $customerEmail,
+                    'name'    => $customerName,
+                    'subject' => $customerSubject,
+                    'body'    => $customerHtml,
+                ];
             }
 
             // Worker Email — Subject: JobKade: Payment Settled - Invoice #[id]
             if (!empty($workerEmail)) {
-                try {
-                    $workerSubject = "JobKade: Payment Settled - Invoice #{$invoiceId}";
-                    $workerHtml = $this->buildWorkerSettlementHtml([
-                        'invoice_id'              => $invoiceId,
-                        'job_title'               => $jobTitle,
-                        'worker_name'             => $workerName,
-                        'customer_name'           => $customerName,
-                        'job_amount'              => $jobAmount,
-                        'commission_rate_percent' => $commissionRatePercent,
-                        'commission_amount'       => $commissionAmount,
-                        'worker_net_amount'       => $workerNetAmount,
-                        'payment_method'          => $paymentMethodLabel,
-                        'payment_method_raw'      => $cleanMethod,
-                        'payment_date'            => $paymentDate,
-                        'hours_worked'            => $hoursWorked,
-                        'hourly_rate'             => $hourlyRate,
-                        'travelling_fee'          => $travellingFee,
-                    ]);
+                $workerSubject = "JobKade: Payment Settled - Invoice #{$invoiceId}";
+                $workerHtml = $this->buildWorkerSettlementHtml([
+                    'invoice_id'              => $invoiceId,
+                    'job_title'               => $jobTitle,
+                    'worker_name'             => $workerName,
+                    'customer_name'           => $customerName,
+                    'job_amount'              => $jobAmount,
+                    'commission_rate_percent' => $commissionRatePercent,
+                    'commission_amount'       => $commissionAmount,
+                    'worker_net_amount'       => $workerNetAmount,
+                    'payment_method'          => $paymentMethodLabel,
+                    'payment_method_raw'      => $cleanMethod,
+                    'payment_date'            => $paymentDate,
+                    'hours_worked'            => $hoursWorked,
+                    'hourly_rate'             => $hourlyRate,
+                    'travelling_fee'          => $travellingFee,
+                ]);
 
-                    $emailService->send($workerEmail, $workerName, $workerSubject, $workerHtml);
+                $emailsToSend[] = [
+                    'to'      => $workerEmail,
+                    'name'    => $workerName,
+                    'subject' => $workerSubject,
+                    'body'    => $workerHtml,
+                ];
+            }
+
+            if (!empty($emailsToSend)) {
+                try {
+                    $emailService = new EmailService();
+                    $emailService->sendMultiple($emailsToSend);
                 } catch (Throwable $e) {
-                    error_log("InvoiceService: Worker settlement email failed for invoice #{$invoiceId}: " . $e->getMessage());
+                    error_log("InvoiceService: Payment receipt emails failed for invoice #{$invoiceId}: " . $e->getMessage());
                 }
             }
 
