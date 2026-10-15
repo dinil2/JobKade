@@ -289,6 +289,13 @@
         } catch (e) {}
       }
 
+      const viewButtonHtml = promo.worker_id
+        ? `<a href="../worker-profile.html?id=${encodeURIComponent(promo.worker_id)}" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
+              <span>View</span>
+              <i data-lucide="arrow-right" width="13" height="13"></i>
+            </a>`
+        : '';
+
       return `
         <div class="customer-promo-card">
           <div class="customer-promo-top">
@@ -318,10 +325,7 @@
               <i data-lucide="clock" width="14" height="14"></i>
               <span>Valid until: <strong>${escapeHtml(dateDisplay)}</strong></span>
             </div>
-            <a href="../workers.html" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
-              <span>Find & Book</span>
-              <i data-lucide="arrow-right" width="13" height="13"></i>
-            </a>
+            ${viewButtonHtml}
           </div>
         </div>
       `;
