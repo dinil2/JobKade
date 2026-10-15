@@ -58,6 +58,8 @@ tags:
     description: User Notifications & Alerts
   - name: Promotions
     description: Worker Deals & Promotional Discounts
+  - name: Reports
+    description: Content Reporting & Dispute Moderation for Reviews and Worker Profiles
   - name: Reviews
     description: Customer Reviews & Ratings
   - name: Subscriptions
@@ -190,13 +192,14 @@ paths:
 
   /register.php:
     post:
+      deprecated: true
       tags:
         - Auth
-      summary: Direct endpoint for user registration
+      summary: Direct endpoint for user registration (Deprecated)
       description: |
         **Allowed Role**: Public (No authentication required)
         
-        Direct alias routing directly to `AuthController::register()`.
+        *(Deprecated: Use `/auth.php?action=register` instead.)* Direct alias routing directly to `AuthController::register()`.
       requestBody:
         required: true
         content:
@@ -274,13 +277,14 @@ paths:
 
   /login.php:
     post:
+      deprecated: true
       tags:
         - Auth
-      summary: Direct endpoint for user login
+      summary: Direct endpoint for user login (Deprecated)
       description: |
         **Allowed Role**: Public (No authentication required)
         
-        Direct alias routing directly to `AuthController::login()`.
+        *(Deprecated: Use `/auth.php?action=login` instead.)* Direct alias routing directly to `AuthController::login()`.
       requestBody:
         required: true
         content:
@@ -939,6 +943,214 @@ paths:
         '403':
           $ref: '#/components/responses/403Forbidden'
 
+  /admin.php?action=worker-summary:
+    get:
+      tags:
+        - Admin
+      summary: Retrieve detailed worker financial & performance summary
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns a single unified snapshot for the worker details modal:
+        - **Earnings**: Total earnings, current month earnings, and completed jobs count.
+        - **Subscriptions**: Plan name, subscription status, total paid, and last payment date.
+        - **Profile**: Trade category, location/district, average rating, verification status, and contact phone.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Worker Profile ID (or User ID)
+          example: 1
+      responses:
+        '200':
+          description: Worker summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  summary:
+                    type: object
+                    properties:
+                      worker_id:
+                        type: integer
+                        example: 1
+                      user_id:
+                        type: integer
+                        example: 3
+                      name:
+                        type: string
+                        example: Sunil Perera
+                      phone:
+                        type: string
+                        example: "0751122334"
+                      category:
+                        type: string
+                        example: Electrician
+                      location:
+                        type: string
+                        example: Colombo 03, Western Province
+                      rating:
+                        type: string
+                        example: "4.9"
+                      verification_status:
+                        type: string
+                        example: Verified
+                      earnings:
+                        type: object
+                        properties:
+                          total:
+                            type: number
+                            example: 45000.00
+                          this_month:
+                            type: number
+                            example: 12500.00
+                          jobs_completed:
+                            type: integer
+                            example: 12
+                      subscription:
+                        type: object
+                        properties:
+                          plan_name:
+                            type: string
+                            example: Pro Monthly
+                          status:
+                            type: string
+                            example: Active
+                          total_paid:
+                            type: number
+                            example: 9000.00
+                          last_payment_date:
+                            type: string
+                            nullable: true
+                            example: "2026-10-01"
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /admin.php?action=jobs:
+    get:
+      tags:
+        - Admin
+      summary: Retrieve all platform job requests
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns all posted job requests newest first with customer names, categories, locations, dates, and lifecycle statuses.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Job requests list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        title:
+                          type: string
+                          example: Circuit breaker tripping in living room
+                        description:
+                          type: string
+                          example: Main trip switch goes off whenever the air conditioner starts.
+                        customer_name:
+                          type: string
+                          example: Dinil Sandaruwan
+                        customer_phone:
+                          type: string
+                          example: "0719876543"
+                        category_name:
+                          type: string
+                          example: Electrical
+                        district:
+                          type: string
+                          example: Colombo
+                        city:
+                          type: string
+                          example: Colombo 05
+                        address:
+                          type: string
+                          example: 78 Havelock Road, Colombo 05
+                        preferred_date:
+                          type: string
+                          example: "2026-10-20"
+                        start_time:
+                          type: string
+                          example: "12:30:00"
+                        end_time:
+                          type: string
+                          example: "14:30:00"
+                        status:
+                          type: string
+                          example: open
+                        created_at:
+                          type: string
+                          example: "2026-10-15 10:00:00"
+                  count:
+                    type: integer
+                    example: 1
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /admin.php?action=remove-job:
+    post:
+      tags:
+        - Admin
+      summary: Permanently delete a job request
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Deletes a job request along with associated invoices and applications via cascade.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - job_id
+              properties:
+                job_id:
+                  type: integer
+                  description: ID of the job request to delete
+                  example: 1
+      responses:
+        '200':
+          description: Job request removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
   # ==========================================
   # CATEGORIES
   # ==========================================
@@ -1027,7 +1239,7 @@ paths:
       description: |
         **Allowed Role**: Customer (Bearer token required)
         
-        Allows a customer to broadcast a household repair or maintenance request with geographic coordinates.
+        Allows a customer to broadcast a household repair or maintenance request with geographic coordinates, district, city, preferred date, and time window.
       security:
         - bearerAuth: []
       requestBody:
@@ -1403,6 +1615,22 @@ paths:
                   transaction_ref:
                     type: string
                     example: TXN-202610-8912
+                  hours_worked:
+                    type: number
+                    description: Total billable hours worked on the job
+                    example: 2.5
+                  travelling_fee:
+                    type: number
+                    description: Travelling fee included in invoice
+                    example: 500.00
+                  hourly_rate:
+                    type: number
+                    description: Agreed hourly labor rate
+                    example: 1200.00
+                  receipt_number:
+                    type: string
+                    description: Official digital payment receipt reference
+                    example: RCPT-202610-8912
         '400':
           $ref: '#/components/responses/400Error'
 
@@ -1787,6 +2015,127 @@ paths:
                   contact:
                     type: object
 
+  # ==========================================
+  # NOTIFICATIONS
+  # ==========================================
+  /notifications.php?action=list:
+    get:
+      tags:
+        - Notifications
+      summary: List user notifications
+      description: |
+        **Allowed Role**: Customer or Worker or Admin (Bearer token required)
+        
+        Returns the latest 20 notifications for the authenticated user, newest first, alongside unread count.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User notifications list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  notifications:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        title:
+                          type: string
+                          example: New Job Application
+                        message:
+                          type: string
+                          example: Sunil Perera submitted a quote for your electrical repair.
+                        type:
+                          type: string
+                          example: proposal
+                        is_read:
+                          type: integer
+                          enum: [0, 1]
+                          example: 0
+                        created_at:
+                          type: string
+                          example: "2026-10-15 12:00:00"
+                  unread_count:
+                    type: integer
+                    example: 2
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /notifications.php?action=unread-count:
+    get:
+      tags:
+        - Notifications
+      summary: Get unread notifications count
+      description: |
+        **Allowed Role**: Customer or Worker or Admin (Bearer token required)
+        
+        Returns the number of unread alerts for the navbar badge.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread notification count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  unread_count:
+                    type: integer
+                    example: 2
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /notifications.php?action=mark-read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark notifications as read
+      description: |
+        **Allowed Role**: Customer or Worker or Admin (Bearer token required)
+        
+        Marks a specific notification ID as read or marks all notifications for the user as read (`all=1`).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  description: Notification ID to mark as read
+                  example: 1
+                all:
+                  type: integer
+                  enum: [0, 1]
+                  description: Set to 1 to mark all notifications as read
+                  example: 1
+      responses:
+        '200':
+          description: Notification(s) marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
 
   # ==========================================
   # PROMOTIONS
@@ -2124,6 +2473,296 @@ paths:
                     example: 5
         '400':
           $ref: '#/components/responses/400Error'
+
+  # ==========================================
+  # REPORTS
+  # ==========================================
+  /reports.php?action=create:
+    post:
+      tags:
+        - Reports
+      summary: Submit a content or profile report
+      description: |
+        **Allowed Role**: Any logged-in user (Customer, Worker, Admin)
+        
+        Reports an offensive review or a suspicious/fraudulent worker profile for administrative moderation. Enforces single report per user per target.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_type
+                - target_id
+                - reason
+              properties:
+                target_type:
+                  type: string
+                  enum: [review, worker]
+                  description: Target entity type being reported
+                  example: review
+                target_id:
+                  type: integer
+                  description: ID of the review or worker profile
+                  example: 14
+                reason:
+                  type: string
+                  enum:
+                    - Offensive or abusive language
+                    - Fraudulent or misrepresentation
+                    - Spam or misleading content
+                    - Other
+                  example: Offensive or abusive language
+                details:
+                  type: string
+                  description: Optional contextual details
+                  example: The review comment contains abusive personal insults.
+      responses:
+        '201':
+          description: Report submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Report submitted. Our team will review it.
+                  report_id:
+                    type: integer
+                    example: 1
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /reports.php?action=list:
+    get:
+      tags:
+        - Reports
+      summary: List all content reports
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns all submitted reports newest first with reporter details and enriched target snippet. Accepts an optional status filter (`pending`, `dismissed`, `resolved`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, dismissed, resolved]
+          description: Filter reports by moderation status
+          example: pending
+      responses:
+        '200':
+          description: Reports list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  reports:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        reporter_id:
+                          type: integer
+                          example: 2
+                        reporter_name:
+                          type: string
+                          example: Dinil Sandaruwan
+                        reporter_email:
+                          type: string
+                          example: customer@gmail.com
+                        target_type:
+                          type: string
+                          enum: [review, worker]
+                          example: review
+                        target_id:
+                          type: integer
+                          example: 14
+                        reason:
+                          type: string
+                          example: Offensive or abusive language
+                        details:
+                          type: string
+                          example: Abusive language in review.
+                        status:
+                          type: string
+                          enum: [pending, dismissed, resolved]
+                          example: pending
+                        created_at:
+                          type: string
+                          example: "2026-10-15 14:30:00"
+                        created_date:
+                          type: string
+                          example: Oct 15, 2026
+                        resolved_at:
+                          type: string
+                          nullable: true
+                          example: null
+                        target_title:
+                          type: string
+                          example: Review on Sunil Perera
+                        content_snippet:
+                          type: string
+                          example: "\"This worker was rude...\""
+                        worker_name:
+                          type: string
+                          example: Sunil Perera
+                        worker_id:
+                          type: integer
+                          example: 1
+                        worker_user_id:
+                          type: integer
+                          example: 3
+                        review_id:
+                          type: integer
+                          nullable: true
+                          example: 14
+                  count:
+                    type: integer
+                    example: 1
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /reports.php?action=counts:
+    get:
+      tags:
+        - Reports
+      summary: Get moderation report counts by tab
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Returns counts for pending, dismissed, and resolved reports for the moderation tab counters.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Report counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  counts:
+                    type: object
+                    properties:
+                      pending:
+                        type: integer
+                        example: 3
+                      dismissed:
+                        type: integer
+                        example: 1
+                      resolved:
+                        type: integer
+                        example: 4
+                      total:
+                        type: integer
+                        example: 8
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /reports.php?action=dismiss:
+    post:
+      tags:
+        - Reports
+      summary: Dismiss a report
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Marks a report as dismissed without altering target content or user accounts.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - report_id
+              properties:
+                report_id:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: Report dismissed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /reports.php?action=resolve:
+    post:
+      tags:
+        - Reports
+      summary: Resolve a report with administrative action
+      description: |
+        **Allowed Role**: Admin (Bearer token required)
+        
+        Executes disciplinary resolution:
+        - `action='remove'` (Reviews): Permanently deletes the reported review row.
+        - `action='suspend'` (Workers): Suspends the worker's user account (`users.status='suspended'`), blocking future logins.
+        - `action='dismiss'`: Marks the report as dismissed.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - report_id
+                - action
+              properties:
+                report_id:
+                  type: integer
+                  example: 1
+                action:
+                  type: string
+                  enum: [remove, suspend, dismiss]
+                  example: remove
+      responses:
+        '200':
+          description: Disciplinary action applied and report marked resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
 
   # ==========================================
   # SUBSCRIPTIONS
@@ -2659,6 +3298,28 @@ paths:
                 address:
                   type: string
                   example: Colombo 03, Western Province
+                district:
+                  type: string
+                  description: Operating district
+                  example: Colombo
+                cities:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of cities/suburbs covered
+                  example: ["Colombo 03", "Kollupitiya", "Bambalapitiya"]
+                cover_all_cities:
+                  type: boolean
+                  description: Flag indicating worker covers all cities in the district
+                  example: false
+                hourly_rate:
+                  type: number
+                  description: Standard hourly service fee in LKR
+                  example: 1500.00
+                travelling_fee:
+                  type: number
+                  description: Travelling or call-out fee in LKR
+                  example: 600.00
       responses:
         '200':
           description: Profile updated
@@ -2673,13 +3334,14 @@ paths:
 
   /workers.php?action=add-service:
     post:
+      deprecated: true
       tags:
         - Workers
-      summary: Add a custom service offering
+      summary: Add a custom service offering (Deprecated)
       description: |
         **Allowed Role**: Worker (Bearer token required)
         
-        Creates a custom package in the worker portfolio with transparent pricing.
+        *(Deprecated: Individual service packages have been replaced with direct worker profile hourly rates and travel fees.)*
       security:
         - bearerAuth: []
       requestBody:
@@ -2772,13 +3434,14 @@ paths:
 
   /workers.php?action=delete-service:
     post:
+      deprecated: true
       tags:
         - Workers
-      summary: Delete a custom service listing
+      summary: Delete a custom service listing (Deprecated)
       description: |
         **Allowed Role**: Worker (Bearer token required)
         
-        Removes an existing service package from the worker's profile.
+        *(Deprecated: Individual service packages have been replaced with direct worker profile hourly rates and travel fees.)*
       security:
         - bearerAuth: []
       requestBody:
