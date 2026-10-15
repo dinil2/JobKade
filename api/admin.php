@@ -68,6 +68,16 @@ switch ($action) {
         $controller->allPayments();
         break;
 
+    // Job Management
+    case 'jobs':
+        $controller->allJobs();
+        break;
+    case 'remove-job':
+    case 'remove_job':
+    case 'delete-job':
+        $controller->removeJob();
+        break;
+
     // Promotions Moderation
     case 'promos':
         $controller->pendingPromotions();

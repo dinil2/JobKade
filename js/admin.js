@@ -37,6 +37,10 @@ document.addEventListener('DOMContentLoaded', function () {
     initManageCustomers();
   }
 
+  if (document.getElementById('admin-jobs-tbody')) {
+    initAdminJobs();
+  }
+
   // Worker Verification Modal Actions
   let activeWorkerRow = null;
 
@@ -1544,7 +1548,293 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeWorkerSummaryModal();
+    closeJobDetailsModal();
   }
 });
+
+/**
+ * Job Requests Management (admin/jobs.html)
+ */
+let adminJobsList = [];
+
+function initAdminJobs() {
+  const searchInput = document.getElementById('job-search-input');
+  const statusFilter = document.getElementById('job-status-filter');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', () => filterAndRenderJobs());
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', () => filterAndRenderJobs());
+  }
+
+  loadAdminJobs();
+}
+
+async function loadAdminJobs() {
+  const tbody = document.getElementById('admin-jobs-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr>
+    <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+        <i data-lucide="loader" width="18" height="18" class="spin"></i>
+        <span>Loading job requests...</span>
+      </div>
+    </td>
+  </tr>`;
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  try {
+    const res = await apiFetch(`admin.php?action=jobs&_t=${Date.now()}`);
+    if (res.ok && res.data?.status === 'success') {
+      const rawJobs = res.data.jobs || res.data.data || [];
+      adminJobsList = Array.isArray(rawJobs) ? rawJobs : [];
+      filterAndRenderJobs();
+    } else {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">No job requests found.</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error loading jobs:', err);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">No job requests found.</td></tr>`;
+  }
+}
+
+function filterAndRenderJobs() {
+  const tbody = document.getElementById('admin-jobs-tbody');
+  if (!tbody) return;
+
+  const searchInput = document.getElementById('job-search-input');
+  const statusFilter = document.getElementById('job-status-filter');
+
+  const q = (searchInput?.value || '').toLowerCase().trim();
+  const rawStatus = (statusFilter?.value || '').toLowerCase().trim().replace(/[\s_-]+/g, '');
+
+  const filtered = adminJobsList.filter(job => {
+    // 1. Search filter: job title or customer name
+    if (q) {
+      const title = (job.title || '').toLowerCase();
+      const customer = (job.customer_name || '').toLowerCase();
+      if (!title.includes(q) && !customer.includes(q)) {
+        return false;
+      }
+    }
+
+    // 2. Status filter
+    if (rawStatus && rawStatus !== 'all' && rawStatus !== 'allstatuses') {
+      const jobStatus = (job.status || '').toLowerCase().replace(/[\s_-]+/g, '');
+      if (jobStatus !== rawStatus) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">No job requests found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(job => renderJobTableRow(job)).join('');
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function renderJobTableRow(job) {
+  const id = job.id;
+  const title = job.title || 'Untitled Job';
+  const descSnippet = job.description
+    ? (job.description.length > 55 ? job.description.substring(0, 52) + '...' : job.description)
+    : '';
+  const customer = job.customer_name || 'Customer';
+  const category = job.category_name || 'General';
+
+  // Location display: District / City / Address
+  const locParts = [job.city, job.district].filter(Boolean);
+  const locationDisplay = locParts.length ? locParts.join(', ') : (job.address || 'Colombo');
+
+  // Posted date formatted
+  const postedDate = formatJobDate(job.created_at);
+
+  // Status badge
+  const normStatus = (job.status || 'open').toLowerCase();
+  let badgeHtml = '';
+  if (normStatus === 'open') {
+    badgeHtml = '<span class="badge badge-open">Open</span>';
+  } else if (normStatus === 'in_progress' || normStatus === 'inprogress') {
+    badgeHtml = '<span class="badge badge-progress">In Progress</span>';
+  } else if (normStatus === 'completed') {
+    badgeHtml = '<span class="badge badge-completed">Completed</span>';
+  } else if (normStatus === 'cancelled') {
+    badgeHtml = '<span class="badge badge-cancelled">Cancelled</span>';
+  } else {
+    badgeHtml = `<span class="badge">${escapeHtml(job.status || 'Open')}</span>`;
+  }
+
+  return `
+    <tr id="job-row-${id}">
+      <td>
+        <strong>${escapeHtml(title)}</strong>
+        ${descSnippet ? `<br><span class="text-sm text-secondary">${escapeHtml(descSnippet)}</span>` : ''}
+      </td>
+      <td>${escapeHtml(customer)}</td>
+      <td>${escapeHtml(category)}</td>
+      <td>${escapeHtml(locationDisplay)}</td>
+      <td>${escapeHtml(postedDate)}</td>
+      <td>${badgeHtml}</td>
+      <td>
+        <div class="btn-group">
+          <button type="button" class="btn btn-outline btn-sm" onclick="openJobDetailsModal(${id})">View</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="deleteJobRequest(${id})">Remove</button>
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function formatJobDate(dateStr) {
+  if (!dateStr) return 'N/A';
+  try {
+    const d = new Date(dateStr.replace(' ', 'T'));
+    return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+function formatJobTime(timeStr) {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hour = parseInt(parts[0], 10);
+  const min = parts[1];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${min} ${ampm}`;
+}
+
+function formatPreferredDateTime(job) {
+  if (!job.preferred_date && !job.start_time) return 'Not specified / Flexible';
+  let datePart = '';
+  if (job.preferred_date) {
+    try {
+      const d = new Date(job.preferred_date + 'T00:00:00');
+      datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) {
+      datePart = job.preferred_date;
+    }
+  }
+  let timePart = '';
+  if (job.start_time) {
+    timePart = formatJobTime(job.start_time);
+    if (job.end_time) {
+      timePart += ' - ' + formatJobTime(job.end_time);
+    }
+  }
+  if (datePart && timePart) return `${datePart} (${timePart})`;
+  return datePart || timePart || 'Not specified / Flexible';
+}
+
+function openJobDetailsModal(jobId) {
+  const job = adminJobsList.find(j => Number(j.id) === Number(jobId));
+  if (!job) {
+    if (typeof showToast === 'function') showToast('Job details not found.', 'error');
+    return;
+  }
+
+  const modal = document.getElementById('job-details-modal');
+  if (!modal) return;
+
+  const setText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (val !== null && val !== undefined && String(val).trim() !== '') ? val : '-';
+  };
+
+  setText('jmodal-id-subtitle', `Job ID: #${job.id}`);
+  setText('jmodal-job-title', job.title || 'Untitled Job');
+  setText('jmodal-description', job.description || 'No description provided.');
+  setText('jmodal-customer', job.customer_name || 'Unknown Customer');
+  setText('jmodal-category', job.category_name || 'General');
+
+  // District / City
+  const dcParts = [job.city, job.district].filter(Boolean);
+  setText('jmodal-district-city', dcParts.length ? dcParts.join(', ') : (job.district || job.city || 'None'));
+
+  // Location Address
+  setText('jmodal-location', job.address || 'None');
+
+  // Preferred Date/Time
+  setText('jmodal-datetime', formatPreferredDateTime(job));
+
+  // Posted Date
+  setText('jmodal-posted-date', formatJobDate(job.created_at));
+
+  // Status Badge
+  const statusBadge = document.getElementById('jmodal-status-badge');
+  if (statusBadge) {
+    const norm = (job.status || 'open').toLowerCase();
+    if (norm === 'open') {
+      statusBadge.className = 'badge badge-open';
+      statusBadge.textContent = 'Open';
+    } else if (norm === 'in_progress' || norm === 'inprogress') {
+      statusBadge.className = 'badge badge-progress';
+      statusBadge.textContent = 'In Progress';
+    } else if (norm === 'completed') {
+      statusBadge.className = 'badge badge-completed';
+      statusBadge.textContent = 'Completed';
+    } else if (norm === 'cancelled') {
+      statusBadge.className = 'badge badge-cancelled';
+      statusBadge.textContent = 'Cancelled';
+    } else {
+      statusBadge.className = 'badge';
+      statusBadge.textContent = job.status || 'Open';
+    }
+  }
+
+  modal.classList.add('active');
+  modal.style.display = 'flex';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function closeJobDetailsModal() {
+  const modal = document.getElementById('job-details-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+}
+
+async function deleteJobRequest(jobId) {
+  if (!confirm('Delete this job request permanently?')) return;
+
+  try {
+    const res = await apiFetch('admin.php?action=remove-job', {
+      method: 'POST',
+      body: JSON.stringify({ job_id: jobId })
+    });
+
+    if (res.ok && res.data?.status === 'success') {
+      if (typeof showToast === 'function') {
+        showToast('Job request removed successfully.', 'success');
+      }
+      adminJobsList = adminJobsList.filter(j => Number(j.id) !== Number(jobId));
+      filterAndRenderJobs();
+    } else {
+      if (typeof showToast === 'function') {
+        showToast(res.data?.message || 'Failed to remove job request.', 'error');
+      }
+    }
+  } catch (err) {
+    console.error('Error removing job:', err);
+    if (typeof showToast === 'function') {
+      showToast(`Error: ${err.message}`, 'error');
+    }
+  }
+}
+
+window.openJobDetailsModal = openJobDetailsModal;
+window.closeJobDetailsModal = closeJobDetailsModal;
+window.deleteJobRequest = deleteJobRequest;
 
 

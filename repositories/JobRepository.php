@@ -210,10 +210,37 @@ class JobRepository {
         $stmt = $this->db->query("
             SELECT jr.*, c.name AS category_name, u.full_name AS customer_name
             FROM job_requests jr
-            JOIN categories c ON jr.category_id = c.id
-            JOIN users u ON jr.customer_id = u.id
+            LEFT JOIN categories c ON jr.category_id = c.id
+            LEFT JOIN users u ON jr.customer_id = u.id
             ORDER BY jr.created_at DESC
         ");
-        return $stmt->fetchAll();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function deleteJob(int $jobId): bool {
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Delete associated invoices
+            $stmt = $this->db->prepare("DELETE FROM job_invoices WHERE job_id = :id");
+            $stmt->execute([':id' => $jobId]);
+
+            // 2. Delete associated job applications / quotes
+            $stmt = $this->db->prepare("DELETE FROM job_applications WHERE job_id = :id");
+            $stmt->execute([':id' => $jobId]);
+
+            // 3. Delete the job request itself
+            $stmt = $this->db->prepare("DELETE FROM job_requests WHERE id = :id");
+            $stmt->execute([':id' => $jobId]);
+            $count = $stmt->rowCount();
+
+            $this->db->commit();
+            return $count > 0;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 }

@@ -41,11 +41,14 @@
         <div class="table-header">
           <div class="search-bar-small">
             <i data-lucide="search" width="16" height="16"></i>
-            <input type="text" class="table-search" placeholder="Search job title or customer..." aria-label="Search">
+            <input type="text" id="job-search-input" class="table-search" placeholder="Search job title or customer..." aria-label="Search">
           </div>
-          <select class="form-select" style="width:160px;" aria-label="Filter status">
+          <select class="form-select" id="job-status-filter" style="width:160px;" aria-label="Filter status">
             <option value="">All Statuses</option>
-            <option>Open</option><option>In Progress</option><option>Completed</option><option>Cancelled</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
         <div class="table-wrapper">
@@ -61,60 +64,12 @@
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="admin-jobs-tbody">
               <tr>
-                <td><strong>AC Repair Needed</strong><br><span class="text-sm text-secondary">Indoor unit leaking water</span></td>
-                <td>Dinil Sandaruwan</td>
-                <td>AC Repair</td>
-                <td>Colombo 05</td>
-                <td>Aug 14, 2026</td>
-                <td><span class="badge badge-open">Open</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm" onclick="showToast('Viewing request details...','info')">View</button>
-                    <button class="btn btn-danger btn-sm" onclick="showToast('Job request removed by admin.','info')">Remove</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td><strong>Kitchen Sink Leak</strong><br><span class="text-sm text-secondary">Pipe connection leak</span></td>
-                <td>Dinil Sandaruwan</td>
-                <td>Plumbing</td>
-                <td>Dehiwala</td>
-                <td>Aug 13, 2026</td>
-                <td><span class="badge badge-progress">In Progress</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm" onclick="showToast('Viewing request details...','info')">View</button>
-                    <button class="btn btn-danger btn-sm" onclick="showToast('Job request removed by admin.','info')">Remove</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td><strong>Ceiling Fan Installation</strong><br><span class="text-sm text-secondary">Install 2 ceiling fans</span></td>
-                <td>Malini Rajapaksha</td>
-                <td>Electrical</td>
-                <td>Colombo 06</td>
-                <td>Aug 09, 2026</td>
-                <td><span class="badge badge-completed">Completed</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm" onclick="showToast('Viewing request details...','info')">View</button>
-                    <button class="btn btn-danger btn-sm" onclick="showToast('Job request removed by admin.','info')">Remove</button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td><strong>Living Room Wall Painting</strong><br><span class="text-sm text-secondary">400 sq ft walls</span></td>
-                <td>Priyantha Wijesinghe</td>
-                <td>Painting</td>
-                <td>Nugegoda</td>
-                <td>Aug 14, 2026</td>
-                <td><span class="badge badge-open">Open</span></td>
-                <td>
-                  <div class="btn-group">
-                    <button class="btn btn-outline btn-sm" onclick="showToast('Viewing request details...','info')">View</button>
-                    <button class="btn btn-danger btn-sm" onclick="showToast('Job request removed by admin.','info')">Remove</button>
+                <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">
+                  <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i data-lucide="loader" width="18" height="18" class="spin"></i>
+                    <span>Loading job requests...</span>
                   </div>
                 </td>
               </tr>
@@ -125,7 +80,69 @@
     </main>
   </div>
 
-  <script src="../js/main.js?v=3"></script>
-  <script src="../js/admin.js?v=3"></script>
+  <!-- Job Details Modal -->
+  <div class="modal-overlay" id="job-details-modal" role="dialog" aria-modal="true" aria-labelledby="jmodal-header-title" onclick="if(event.target===this)closeJobDetailsModal()" style="z-index:2050;">
+    <div class="modal" style="max-width:560px; width:100%; border-radius:12px; overflow:hidden; background:#ffffff; box-shadow:0 20px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1); margin:auto;">
+      <div class="modal-header" style="padding:16px 20px; border-bottom:1px solid var(--border, #e2e8f0); display:flex; align-items:center; justify-content:space-between; background:#f8fafc;">
+        <div>
+          <h3 id="jmodal-header-title" style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary, #0f172a);">Job Request Details</h3>
+          <span id="jmodal-id-subtitle" style="font-size:0.8rem; color:var(--text-secondary, #64748b);">Job ID: -</span>
+        </div>
+        <button type="button" class="btn-close modal-close" id="jmodal-close-btn" onclick="closeJobDetailsModal()" data-dismiss="modal" aria-label="Close" style="background:none; border:none; color:#64748b; font-size:1.5rem; cursor:pointer; line-height:1; padding:4px 8px; border-radius:6px;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding:20px; max-height:calc(85vh - 120px); overflow-y:auto;">
+        <!-- Title & Status -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px;">
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; display:block; margin-bottom:2px;">Job Title</span>
+            <h2 id="jmodal-job-title" style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-primary, #0f172a);">-</h2>
+          </div>
+          <span id="jmodal-status-badge" class="badge">Open</span>
+        </div>
+
+        <!-- Description -->
+        <div style="margin-bottom:18px;">
+          <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; font-weight:700; color:#64748b; display:block; margin-bottom:4px;">Description</span>
+          <div id="jmodal-description" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; font-size:0.88rem; color:#334155; line-height:1.5; white-space:pre-wrap;">No description provided.</div>
+        </div>
+
+        <!-- Details Grid -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Customer</span>
+            <strong id="jmodal-customer" style="font-size:0.88rem; color:#1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Category</span>
+            <strong id="jmodal-category" style="font-size:0.88rem; color:#1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">District / City</span>
+            <strong id="jmodal-district-city" style="font-size:0.88rem; color:#1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Location Address</span>
+            <strong id="jmodal-location" style="font-size:0.88rem; color:#1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Preferred Date / Time</span>
+            <strong id="jmodal-datetime" style="font-size:0.88rem; color:#1e293b;">-</strong>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:#64748b; display:block; margin-bottom:2px;">Posted Date</span>
+            <strong id="jmodal-posted-date" style="font-size:0.88rem; color:#1e293b;">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding:12px 20px; border-top:1px solid var(--border, #e2e8f0); display:flex; justify-content:flex-end; background:#f8fafc;">
+        <button type="button" class="btn btn-secondary btn-sm modal-close" onclick="closeJobDetailsModal()" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/main.js?v=7"></script>
+  <script src="../js/admin.js?v=7"></script>
 </body>
 </html>

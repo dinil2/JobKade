@@ -226,4 +226,42 @@ class AdminController {
             sendJsonResponse(500, ['status' => 'error', 'message' => 'An error occurred fetching worker summary.']);
         }
     }
+
+    public function allJobs(): void {
+        $this->requireAdmin();
+        try {
+            $jobs = $this->jobRepo->getAllJobs();
+            sendJsonResponse(200, [
+                'status' => 'success',
+                'jobs'   => $jobs,
+                'data'   => $jobs,
+                'count'  => count($jobs)
+            ]);
+        } catch (Throwable $e) {
+            error_log("AdminController allJobs error: " . $e->getMessage());
+            sendJsonResponse(500, ['status' => 'error', 'message' => 'Failed to fetch job requests.']);
+        }
+    }
+
+    public function removeJob(): void {
+        $this->requireAdmin();
+        $data = getRequestData();
+        $jobId = (int)($data['job_id'] ?? $data['id'] ?? $_POST['job_id'] ?? $_GET['job_id'] ?? 0);
+
+        if ($jobId <= 0) {
+            sendJsonResponse(400, ['status' => 'error', 'message' => 'Valid job_id required.']);
+        }
+
+        try {
+            $deleted = $this->jobRepo->deleteJob($jobId);
+            if ($deleted) {
+                sendJsonResponse(200, ['status' => 'success', 'message' => 'Job request removed successfully.']);
+            } else {
+                sendJsonResponse(404, ['status' => 'error', 'message' => 'Job request not found or already deleted.']);
+            }
+        } catch (Throwable $e) {
+            error_log("AdminController removeJob error: " . $e->getMessage());
+            sendJsonResponse(500, ['status' => 'error', 'message' => 'Failed to remove job request.']);
+        }
+    }
 }
