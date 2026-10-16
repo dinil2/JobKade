@@ -266,10 +266,10 @@ class ReportController {
                     SELECT wp.id AS profile_id, wp.user_id, u.id AS direct_user_id
                     FROM worker_profiles wp
                     JOIN users u ON wp.user_id = u.id
-                    WHERE wp.id = :tid OR wp.user_id = :tid
+                    WHERE wp.id = :tid1 OR wp.user_id = :tid2
                     LIMIT 1
                 ");
-                $wStmt->execute([':tid' => $targetId]);
+                $wStmt->execute([':tid1' => $targetId, ':tid2' => $targetId]);
                 $wRow = $wStmt->fetch(PDO::FETCH_ASSOC);
 
                 $targetUserId = 0;
@@ -352,10 +352,10 @@ class ReportController {
                        (SELECT c.name FROM worker_categories wc JOIN categories c ON wc.category_id = c.id WHERE wc.worker_id = wp.id ORDER BY wc.is_primary DESC LIMIT 1) AS category_name
                 FROM worker_profiles wp
                 JOIN users u ON wp.user_id = u.id
-                WHERE wp.id = :wid OR wp.user_id = :wid
+                WHERE wp.id = :wid1 OR wp.user_id = :wid2
                 LIMIT 1
             ");
-            $wStmt->execute([':wid' => $targetId]);
+            $wStmt->execute([':wid1' => $targetId, ':wid2' => $targetId]);
             $w = $wStmt->fetch(PDO::FETCH_ASSOC);
 
             if ($w) {

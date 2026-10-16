@@ -1829,6 +1829,8 @@ async function initAdminModeration() {
 }
 
 async function loadModerationReports() {
+  if (window._moderationLoaded) return;
+  window._moderationLoaded = true;
   const container = document.getElementById('reportsContainer');
   try {
     const [countsRes, listRes] = await Promise.all([
@@ -1915,7 +1917,7 @@ function renderModerationCards() {
     const statusLabel = isPending ? 'Pending' : (isResolved ? 'Resolved' : 'Dismissed');
 
     const typeBadgeClass = isReview ? 'badge-cancelled' : 'badge-warning';
-    const typeLabel = isReview ? 'Flagged Review' : 'Worker Profile Report';
+    const typeLabel = isReview ? 'Review' : 'Worker';
     const typeIcon = isReview ? 'flag' : 'user-x';
 
     const targetTitle = escapeHtml(r.target_title || (isReview ? 'Reported Review' : 'Reported Worker'));

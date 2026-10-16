@@ -751,7 +751,10 @@ function getApiBaseUrl() {
 
 async function apiFetch(endpoint, options = {}) {
   const baseUrl = getApiBaseUrl();
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+  if (cleanEndpoint.startsWith('api/')) {
+    cleanEndpoint = cleanEndpoint.substring(4);
+  }
   const url = endpoint.startsWith('http') ? endpoint : (baseUrl + cleanEndpoint);
 
   const headers = Object.assign({}, options.headers || {});
